@@ -144,9 +144,9 @@ $facturan = 0;
 	}
 </style>	
 <img style="width:230px; text-align:center;" src="assets/img/logo_avasa.png">
-<h6 style="margin-top:-50px;">“Y aunque tu principio haya sido pequeño,
+<h6 style="margin-top:0px;">“Y aunque tu principio haya sido pequeño,
 Tu postrer estado será muy grande”</h6>
-<h6 style="text-align:right margin-top:-20px;">Job 8: 7</h6>
+<h6 style="text-align:right; margin-top:-20px;">Job 8: 7</h6>
 <h5 style="text-align:center;"><b>NOTA VENTA Nº <?= $id ?></b></h5>
 			<h6>FECHA: <?php echo $fechita; ?><br>CLIENTE: <?php echo $clsn; ?>	
 			</h6>
