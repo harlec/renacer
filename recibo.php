@@ -142,8 +142,11 @@ $facturan = 0;
 		margin-right: 0.4cm;
 		margin-top: 0.4cm;
 	}
-</style>	<h5 style="text-align:center;"><b>NOTA VENTA Nº <?= $id ?></b>
-			</h5>
+</style>	
+<img src="assets/img/logo_avasa.png">
+<h5>“Y aunque tu principio haya sido pequeño,
+Tu postrer estado será muy grande”<br>Job 8: 7</h5>
+<h5 style="text-align:center;"><b>NOTA VENTA Nº <?= $id ?></b></h5>
 			<h5 style="text-align:center;">Grupo "Avasa"<br>Distribuidora RENACER<br>Jr. Parchitea Mz. A lt. 09 - Santa</h5>
 			<h6>FECHA: <?php echo $fechita; ?><br>CLIENTE: <?php echo $clsn; ?>	
 			</h6>
@@ -173,12 +176,15 @@ $facturan = 0;
 							
 						</tr>
 						<tr>
-							<td colspan="2"><B>DESPACHADO: __________________________</td>
+							<td colspan="2"><B>PERSONAL ENTREGA: __________________________</td>
 							
 						</tr>
 		    	</tbody>
 		    </table>
-		    <h6 style="text-align:center;">MAS JEHOVÁ ESTA CONMIGO COMO PODEROSO GIGANTE(Jer. 20:11)</h6>
+		    <h6 style="text-align:center;">DIOS TE BENDIGA<br>
+					GRACIAS POR TU PREFERENCIA<br>
+					Todo reclamo deberá realizarse dentro de los
+					13 días posteriores a la emisión de la boleta.</h6>
 
 <?php
 use Dompdf\Dompdf;
