@@ -34,7 +34,7 @@ $facturan = 0;
 
 
 
-	$fechita = date("d-m-Y", strtotime($venta_l['fecha'])); 
+	$fechita = date("d-m-Y H:i:s", strtotime($venta_l['fecha_ope'])); 
 	
 	$ventas = Sdba::table('detalle_ventas'); // creating table object
 	$ventas->where('venta', $id);
@@ -115,8 +115,8 @@ $facturan = 0;
 
 		$tot = $tot + $key['total'];
 		$mostrar_de_venta .= '<tr>
-								<td>'.$mostrar_f.$key['nom_prod'].'</td>
-								<td style="text-align: right;"  > '.number_format($key["total"],2,'.',',').'</td>
+								<td><h6>'.$mostrar_f.$key['nom_prod'].'</h6></td>
+								<td style="text-align: right;"  ><h6> '.number_format($key["total"],2,'.',',').'</h6></td>
 							</tr>';
 		$i++;
 	}
