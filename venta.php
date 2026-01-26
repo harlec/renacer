@@ -34,7 +34,8 @@ foreach ($variantes_p_l as $value) {
     			<td style="text-transform:uppercase;" class="nom_prod">'.$value['codigo_producto'].' '.$value['nom_prod'].' '.$marcan.'</td>
     			<td style="text-transform:uppercase;" class="unidad"><input type="hidden" class="id_vp" value="'.$value['id_vp'].'">'.'<input type="hidden" class="cantidad_vp" value="'.$value['cantidad_vp'].'">'.$value['variante'].'('.$value['cantidad_vp'].')</td>
     			<td class="stock">'.$stocktt.'</td>
-    			<td class="precio_venta">'.$precio_final.'</td>  
+				<td>'.$value['precio_vp'].'</td>
+    			<td style="display:none;" class="precio_venta">'.$precio_final.'</td>  
     			<td><button id="agregar" value="'.$value['id_producto'].'" class="btn btn-lg btn-success"> + </button></td>
     		  </tr>';
     $i++;
