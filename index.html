@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<title>Sistema - Renacer</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/custom.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/sweetalert.css">
+</head>
+<body class="login">
+	<div class="container">
+		<div class="row">
+			<div class="col-md-4 col-sm-3"></div>
+			<div class="col-md-4 col-sm-6">
+				<div class="login-content">
+					<div class="cont-logo text-center" >
+						<img class="img-reponsive logo" src="assets/img/harlec-sistema.png">
+						<!-- <h2>Grupo<br><strong>AVASA</strong></h2> -->
+					</div>
+					<form id="login" style="width:85%; margin:0 auto;">
+						<div class="form-group">
+							<input type="text" placeholder="Usuario" class="form-control" name="usuario" id="usuario" required>
+						</div>
+						<div class="form-group">
+							<input type="password" placeholder="clave" class="form-control" name="pass" id="pass" required>
+						</div>
+						<div class="form-group">
+							<button style="width:100%" id="btn-login" data-loading-text="Ingresando..." class="btn btn-lg btn-pri">Ingresar</button>
+						</div>
+					</form>
+				</div>
+				
+			</div>
+			<div class="col-md-4 col-sm-3"></div>
+		</div>
+	</div>
+	
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+
+	<script src="assets/js/bootstrap.min.js"></script>
+	<script src="assets/js/jquery.validate.min.js"></script>
+	<script src="assets/js/sweetalert.min.js"></script>
+	<script >
+		//$("#login").validate();
+		$(document).ready(function() {
+			$("#login").validate({
+				submitHandler: function(){
+
+					var str = $('#login').serialize();
+					
+					$.ajax({
+						beforeSend:function(){
+							$('#loader').show()
+						},
+						cache: false,
+						type: 'POST',
+						dataType: 'json',
+						url: '/inc/loginJs.php',
+						data: str,
+						success: function(response){
+							var $btn = $('#btn-login').button('loading');
+
+							// swal(
+							//   'Excelente!',
+							//   response.mensaje,
+							//   'success'
+							// );
+
+							if(response.respuesta == false){
+								$btn.button('reset');
+								swal('Advertencia',response.mensaje,'warning');
+								$('#loader').hide();
+							}else{
+
+								//swal('Excelente!',response.mensaje,'success');
+
+								document.location.href= 'dashboard.php';
+
+							}
+							
+						},
+						error: function(){
+							swal('Advertencia','Error General del Sistema','warning');
+						}
+
+					});
+
+					return false;
+
+				},
+				errorPlacement: function(){
+
+				}
+			});
+		    console.log( "ready!" );
+		});
+	</script>
+</body>
+</html>
