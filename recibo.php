@@ -160,20 +160,20 @@ $facturan = 0;
 						<?php echo $mostrar_de_venta; ?>
 
 						<tr>
-							<td style="text-align: right;" colspan="2" class="text-right" ><h4>TOTAL: S/</h4></td>
+							<td style="text-align: right;" class="text-right" ><h4>TOTAL: S/</h4></td>
 							<td style="padding-left:8px;text-align: right;" class=""><h4><?php echo number_format($tot,2,'.',','); ?></h4>
 							</td>
 						</tr>
 						<tr>
-							<td colspan="3"><B>IMPORTE EN LETRAS: </B><?php echo $letras;?></td>
+							<td colspan="2"><B>IMPORTE EN LETRAS: </B><?php echo $letras;?></td>
 
 						</tr>
 						<tr>
-							<td colspan="3"><B>VENDEDOR: </B><?php echo $vendedor;?></td>
+							<td colspan="2"><B>VENDEDOR: </B><?php echo $vendedor;?></td>
 							
 						</tr>
 						<tr>
-							<td colspan="3"><B>DESPACHADO: __________________________</td>
+							<td colspan="2"><B>DESPACHADO: __________________________</td>
 							
 						</tr>
 		    	</tbody>
