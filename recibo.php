@@ -143,9 +143,9 @@ $facturan = 0;
 		margin-top: 0.4cm;
 	}
 </style>	
-<img style="width:200px; text-align:center;" src="assets/img/logo_avasa.png">
-<h5>“Y aunque tu principio haya sido pequeño,
-Tu postrer estado será muy grande”<br>Job 8: 7</h5>
+<img style="width:230px; text-align:center;" src="assets/img/logo_avasa.png">
+<h6>“Y aunque tu principio haya sido pequeño,
+Tu postrer estado será muy grande”<br><span style="text-align:right">Job 8: 7</span></h6>
 <h5 style="text-align:center;"><b>NOTA VENTA Nº <?= $id ?></b></h5>
 			<h5 style="text-align:center;">Grupo "Avasa"<br>Distribuidora RENACER<br>Jr. Parchitea Mz. A lt. 09 - Santa</h5>
 			<h6>FECHA: <?php echo $fechita; ?><br>CLIENTE: <?php echo $clsn; ?>	
