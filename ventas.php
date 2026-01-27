@@ -62,11 +62,12 @@ foreach ($ventas_list as $value) {
     			<td>'.$value['fecha'].'</td> 
     			<td>'.$total_dventa.'</td> 
     			<td>'.$comprobante.'</td> 
-    			<td><a title="Ver venta" class="btn btn-primary" title="ver" href="ver_venta.php?id='.$value['id_venta'].'"><i class="fas fa-eye"></i></a><a class="btn btn-success '.$ocultar.'" href="factura.php?id='.$value['id_venta'].'" title="factura electrónica"><i class="fas fa-file-invoice-dollar"></i></a><a class="btn btn-danger '.$ocultar.'" href="boleta.php?id='.$value['id_venta'].'" title="boleta electrónica"><i class="fab fa-bitcoin"></i></a><button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td> 
+    			<td><a title="Ver venta" class="btn btn-primary" title="ver" href="ver_venta.php?id='.$value['id_venta'].'"><i class="fas fa-eye"></i></a><button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td> 
     		  </tr>';
     $i++;
 }
 
+    			//<td><a title="Ver venta" class="btn btn-primary" title="ver" href="ver_venta.php?id='.$value['id_venta'].'"><i class="fas fa-eye"></i></a><a class="btn btn-success '.$ocultar.'" href="factura.php?id='.$value['id_venta'].'" title="factura electrónica"><i class="fas fa-file-invoice-dollar"></i></a><a class="btn btn-danger '.$ocultar.'" href="boleta.php?id='.$value['id_venta'].'" title="boleta electrónica"><i class="fab fa-bitcoin"></i></a><button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td> 
 
 ?>
 
