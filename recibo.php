@@ -164,7 +164,7 @@ Tu postrer estado será muy grande”</h6>
 
 						<tr>
 							<td style="text-align: right;" class="text-right" ><h4>TOTAL: S/</h4></td>
-							<td style="padding-left:8px;text-align: right;" class=""><h4><?php echo number_format($tot,2,'.',','); ?></h4>
+							<td style="padding-left:8px;text-align: right; font-size:12px;" class=""><h4><?php echo number_format($tot,2,'.',','); ?></h4>
 							</td>
 						</tr>
 						<tr>
