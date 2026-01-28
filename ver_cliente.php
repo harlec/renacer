@@ -21,7 +21,7 @@ foreach ($ventas_list as $value) {
 	elseif ($value['tipo']=='2') {
 		$tipo = 'Credito';
 	}
-	$fechita = date("d-m-Y H:i:s", strtotime($value['fecha']));
+	$fechita = date("d-m-Y H:i:s", strtotime($value['fecha_ope']));
 	$t .='<tr>
 			<td>'.$value['id_venta'].'</td>
 			<td>'.$fechita.'</td>
