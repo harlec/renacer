@@ -11,6 +11,7 @@ $id = $_GET['id'];
 //obtnemos los datos del producto
 $ventas = Sdba::table('ventas'); // creating table object
 $ventas->where('cliente', $id);
+//$ventas->left_join('clientes','clientes','id_cliente');
 $ventas_list = $ventas->get();
 $t = '';
 $tipo = '';

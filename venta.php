@@ -26,6 +26,7 @@ foreach ($variantes_p_l as $value) {
 	$ventas->where('id_marca',$value['marca']);
 	$ventas_l = $ventas->get_one();
 
+
 	$stocktt = $value['stockp']/$value['cantidad_vp'];
 	$marcan = $ventas_l['marca'];
 	$precio_final = $value['precio_vp']/$value['cantidad_vp'];
