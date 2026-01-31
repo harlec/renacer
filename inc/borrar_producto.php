@@ -10,22 +10,21 @@ $respuestaOk = false;
 $mensajeError = 'hasta aca bien';
 //$usuario = $_SESSION['id_usr'];
 
-//if (isset($_POST) && !empty($_POST)) {
 	$id = $_GET['id'];
 	$respuestaOk = true;
-	//guardamos en tabla ventas
-			
-			$ventas = Sdba::table('productos');
-			$ventas->where('id_producto', $id);
-			$ventas->delete();
-			
-				$respuestaOk = true;
-				$mensajeError = 'entro';
 
+	// Eliminar variantes asociadas en variante_p para evitar variantes huérfanas
+	$varp = Sdba::table('variante_p');
+	$varp->where('id_producto', $id);
+	$varp->delete();
 
-		
+	// Ahora eliminar el producto
+	$ventas = Sdba::table('productos');
+	$ventas->where('id_producto', $id);
+	$ventas->delete();
 
-//}		
+	$respuestaOk = true;
+	$mensajeError = 'producto y variantes (si existían) eliminados';
 
 		$salidaJson = array('respuesta' => $respuestaOk,
 							'mensaje' => $mensajeError);
