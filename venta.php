@@ -14,8 +14,8 @@ include('inc/sdba/sdba.php'); // include main file
 
 $variantes_p = Sdba::table('variante_p');
 $variantes_p->left_join('variante_vp','variantes','id_variante');
-$variantes_p->inner_join('producto_vp','productos','id_producto');
-$variantes_p->inner_join('producto_vp','marca','id_marca');
+$variantes_p->left_join('producto_vp','productos','id_producto');
+$variantes_p->left_join('producto_vp','marca','id_marca');
 $variantes_p_l = $variantes_p->get();
 
 $datos = '';
