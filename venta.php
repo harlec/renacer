@@ -131,7 +131,7 @@ foreach ($el as $value) {
 	      <div class="submenu">
 	      	<ul class="subtop-tabs">
 	      		<li class="active">
-	      			<a href="venta.php">Registrar venta 6</a>
+	      			<a href="venta.php">Registrar venta 2</a>
 	      		</li>
 	      		<li >
 	      			<a href="ventas.php">Listar ventas</a>
