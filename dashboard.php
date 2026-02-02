@@ -9,56 +9,42 @@ $usuario_id = $_SESSION['id_usr'];
 $es_admin = ($_SESSION['type'] == 'admin');
 
 // VENTAS DEL DÍA
-$ventas_dia = Sdba::table('ventas');
-$ventas_dia->where('DATE(fecha)', $hoy, false, true);
+$query_ventas_dia = "SELECT COUNT(*) as total FROM ventas WHERE DATE(fecha) = '$hoy' AND estado != '2'";
 if (!$es_admin) {
-    $ventas_dia->and_where('usuario', $usuario_id);
+    $query_ventas_dia .= " AND usuario = '$usuario_id'";
 }
-$ventas_dia->and_where('estado !=', '2');
-$total_ventas_dia = $ventas_dia->total();
+$result_dia = Sdba::db()->query($query_ventas_dia)->row();
+$total_ventas_dia = $result_dia['total'];
 
 // Monto del día
-$ventas_dia_monto = Sdba::table('detalle_ventas');
-$ventas_dia_monto->left_join('venta', 'ventas', 'id_venta');
-$ventas_dia_monto->where('DATE(ventas.fecha)', $hoy, 'ventas', true);
+$query_monto_dia = "SELECT SUM(detalle_ventas.total) as monto FROM detalle_ventas 
+LEFT JOIN ventas ON detalle_ventas.venta = ventas.id_venta 
+WHERE DATE(ventas.fecha) = '$hoy' AND ventas.estado != '2'";
 if (!$es_admin) {
-    $ventas_dia_monto->and_where('usuario', $usuario_id, 'ventas');
+    $query_monto_dia .= " AND ventas.usuario = '$usuario_id'";
 }
-$ventas_dia_monto->and_where('estado !=', '2', 'ventas');
-$monto_dia = $ventas_dia_monto->sum('total') ?: 0;
+$result_monto_dia = Sdba::db()->query($query_monto_dia)->row();
+$monto_dia = $result_monto_dia['monto'] ?: 0;
 
 // VENTAS DEL MES
-$ventas_mes = Sdba::table('ventas');
-$ventas_mes->where('DATE_FORMAT(fecha, "%Y-%m")', $mes_actual, false, true);
+$query_ventas_mes = "SELECT COUNT(*) as total FROM ventas WHERE DATE_FORMAT(fecha, '%Y-%m') = '$mes_actual' AND estado != '2'";
 if (!$es_admin) {
-    $ventas_mes->and_where('usuario', $usuario_id);
+    $query_ventas_mes .= " AND usuario = '$usuario_id'";
 }
-$ventas_mes->and_where('estado !=', '2');
-$total_ventas_mes = $ventas_mes->total();
+$result_mes = Sdba::db()->query($query_ventas_mes)->row();
+$total_ventas_mes = $result_mes['total'];
 
 // Monto del mes
-$ventas_mes_monto = Sdba::table('detalle_ventas');
-$ventas_mes_monto->left_join('venta', 'ventas', 'id_venta');
-$ventas_mes_monto->where('DATE_FORMAT(ventas.fecha, "%Y-%m")', $mes_actual, 'ventas', true);
+$query_monto_mes = "SELECT SUM(detalle_ventas.total) as monto FROM detalle_ventas 
+LEFT JOIN ventas ON detalle_ventas.venta = ventas.id_venta 
+WHERE DATE_FORMAT(ventas.fecha, '%Y-%m') = '$mes_actual' AND ventas.estado != '2'";
 if (!$es_admin) {
-    $ventas_mes_monto->and_where('usuario', $usuario_id, 'ventas');
+    $query_monto_mes .= " AND ventas.usuario = '$usuario_id'";
 }
-$ventas_mes_monto->and_where('estado !=', '2', 'ventas');
-$monto_mes = $ventas_mes_monto->sum('total') ?: 0;
+$result_monto_mes = Sdba::db()->query($query_monto_mes)->row();
+$monto_mes = $result_monto_mes['monto'] ?: 0;
 
 // PRODUCTOS MÁS VENDIDOS (Top 5 del mes)
-$productos_top = Sdba::table('detalle_ventas');
-$productos_top->left_join('venta', 'ventas', 'id_venta');
-$productos_top->left_join('producto', 'productos', 'id_producto');
-$productos_top->where('DATE_FORMAT(ventas.fecha, "%Y-%m")', $mes_actual, 'ventas', true);
-if (!$es_admin) {
-    $productos_top->and_where('usuario', $usuario_id, 'ventas');
-}
-$productos_top->and_where('estado !=', '2', 'ventas');
-$productos_top->group_by('producto');
-$productos_top->order_by('total', 'desc');
-
-// Construir la consulta SQL manualmente para SUM con GROUP BY
 $query_productos = "SELECT productos.nom_prod, SUM(detalle_ventas.cantidad) as total_vendido, SUM(detalle_ventas.total) as monto_total 
 FROM detalle_ventas 
 LEFT JOIN ventas ON detalle_ventas.venta = ventas.id_venta 
@@ -92,10 +78,10 @@ $clientes_result = Sdba::db()->query($query_clientes)->result();
 
 // STOCK BAJO (Productos con stock menor a 10)
 $stock_bajo = Sdba::table('productos');
-$stock_bajo->where('stockp <', 10, false, true);
-$stock_bajo->and_where('stockp >', 0, false, true);
-$stock_bajo->order_by('stockp', 'asc');
-$productos_stock_bajo = $stock_bajo->get();
+$stock_bajo->where('stockp', '<', false, false, 'AND', '<');
+$stock_bajo->and_where('stockp', '>', false, false);
+$query_stock = "SELECT codigo_producto, nom_prod, stockp, precio_venta FROM productos WHERE stockp < 10 AND stockp > 0 ORDER BY stockp ASC";
+$productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 
 ?>
 
