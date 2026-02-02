@@ -20,28 +20,20 @@ $variantes_p->left_join('producto_vp','marca','id_marca');
 $variantes_p->where('id_producto', '', 'productos', true, 'AND', 'IS NOT NULL');
 $variantes_p_l = $variantes_p->get();
 
+// Precalcular datos y construir HTML
 $datos = '';
-$i = 1;
 foreach ($variantes_p_l as $value) {
-
-	$ventas = Sdba::table('marca');
-	$ventas->where('id_marca',$value['marca']);
-	$ventas_l = $ventas->get_one();
-
-
 	$stocktt = $value['stockp']/$value['cantidad_vp'];
-	$marcan = $ventas_l['marca'];
+	$marcan = $value['marca'];
 	$precio_final = $value['precio_vp']/$value['cantidad_vp'];
 
 	$datos .='<tr> 
-    			<td style="text-transform:uppercase;" class="nom_prod">'.$value['codigo_producto'].' '.$value['nom_prod'].' '.$marcan.'</td>
-    			<td style="text-transform:uppercase;" class="unidad"><input type="hidden" class="id_vp" value="'.$value['id_vp'].'">'.'<input type="hidden" class="cantidad_vp" value="'.$value['cantidad_vp'].'">'.$value['variante'].'('.$value['cantidad_vp'].')</td>
+    			<td style="text-transform:uppercase;" class="nom_prod">'.htmlspecialchars($value['codigo_producto']).' '.htmlspecialchars($value['nom_prod']).' '.htmlspecialchars($marcan).'</td>
+    			<td style="text-transform:uppercase;" class="unidad"><input type="hidden" class="id_vp" value="'.$value['id_vp'].'">'.'<input type="hidden" class="cantidad_vp" value="'.$value['cantidad_vp'].'">'.htmlspecialchars($value['variante']).'('.$value['cantidad_vp'].')</td>
     			<td class="stock">'.$stocktt.'</td>
 				<td><input type="hidden" class="precio_venta" value="'.$precio_final.'">'.$value['precio_vp'].'</td>
     			<td><button id="agregar" value="'.$value['id_producto'].'" class="btn btn-lg btn-success"> + </button></td>
     		  </tr>';
-    $i++;
-	
 }
 
 
