@@ -5,8 +5,7 @@ $usuario = $_SESSION['usuario'];
 $tienda = $_SESSION['tienda'];
 
 include('inc/control.php');
-$fecha = date('d-m-Y');
-$newDate = date("Y-m-d", strtotime($fecha));
+$newDate = date('Y-m-d');
 
 include('inc/sdba/sdba.php'); // include main file
 
@@ -21,20 +20,18 @@ $variantes_p->where('id_producto', '', 'productos', true, 'AND', 'IS NOT NULL');
 $variantes_p_l = $variantes_p->get();
 
 // Precalcular datos y construir HTML
-$datos = '';
+$datos_arr = [];
 foreach ($variantes_p_l as $value) {
-	$stocktt = $value['stockp']/$value['cantidad_vp'];
-	$marcan = $value['marca'];
-	$precio_final = $value['precio_vp']/$value['cantidad_vp'];
-
-	$datos .='<tr> 
-    			<td style="text-transform:uppercase;" class="nom_prod">'.htmlspecialchars($value['codigo_producto']).' '.htmlspecialchars($value['nom_prod']).' '.htmlspecialchars($marcan).'</td>
-    			<td style="text-transform:uppercase;" class="unidad"><input type="hidden" class="id_vp" value="'.$value['id_vp'].'">'.'<input type="hidden" class="cantidad_vp" value="'.$value['cantidad_vp'].'">'.htmlspecialchars($value['variante']).'('.$value['cantidad_vp'].')</td>
-    			<td class="stock">'.$stocktt.'</td>
-				<td><input type="hidden" class="precio_venta" value="'.$precio_final.'">'.$value['precio_vp'].'</td>
-    			<td><button id="agregar" value="'.$value['id_producto'].'" class="btn btn-lg btn-success"> + </button></td>
-    		  </tr>';
+	$stocktt = round($value['stockp']/$value['cantidad_vp'], 2);
+	$marcan = htmlspecialchars($value['marca'], ENT_QUOTES, 'UTF-8');
+	$precio_final = round($value['precio_vp']/$value['cantidad_vp'], 2);
+	$codigo = htmlspecialchars($value['codigo_producto'], ENT_QUOTES, 'UTF-8');
+	$nombre = htmlspecialchars($value['nom_prod'], ENT_QUOTES, 'UTF-8');
+	$variante = htmlspecialchars($value['variante'], ENT_QUOTES, 'UTF-8');
+	
+	$datos_arr[] = "<tr><td style='text-transform:uppercase' class='nom_prod'>{$codigo} {$nombre} {$marcan}</td><td style='text-transform:uppercase' class='unidad'><input type='hidden' class='id_vp' value='{$value['id_vp']}'><input type='hidden' class='cantidad_vp' value='{$value['cantidad_vp']}'>{$variante}({$value['cantidad_vp']})</td><td class='stock'>{$stocktt}</td><td><input type='hidden' class='precio_venta' value='{$precio_final}'>{$value['precio_vp']}</td><td><button id='agregar' value='{$value['id_producto']}' class='btn btn-lg btn-success'> + </button></td></tr>";
 }
+$datos = implode('', $datos_arr);
 
 
 
@@ -78,13 +75,11 @@ foreach ($variantes_p_l as $value) {
 // 	$variantes_lst .= '<option value="'.$value1['id_variante'].'-'.$value1['cantidad'].'">'.$value1['nom_prod'].' '.$marcaf.' '.$value1['variante'].'</option>';
 // }
 
-//obtnemos colaboradores
+// Obtener clientes (solo campo necesario)
 $clientes = Sdba::table('clientes');
+$clientes->fields('cliente');
 $el = $clientes->get();
-$emplel = array();
-foreach ($el as $value) {
-	$emplel[]= $value['cliente'];
-}
+$emplel = array_column($el, 'cliente');
 
 
 
@@ -480,52 +475,21 @@ $('div.dataTables_filter input').on('keyup', function() {
 		    $("#total1").val(total1);
 
 		});
-		//actualizar item
-		var monto1 = 0;
-		$('body').on('change paste keyup',".cantidad", function(){
-			var stock = $(this).closest('tr').find('.stocki').val();
-			var cantidad = $(this).closest('tr').find('.cantidad').val();
-			console.log(stock);
-			console.log(cantidad);
-			//if (cantidad <= stock ) {
-				//$('.cantidad').on('change paste keyup', function(){
-				var anterior = $(this).closest('tr').find('.mon').val();
-				var precio = $(this).closest('tr').find('.pre').val();
-				
-				var monto1 =  precio*cantidad;
+		// Actualizar item - consolidado
+		$('body').on('change input',".cantidad, .pre", function(){
+			var $row = $(this).closest('tr');
+			var anterior = parseFloat($row.find('.mon').val()) || 0;
+			var precio = parseFloat($row.find('.pre').val()) || 0;
+			var cantidad = parseFloat($row.find('.cantidad').val()) || 0;
+			var monto1 = precio * cantidad;
 
+			total = total - anterior + monto1;
+			var total1 = total.toFixed(2);
 
-				total = (total - anterior + monto1);
-				total1 = total.toFixed(2);
-
-				monto1 = monto1;
-				$("#total").val(total);
-				$("#total1").val(total1);
-				
-				//alert(monto1);
-				$(this).closest('tr').find('.mon').val(monto1);
-				$(this).closest('tr').find('.borrar').val(monto1);
-			//}
-			//else{
-				//alert('No cuenta con esa cantidad');
-				console.log('no cuenta');
-			//}
-		});
-
-		$('body').on('change paste keyup',".pre", function(){
-		//$('.cantidad').on('change paste keyup', function(){
-			var anterior = $(this).closest('tr').find('.mon').val();
-			var precio = $(this).closest('tr').find('.pre').val();
-			var cantidad = $(this).closest('tr').find('.cantidad').val();
-			var monto1 =  precio*cantidad;
-
-			total = (total - anterior + monto1).toFixed(2);
 			$("#total").val(total);
-			
-			//alert(monto1);
-			monto1 = monto1.toFixed(2);
-			$(this).closest('tr').find('.mon').val(monto1);
-			$(this).closest('tr').find('.borrar').val(monto1);
+			$("#total1").val(total1);
+			$row.find('.mon').val(monto1.toFixed(2));
+			$row.find('.borrar').val(monto1.toFixed(2));
 		});
 
 
@@ -566,13 +530,7 @@ $('div.dataTables_filter input').on('keyup', function() {
 			});
 		$('body').on('click',"#guardar_venta", function(e){
           e.preventDefault();
-
-				
-				//var tipoVenta = $('input:radio[name=pregunta]:checked').val();
-				//DNI = $('#dni_ruc').val();
-
 				var str2 = $('#venta').serialize();
-				alert(str2);
 				
 				$.ajax({
 					cache: false,
