@@ -1,5 +1,6 @@
 <?php
 session_start();
+//hugo
 $usuario = $_SESSION['usuario'];
 $tienda = $_SESSION['tienda'];
 
@@ -130,7 +131,7 @@ foreach ($el as $value) {
 	      <div class="submenu">
 	      	<ul class="subtop-tabs">
 	      		<li class="active">
-	      			<a href="venta.php">Registrar venta</a>
+	      			<a href="venta.php">Registrar venta 4</a>
 	      		</li>
 	      		<li >
 	      			<a href="ventas.php">Listar ventas</a>
