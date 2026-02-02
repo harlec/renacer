@@ -17,7 +17,8 @@ $variantes_p = Sdba::table('variante_p');
 $variantes_p->left_join('variante_vp','variantes','id_variante');
 $variantes_p->left_join('producto_vp','productos','id_producto');
 $variantes_p->left_join('producto_vp','marca','id_marca');
-$variantes_p->where_not_null('productos'); // Filtrar variantes sin producto
+$variantes_p->where('id_producto', '!=', '');
+$variantes_p->where('id_producto', 'IS NOT', null);
 $variantes_p_l = $variantes_p->get();
 
 $datos = '';
