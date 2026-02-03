@@ -493,42 +493,33 @@ $('div.dataTables_filter input').on('keyup', function() {
 			var cantidad = $(this).closest('tr').find('.cantidad').val();
 			console.log(stock);
 			console.log(cantidad);
-			//if (cantidad <= stock ) {
-				//$('.cantidad').on('change paste keyup', function(){
-				var anterior = $(this).closest('tr').find('.mon').val();
-				var precio = $(this).closest('tr').find('.pre').val();
-				
-				var monto1 =  precio*cantidad;
+			var anterior = $(this).closest('tr').find('.mon').val();
+			var precio = $(this).closest('tr').find('.pre').val();
+			
+			var monto1 =  precio*cantidad;
 
+			total = (total - anterior + monto1);
+			total1 = total.toFixed(2);
 
-				total = (total - anterior + monto1);
-				total1 = total.toFixed(2);
-
-				monto1 = monto1;
-				$("#total").val(total);
-				$("#total1").val(total1);
-				
-				//alert(monto1);
-				$(this).closest('tr').find('.mon').val(monto1);
-				$(this).closest('tr').find('.borrar').val(monto1);
-			//}
-			//else{
-				//alert('No cuenta con esa cantidad');
-				console.log('no cuenta');
-			//}
+			monto1 = monto1;
+			$("#total").val(total);
+			$("#total1").val(total1);
+			
+			$(this).closest('tr').find('.mon').val(monto1);
+			$(this).closest('tr').find('.borrar').val(monto1);
 		});
 
 		$('body').on('change paste keyup',".pre", function(){
-		//$('.cantidad').on('change paste keyup', function(){
 			var anterior = $(this).closest('tr').find('.mon').val();
 			var precio = $(this).closest('tr').find('.pre').val();
 			var cantidad = $(this).closest('tr').find('.cantidad').val();
 			var monto1 =  precio*cantidad;
 
-			total = (total - anterior + monto1).toFixed(2);
+			total = (total - anterior + monto1);  // Corregido: sin redondear
+			total1 = total.toFixed(2);  // Corregido: ahora sí actualiza total1
 			$("#total").val(total);
+			$("#total1").val(total1);  // Corregido: ahora sí actualiza el campo
 			
-			//alert(monto1);
 			monto1 = monto1.toFixed(2);
 			$(this).closest('tr').find('.mon').val(monto1);
 			$(this).closest('tr').find('.borrar').val(monto1);
