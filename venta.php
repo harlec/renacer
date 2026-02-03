@@ -518,7 +518,7 @@ $('div.dataTables_filter input').on('keyup', function() {
 			total = (total - anterior + monto1);  // Corregido: sin redondear
 			total1 = total.toFixed(2);  // Corregido: ahora sí actualiza total1
 			$("#total").val(total);
-			$("#total1").val(total1);  // Corregido: ahora sí actualiza el campo
+			$("#total1").val(total1);  // Corregido: ahora sí actualiza el campo ok
 			
 			monto1 = monto1.toFixed(2);
 			$(this).closest('tr').find('.mon').val(monto1);
