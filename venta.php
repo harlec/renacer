@@ -449,8 +449,8 @@ $('div.dataTables_filter input').on('keyup', function() {
 		    }
 		    else{
 		    	$('input[type=search]').val('');
-		    	total = monto*1 + total*1;
-		    	total1 = Number(total.toFixed(2));
+		    	total = monto*1 + total*1; // Mantener sin redondear
+		    	total1 = total.toFixed(2); // Solo redondear para mostrar
 
 		    	$('#items tr:last').after('<tr class="child"><input type="hidden" class="id_vp" value="'+id_vp+'" name="id_vp[]" ><input type="hidden" class="stocki" value="'+stock+'" name="stock[]" ><input type="hidden" value="'+id_p+'" name="id_pro[]" ><td><input class="cantidad" type="number" max="'+stock+'" value="'+cantidad_vp+'" name="cantidad[]"></td><td style="text-transform:uppercase;">'+nombre+'</td><td style="text-transform:uppercase;">'+unidad+'</td><td><input type="number" class="pre" value="'+precio+'" name="precio[]"></td><td ><input class="mon" type="text" value="'+monto+'" name="total_pre[]" ></td><td><button value="'+monto+'" class="borrar">x</button></td></tr>');
 		    	$("#total").val(total);
@@ -467,8 +467,8 @@ $('div.dataTables_filter input').on('keyup', function() {
 		    var resta = $(this).val();
 		    console.log(resta)
 		    $(this).parents("tr").remove();
-		    total = (total - resta*1);
-		    total1 = Number(total.toFixed(2));
+		    total = (total - resta*1); // Mantener sin redondear
+		    total1 = total.toFixed(2); // Solo redondear para mostrar
 
 
 		    $("#total").val(total);
@@ -483,8 +483,9 @@ $('div.dataTables_filter input').on('keyup', function() {
 			var cantidad = parseFloat($row.find('.cantidad').val()) || 0;
 			var monto1 = precio * cantidad;
 
+			// Mantener total sin redondear para operaciones precisas
 			total = total - anterior + monto1;
-			var total1 = total.toFixed(2);
+			total1 = total.toFixed(2); // Sin 'var' - actualiza variable global
 
 			$("#total").val(total);
 			$("#total1").val(total1);
