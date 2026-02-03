@@ -119,7 +119,7 @@ $emplel = array_column($el, 'cliente');
 	      <div class="submenu">
 	      	<ul class="subtop-tabs">
 	      		<li class="active">
-	      			<a href="venta.php">Registrar venta</a>
+	      			<a href="venta.php">Registrar venta 4</a>
 	      		</li>
 	      		<li >
 	      			<a href="ventas.php">Listar ventas</a>
