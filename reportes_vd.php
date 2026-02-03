@@ -8,6 +8,7 @@ include('inc/sdba/sdba.php'); // include main file
 $ventas = Sdba::table('ventas');
 //$ventas->left_join('categoria','categorias','id_categoria'); // creating table object
 $ventas->where('fecha',date('Y-m-d'));
+$ventas->and_where('estado !=','2'); // Excluir ventas anuladas
 $ventas_list = $ventas->get(); 
 
 $datos = '';

@@ -17,11 +17,10 @@ $result_dia = Sdba::db()->query($query_ventas_dia)->row();
 $total_ventas_dia = $result_dia['total'];
 
 // Monto del día
-$query_monto_dia = "SELECT SUM(detalle_ventas.total) as monto FROM detalle_ventas 
-LEFT JOIN ventas ON detalle_ventas.venta = ventas.id_venta 
-WHERE DATE(ventas.fecha) = '$hoy' AND ventas.estado != '2'";
+$query_monto_dia = "SELECT SUM(total) as monto FROM ventas 
+WHERE DATE(fecha) = '$hoy' AND estado != '2'";
 if (!$es_admin) {
-    $query_monto_dia .= " AND ventas.usuario = '$usuario_id'";
+    $query_monto_dia .= " AND usuario = '$usuario_id'";
 }
 $result_monto_dia = Sdba::db()->query($query_monto_dia)->row();
 $monto_dia = $result_monto_dia['monto'] ?: 0;
@@ -35,11 +34,10 @@ $result_mes = Sdba::db()->query($query_ventas_mes)->row();
 $total_ventas_mes = $result_mes['total'];
 
 // Monto del mes
-$query_monto_mes = "SELECT SUM(detalle_ventas.total) as monto FROM detalle_ventas 
-LEFT JOIN ventas ON detalle_ventas.venta = ventas.id_venta 
-WHERE DATE_FORMAT(ventas.fecha, '%Y-%m') = '$mes_actual' AND ventas.estado != '2'";
+$query_monto_mes = "SELECT SUM(total) as monto FROM ventas 
+WHERE DATE_FORMAT(fecha, '%Y-%m') = '$mes_actual' AND estado != '2'";
 if (!$es_admin) {
-    $query_monto_mes .= " AND ventas.usuario = '$usuario_id'";
+    $query_monto_mes .= " AND usuario = '$usuario_id'";
 }
 $result_monto_mes = Sdba::db()->query($query_monto_mes)->row();
 $monto_mes = $result_monto_mes['monto'] ?: 0;
