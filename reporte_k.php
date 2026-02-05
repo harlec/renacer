@@ -13,7 +13,7 @@ $fechafin = $_POST['fechafin'];
 $producto = $_POST['producto'];
 
 	$producto1 = Sdba::table('productos');
-	$producto1->left_join('marca','marca','id_marca'); 
+	//$producto1->left_join('marca','marca','id_marca'); 
 	$producto1->where('id_producto',$producto);
 	$productol = $producto1->get_one();
 	$name_producto = $productol['nom_prod'].' '.$productol['marca'];
