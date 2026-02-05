@@ -5,11 +5,11 @@ if ($_SESSION['type']=='operador') {
 }
 include('inc/sdba/sdba.php'); 
 $productos = Sdba::table('productos');
-$productos->left_join('marca','marca','id_marca'); 
+//$productos->left_join('marca','marca','id_marca'); 
 $productlist = $productos->get();
 $lp = '';
 foreach ($productlist as $value) {
-	$lp .='<option value="'.$value['id_producto'].'">'.$value['nom_prod'].' '.$value['marca'].'</option>'; 
+	$lp .='<option value="'.$value['id_producto'].'">'.$value['nom_prod'].'</option>'; 
 }
 
 ?>
