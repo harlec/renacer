@@ -53,7 +53,7 @@ if (!$es_admin) {
     $query_productos .= "AND ventas.usuario = '$usuario_id' ";
 }
 $query_productos .= "GROUP BY detalle_ventas.producto 
-ORDER BY total_vendido DESC 
+ORDER BY monto_total DESC 
 LIMIT 5";
 
 $productos_result = Sdba::db()->query($query_productos)->result();
