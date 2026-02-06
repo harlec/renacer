@@ -55,19 +55,20 @@ if (isset($_POST) && !empty($_POST)) {
 				$ddata = array('id_de_compra'=>'','compra'=>$venta_id,'producto'=>$id_p[$i],'cantidad'=>$cantidad[$i],'precio'=>$precio[$i],'total'=>$total_pre[$i],'estado'=>'0');
 				$dventas->insert($ddata);
 
-				$productos = Sdba::table('productos');
-				$productos->where('id_producto',$id_p[$i]);
-				$producto = $productos->get_one();
-				$stock_actual = isset($producto['stockp']) ? (int)$producto['stockp'] : 0;
-				$stocktot = $stock_actual + $cantidad1;
-				$productos->reset();
-				$productos->where('id_producto',$id_p[$i]);
-				$productos->update(array('stockp'=>$stocktot));
-
 				$stock = Sdba::table('stock');
+				$stock->where('producto',$id_p[$i]);
+				$stock->order_by('id_stock','desc');
+				$stockl = $stock->get_one();
+				$cstock = isset($stockl['stockt']) ? (int)$stockl['stockt'] : 0;
+				$stocktot = $cstock + $cantidad1;
+
 				$motivo = 'c-'.$venta_id;
 				$datas = array('id_stock'=>'','producto'=>$id_p[$i],'ingreso'=>$cantidad1,'motivo'=>$motivo,'stock'=>$stocktot,'fv'=>'','stockt'=>$stocktot,'fecha'=>$fecha, 'estado'=>'0');
 				$stock->insert($datas);
+
+				$productos = Sdba::table('productos');
+				$productos->where('id_producto',$id_p[$i]);
+				$productos->update(array('stockp'=>$stocktot));
 			}
 
 	}
