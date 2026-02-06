@@ -59,9 +59,10 @@ LIMIT 5";
 $productos_result = Sdba::db()->query($query_productos)->result();
 
 // CLIENTES CON MAYORES COMPRAS (Top 5 del mes)
-$query_clientes = "SELECT ventas.cliente, SUM(detalle_ventas.total) as total_compras, COUNT(DISTINCT ventas.id_venta) as num_compras
+$query_clientes = "SELECT clientes.cliente as nombre_cliente, SUM(detalle_ventas.total) as total_compras, COUNT(DISTINCT ventas.id_venta) as num_compras
 FROM ventas 
 LEFT JOIN detalle_ventas ON ventas.id_venta = detalle_ventas.venta 
+LEFT JOIN clientes ON ventas.cliente = clientes.id_cliente 
 WHERE DATE_FORMAT(ventas.fecha, '%Y-%m') = '$mes_actual' 
 AND ventas.estado != '2' 
 AND ventas.cliente != '' ";
@@ -239,7 +240,7 @@ $productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 													<?php if(count($clientes_result) > 0): ?>
 														<?php foreach($clientes_result as $cli): ?>
 															<tr>
-																<td style="text-transform:uppercase;"><?php echo htmlspecialchars($cli['cliente'], ENT_QUOTES, 'UTF-8'); ?></td>
+																<td style="text-transform:uppercase;"><?php echo htmlspecialchars($cli['nombre_cliente'] ?: 'SIN NOMBRE', ENT_QUOTES, 'UTF-8'); ?></td>
 																<td class="text-right"><?php echo (int)$cli['num_compras']; ?></td>
 																<td class="text-right text-success"><strong>S/ <?php echo number_format($cli['total_compras'], 2); ?></strong></td>
 															</tr>
