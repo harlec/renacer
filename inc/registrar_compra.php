@@ -24,7 +24,6 @@ if (isset($_POST) && !empty($_POST)) {
 	//item
 	$id_p = $_POST['id_pro'];
 	$unidad= $_POST['unidad'];
-	$fv = $_POST['fv'];
 	$precio = $_POST['precio'];
 	$cantidad = $_POST['cantidad'];
 	//$monto = $_POST['monto'];
@@ -49,41 +48,26 @@ if (isset($_POST) && !empty($_POST)) {
 			for ($i=0; $i < count($id_p) ; $i++) { 
 				if ($unidad[$i]=='TNE') {
 					$cantidad1 = $cantidad[$i]*50;
-				}
-				else{
+				} else {
 					$cantidad1 = $cantidad[$i];
 				}
 				$dventas = Sdba::table('detalle_compras');
 				$ddata = array('id_de_compra'=>'','compra'=>$venta_id,'producto'=>$id_p[$i],'cantidad'=>$cantidad[$i],'precio'=>$precio[$i],'total'=>$total_pre[$i],'estado'=>'0');
 				$dventas->insert($ddata);
 
+				$productos = Sdba::table('productos');
+				$productos->where('id_producto',$id_p[$i]);
+				$producto = $productos->get_one();
+				$stock_actual = isset($producto['stockp']) ? (int)$producto['stockp'] : 0;
+				$stocktot = $stock_actual + $cantidad1;
+				$productos->reset();
+				$productos->where('id_producto',$id_p[$i]);
+				$productos->update(array('stockp'=>$stocktot));
+
 				$stock = Sdba::table('stock');
-				$stock->where('producto',$id_p[$i]);
-				$stock->order_by('id_stock','desc');
-				$stockt = $stock->get_one();
-				$stocktot = $stockt['stockt'] + $cantidad1;
-
-				if(empty($fv[$i])){
-					$fv[$i] = '0000-00-00';
-				}
-
-				$variacion = Sdba::table('variantes');
-				$variacion->where('producto',$id_p[$i])->and_where('variante',$fv[$i]);
-				$vr = $variacion->get_one();
-				$idvr = $vr['id_variante'];
-
-				$stock->reset();
-				$stock->where('producto',$id_p[$i])->and_where('fv =',$fv[$i]);
-				$stock->order_by('id_stock','desc');
-				$stockl = $stock->get_one();
-				$cstock = $stockl['stock'];
-				$nstock = $cstock + $cantidad1;
 				$motivo = 'c-'.$venta_id;
-				$datas = array('id_stock'=>'','producto'=>$id_p[$i],'ingreso'=>$cantidad1,'motivo'=>$motivo,'stock'=>$nstock,'fv'=>$fv[$i],'stockt'=>$stocktot,'fecha'=>$fecha, 'estado'=>'0');
+				$datas = array('id_stock'=>'','producto'=>$id_p[$i],'ingreso'=>$cantidad1,'motivo'=>$motivo,'stock'=>$stocktot,'fv'=>'','stockt'=>$stocktot,'fecha'=>$fecha, 'estado'=>'0');
 				$stock->insert($datas);
-				//agregamos variantes
-				$datava = array('id_variante'=>$idvr,'producto'=>$id_p[$i],'variante'=>$fv[$i], 'stock'=>$nstock);
-				$variacion->set($datava);
 			}
 
 	}

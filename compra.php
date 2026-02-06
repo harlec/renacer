@@ -172,7 +172,6 @@ foreach ($proveedoresl as $key) {
 																		<th>Cantidad</th>
 																		<th>Unidad</th>
 																		<th>Descripción</th>
-																		<th>Vencimiento</th>
 																		<th>Precio</th>
 																		<th>Monto</th>
 																		<th></th>
@@ -303,7 +302,7 @@ foreach ($proveedoresl as $key) {
 		    var monto = precio;
 		    total = monto*1 + total*1;
 
-		    $('#items tr:last').after('<tr class="child"><input type="hidden" value="'+id_p+'" name="id_pro[]" ><td><input class="cantidad" type="number" value="'+cantidad+'" name="cantidad[]"></td><td style="text-transform:uppercase;">'+unidad+'</td><td>'+nombre+'</td><td><input type="date" name="fv[]"></td><td><input type="number" class="pre" value="'+precio+'" name="precio[]"></td><td ><input class="mon" type="text" value="'+monto+'" name="total_pre[]" ></td><td><button value="'+monto+'" class="borrar">x</button></td></tr>');
+			    $('#items tr:last').after('<tr class="child"><input type="hidden" value="'+id_p+'" name="id_pro[]" ><input type="hidden" value="'+unidad+'" name="unidad[]"><td><input class="cantidad" type="number" value="'+cantidad+'" name="cantidad[]"></td><td style="text-transform:uppercase;">'+unidad+'</td><td>'+nombre+'</td><td><input type="number" class="pre" value="'+precio+'" name="precio[]"></td><td ><input class="mon" type="text" value="'+monto+'" name="total_pre[]" ></td><td><button value="'+monto+'" class="borrar">x</button></td></tr>');
 		    $("#total").val(total);
 
 
