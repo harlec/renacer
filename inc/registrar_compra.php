@@ -81,8 +81,8 @@ if (isset($_POST) && !empty($_POST)) {
 				$motivo = 'c-'.$venta_id;
 				$datas = array('id_stock'=>'','producto'=>$id_p[$i],'ingreso'=>$cantidad1,'motivo'=>$motivo,'stock'=>$nstock,'fv'=>$fv[$i],'stockt'=>$stocktot,'fecha'=>$fecha, 'estado'=>'0');
 				$stock->insert($datas);
-				//agregamos variantes
-				$datava = array('id_variante'=>$idvr,'producto'=>$id_p[$i],'variante'=>$fv[$i], 'stock'=>$nstock);
+				//agregamos variantes 1
+ 				$datava = array('id_variante'=>$idvr,'producto'=>$id_p[$i],'variante'=>$fv[$i], 'stock'=>$nstock);
 				$variacion->set($datava);
 			}
 
