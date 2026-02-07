@@ -4,19 +4,19 @@ include('inc/sdba/sdba.php');
 
 $query = "
 SELECT vp.id_vp,
-       vp.producto,
+       vp.producto_vp,
        p.nom_prod,
        p.stockp,
        vp.cantidad_vp,
        vp.precio_vp
 FROM variante_p vp
-LEFT JOIN productos p ON vp.producto = p.id_producto
+LEFT JOIN productos p ON vp.producto_vp = p.id_producto
 WHERE vp.cantidad_vp IS NULL
    OR vp.cantidad_vp = ''
    OR vp.cantidad_vp = 0
    OR vp.cantidad_vp = '0'
    OR vp.cantidad_vp REGEXP '[^0-9\\.]'
-ORDER BY vp.producto, vp.id_vp
+ORDER BY vp.producto_vp, vp.id_vp
 ";
 
 $resultados = Sdba::db()->query($query)->result();
@@ -37,7 +37,7 @@ $resultados = Sdba::db()->query($query)->result();
         <thead>
             <tr>
                 <th>id_vp</th>
-                <th>producto</th>
+                <th>producto_vp</th>
                 <th>nom_prod</th>
                 <th>stockp</th>
                 <th>cantidad_vp</th>
@@ -49,7 +49,7 @@ $resultados = Sdba::db()->query($query)->result();
                 <?php foreach ($resultados as $row) : ?>
                     <tr>
                         <td><?php echo htmlspecialchars($row['id_vp'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo htmlspecialchars($row['producto'], ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo htmlspecialchars($row['producto_vp'], ENT_QUOTES, 'UTF-8'); ?></td>
                         <td><?php echo htmlspecialchars($row['nom_prod'], ENT_QUOTES, 'UTF-8'); ?></td>
                         <td><?php echo htmlspecialchars($row['stockp'], ENT_QUOTES, 'UTF-8'); ?></td>
                         <td><?php echo htmlspecialchars($row['cantidad_vp'], ENT_QUOTES, 'UTF-8'); ?></td>
