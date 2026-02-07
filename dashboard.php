@@ -3,6 +3,11 @@ session_start();
 include('inc/control.php');
 include('inc/sdba/sdba.php');
 
+if ($_SESSION['type'] != 'admin') {
+	header("Location: venta.php");
+	exit;
+}
+
 $hoy = date('Y-m-d');
 $mes_actual = date('Y-m');
 $usuario_id = $_SESSION['id_usr'];
