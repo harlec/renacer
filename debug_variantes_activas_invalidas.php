@@ -12,11 +12,11 @@ SELECT vp.id_vp,
              CASE
                  WHEN vp.cantidad_vp IS NULL OR vp.cantidad_vp = '' THEN 'cantidad_vp vacia'
                  WHEN vp.cantidad_vp = 0 OR vp.cantidad_vp = '0' THEN 'cantidad_vp = 0'
-                 WHEN vp.cantidad_vp REGEXP '[^0-9\\.]' THEN 'cantidad_vp no numerica'
+                 WHEN vp.cantidad_vp NOT REGEXP '^-?[0-9]+(\\.[0-9]+)?$' THEN 'cantidad_vp no numerica'
                  WHEN p.stockp IS NULL OR p.stockp = '' THEN 'stockp vacio'
-                 WHEN p.stockp REGEXP '[^0-9\\.]' THEN 'stockp no numerico'
+                 WHEN p.stockp NOT REGEXP '^-?[0-9]+(\\.[0-9]+)?$' THEN 'stockp no numerico'
                  WHEN vp.precio_vp IS NULL OR vp.precio_vp = '' THEN 'precio_vp vacio'
-                 WHEN vp.precio_vp REGEXP '[^0-9\\.]' THEN 'precio_vp no numerico'
+                 WHEN vp.precio_vp NOT REGEXP '^-?[0-9]+(\\.[0-9]+)?$' THEN 'precio_vp no numerico'
                  ELSE 'otro'
              END AS motivo
 FROM variante_p vp
@@ -27,13 +27,13 @@ WHERE vp.state_vp = '1'
         OR vp.cantidad_vp = ''
         OR vp.cantidad_vp = 0
         OR vp.cantidad_vp = '0'
-        OR vp.cantidad_vp REGEXP '[^0-9\\.]'
+        OR vp.cantidad_vp NOT REGEXP '^-?[0-9]+(\\.[0-9]+)?$'
         OR p.stockp IS NULL
         OR p.stockp = ''
-        OR p.stockp REGEXP '[^0-9\\.]'
+        OR p.stockp NOT REGEXP '^-?[0-9]+(\\.[0-9]+)?$'
         OR vp.precio_vp IS NULL
         OR vp.precio_vp = ''
-        OR vp.precio_vp REGEXP '[^0-9\\.]'
+        OR vp.precio_vp NOT REGEXP '^-?[0-9]+(\\.[0-9]+)?$'
     )
 ORDER BY vp.producto_vp, vp.id_vp
 ";
