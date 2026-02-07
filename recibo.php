@@ -73,6 +73,12 @@ $facturan = 0;
 			$mostrar_f = '[1]['.$nombre_vp.']';
 		}
 
+		if($mostrar > $cantidad_vp){
+			$canti = $mostrar / $cantidad_vp;
+			$mostrar_f = '['.$canti.']['.$nombre_vp.']';
+			//$mostrar_f = '[1]['.$nombre_vp.']';
+		}
+
 		// if ($id_unidad=='5') {
 		// 	function decimalAFraction($decimal) {
 		// 	    // Separa la parte entera y decimal
