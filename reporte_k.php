@@ -25,6 +25,9 @@ $producto = $_POST['producto'];
 	$ventas1->order_by('id_stock','asc');
 	$ventas_list1 = $ventas1->get();
 	$entro = '';
+	$stockt = 0;
+	$ingreso = 0;
+	$egreso = 0;
 	foreach ($ventas_list1 as $value) {
 		if ($value['motivo']=='si') {
 			$entro = 'si';
@@ -39,9 +42,9 @@ $producto = $_POST['producto'];
     			<td>'.$value['stockt'].'</td>
     		  </tr>';
 
-    	$stockt = $value['stockt'];
-    	$ingreso = $value['ingreso'];
-    	$egreso = $value['egreso'];
+	    	$stockt = isset($value['stockt']) ? (float)$value['stockt'] : 0;
+	    	$ingreso = isset($value['ingreso']) ? (float)$value['ingreso'] : 0;
+	    	$egreso = isset($value['egreso']) ? (float)$value['egreso'] : 0;
 	}
 
 	$stockt = $stockt - $ingreso + $egreso;
