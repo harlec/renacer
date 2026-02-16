@@ -196,7 +196,7 @@ Tu postrer estado será muy grande”</h6>
 use Dompdf\Dompdf;
 $dompdf = new DOMPDF();
 $dompdf->load_html(ob_get_clean());
-$dompdf->set_paper(array(0,0,200,1000));
+$dompdf->set_paper(array(0,0,200,2000));
 $dompdf->render();
 $pdf = $dompdf->output();
 $filename = "recibo.pdf";
