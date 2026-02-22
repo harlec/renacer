@@ -54,6 +54,12 @@ foreach ($ventas_list as $value) {
 			break;
 	}
 
+	// Botón de editar - solo para ventas sin comprobante (estado = 0)
+	$boton_editar = '';
+	if ($value['estado'] == '0') {
+		$boton_editar = '<a title="Editar venta" class="btn btn-warning btn-sm" href="editar_venta.php?id='.$value['id_venta'].'"><i class="fas fa-edit"></i></a>';
+	}
+
 	$datos .='<tr> 
     			<th scope="row">'.$i.'</th> 
     			<td>v-'.$value['id_venta'].'</td>
@@ -62,7 +68,7 @@ foreach ($ventas_list as $value) {
     			<td>'.$value['fecha'].'</td> 
     			<td>'.$total_dventa.'</td> 
     			<td>'.$comprobante.'</td> 
-    			<td><a title="Ver venta" class="btn btn-primary" title="ver" href="ver_venta.php?id='.$value['id_venta'].'"><i class="fas fa-eye"></i></a><button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td> 
+    			<td><a title="Ver venta" class="btn btn-primary" title="ver" href="ver_venta.php?id='.$value['id_venta'].'"><i class="fas fa-eye"></i></a>'.$boton_editar.'<button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td> 
     		  </tr>';
     $i++;
 }
