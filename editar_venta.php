@@ -137,7 +137,7 @@ foreach ($el as $value) {
                 </div>
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="kdashboard">
                                 <div class="row">
                                     <div class="col-md-12">
@@ -225,34 +225,34 @@ foreach ($el as $value) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="detalles">    
-                                <div class="titulo">
-                                    <h3>Agregar productos</h3>
-                                </div>
-                                <div class="panel panel-default pa">
-                                    <div class="panel-body">
-                                        <table id="datos" class="table table-hover table-responsive"> 
-                                            <thead> 
-                                                <tr> 
-                                                    <th>Producto</th>
-                                                    <th>Unidad</th>
-                                                    <th>Stock</th>
-                                                    <th>Precio</th> 
-                                                    <th></th> 
-                                                </tr> 
-                                            </thead> 
-                                            <tbody> 
-                                                <?php echo $datos; ?>
-                                            </tbody> 
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        
                     </div>
                 </div>
             </div>
+            <div class="detalles">    
+                <div class="titulo">
+                    <h3>Agregar productos</h3>
+                </div>
+                <div class="panel panel-default pa">
+                    <div class="panel-body">
+                        <table id="datos" class="table table-hover table-responsive"> 
+                            <thead> 
+                                <tr> 
+                                    <th>Producto</th>
+                                    <th>Unidad</th>
+                                    <th>Stock</th>
+                                    <th>Precio</th> 
+                                    <th></th> 
+                                </tr> 
+                            </thead> 
+                            <tbody> 
+                                <?php echo $datos; ?>
+                            </tbody> 
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
         </div>
 
     <!-- jQuery y otros scripts -->
