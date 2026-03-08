@@ -1,6 +1,11 @@
 <?php
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
+// Asegurar que siempre devolvemos JSON
+header('Content-Type: application/json');
+
+// Capturar cualquier salida no deseada
+ob_start();
+
+ini_set('display_errors', '0'); // Ocultar errores en producción
 error_reporting(E_ALL);
 
 session_start();
@@ -17,15 +22,12 @@ if (isset($_POST) && !empty($_POST)) {
     
     $id_venta = $_POST['id_venta'];
     $fecha = $_POST['fecha'];
-    $cliente = $_POST['cliente'];
-    $tipo = $_POST['tipo'];
-    $forma = $_POST['forma'];
     $productos = $_POST['productos'];
     $fecha_ope = date("Y-m-d H:i:s");
 
     // Validaciones de seguridad
-    if (empty($id_venta) || empty($fecha) || empty($cliente)) {
-        $mensajeError = 'Faltan datos obligatorios (ID venta, fecha o cliente)';
+    if (empty($id_venta) || empty($fecha)) {
+        $mensajeError = 'Faltan datos obligatorios (ID venta o fecha)';
     } elseif (empty($productos) || !is_array($productos)) {
         $mensajeError = 'No se recibieron productos válidos para la venta';
     } else {
@@ -44,85 +46,51 @@ if (isset($_POST) && !empty($_POST)) {
         } else {
             
             try {
-                // Obtener detalle actual de la venta
+                // PASO 1: Obtener detalle actual y devolver stock
                 $detalle_actual = Sdba::table('detalle_ventas');
                 $detalle_actual->where('venta', $id_venta);
                 $detalles_actuales = $detalle_actual->get();
                 
-                // Crear array para facilitar comparaciones
-                $productos_actuales = array();
+                // Devolver stock de productos actuales
                 foreach ($detalles_actuales as $detalle) {
-                    $key = $detalle['producto'] . '_' . $detalle['id_vp'];
-                    $productos_actuales[$key] = $detalle;
+                    $stock = Sdba::table('stock');
+                    $stock->where('producto', $detalle['producto']);
+                    $stock->order_by('id_stock', 'desc');
+                    $stockl = $stock->get_one();
+                    $stock_actual = floatval($stockl['stockt']);
+                    $nuevo_stock = $stock_actual + floatval($detalle['cantidad']);
+                    
+                    // Registrar devolución en historial
+                    $motivo = 'EV-' . $id_venta . '-EDIT';
+                    $data_stock = array(
+                        'id_stock' => '',
+                        'producto' => $detalle['producto'],
+                        'ingreso' => floatval($detalle['cantidad']),
+                        'egreso' => 0,
+                        'motivo' => $motivo,
+                        'stock' => $nuevo_stock,
+                        'fv' => '',
+                        'stockt' => $nuevo_stock,
+                        'fecha' => $fecha,
+                        'estado' => '0'
+                    );
+                    $stock->insert($data_stock);
+                    
+                    // Actualizar stock en productos
+                    $productos_tabla = Sdba::table('productos');
+                    $productos_tabla->where('id_producto', $detalle['producto']);
+                    $productos_tabla->update(array('stockp' => $nuevo_stock));
                 }
                 
-                // El cliente no cambia en la edición, usar el mismo ID
-                $id_cliente = $venta_data['cliente'];
-                
-                // PASO 1: Revertir stock de productos eliminados o modificados
-                foreach ($productos_actuales as $key => $producto_actual) {
-                    $encontrado = false;
-                    $nueva_cantidad = 0;
-                    
-                    // Buscar si el producto sigue en la nueva lista
-                    foreach ($productos as $producto_nuevo) {
-                        if ($producto_nuevo['producto_id'] == $producto_actual['producto'] && 
-                            $producto_nuevo['id_vp'] == $producto_actual['id_vp']) {
-                            $encontrado = true;
-                            $nueva_cantidad = floatval($producto_nuevo['cantidad']);
-                            break;
-                        }
-                    }
-                    
-                    $cantidad_actual = floatval($producto_actual['cantidad']);
-                    
-                    // Si el producto fue eliminado o se redujo la cantidad, devolver stock
-                    if (!$encontrado || $nueva_cantidad < $cantidad_actual) {
-                        $cantidad_a_devolver = $encontrado ? ($cantidad_actual - $nueva_cantidad) : $cantidad_actual;
-                        
-                        // Obtener stock actual
-                        $stock = Sdba::table('stock');
-                        $stock->where('producto', $producto_actual['producto']);
-                        $stock->order_by('id_stock', 'desc');
-                        $stockl = $stock->get_one();
-                        $stock_atual = floatval($stockl['stockt']);
-                        $nuevo_stock = $stock_atual + $cantidad_a_devolver;
-                        
-                        // Registrar devolución en historial de stock
-                        $motivo = 'EV-' . $id_venta . '-EDIT';
-                        $data_stock = array(
-                            'id_stock' => '',
-                            'producto' => $producto_actual['producto'],
-                            'ingreso' => $cantidad_a_devolver,
-                            'egreso' => 0,
-                            'motivo' => $motivo,
-                            'stock' => $nuevo_stock,
-                            'fv' => '',
-                            'stockt' => $nuevo_stock,
-                            'fecha' => $fecha,
-                            'estado' => '0'
-                        );
-                        $stock->insert($data_stock);
-                        
-                        // Actualizar stock en tabla productos
-                        $productos_tabla = Sdba::table('productos');
-                        $productos_tabla->where('id_producto', $producto_actual['producto']);
-                        $data_producto = array('stockp' => $nuevo_stock);
-                        $productos_tabla->update($data_producto);
-                    }
-                }
-                
-                // PASO 2: Eliminar registros del detalle actual
+                // PASO 2: Eliminar detalle actual
                 $detalle_eliminar = Sdba::table('detalle_ventas');
                 $detalle_eliminar->where('venta', $id_venta);
                 $detalle_eliminar->delete();
                 
-                // PASO 3: Procesar productos nuevos y modificados
+                // PASO 3: Agregar nuevos productos
                 $total_venta = 0;
-                
                 foreach ($productos as $producto) {
                     $id_producto = $producto['producto_id'];
-                    $id_vp = $producto['id_vp'];
                     $cantidad = floatval($producto['cantidad']);
                     $precio = floatval($producto['precio']);
                     $total_producto = $cantidad * $precio;
@@ -137,41 +105,31 @@ if (isset($_POST) && !empty($_POST)) {
                     $stockl = $stock->get_one();
                     $stock_disponible = floatval($stockl['stockt']);
                     
-                    $key = $id_producto . '_' . $id_vp;
-                    $cantidad_previa = isset($productos_actuales[$key]) ? floatval($productos_actuales[$key]['cantidad']) : 0;
-                    $cantidad_adicional = $cantidad - $cantidad_previa;
-                    
-                    // Solo validar stock si se está agregando cantidad
-                    if ($cantidad_adicional > 0 && $stock_disponible < $cantidad_adicional) {
-                        throw new Exception("Stock insuficiente para el producto ID: $id_producto. Stock disponible: $stock_disponible, requerido: $cantidad_adicional");
+                    if ($stock_disponible < $cantidad) {
+                        throw new Exception("Stock insuficiente para producto ID: $id_producto");
                     }
                     
-                    // Si hay cantidad adicional, descontarla del stock
-                    if ($cantidad_adicional > 0) {
-                        $nuevo_stock = $stock_disponible - $cantidad_adicional;
-                        
-                        // Registrar egreso en historial de stock
-                        $motivo = 'V-' . $id_venta . '-EDIT';
-                        $data_stock = array(
-                            'id_stock' => '',
-                            'producto' => $id_producto,
-                            'ingreso' => 0,
-                            'egreso' => $cantidad_adicional,
-                            'motivo' => $motivo,
-                            'stock' => $nuevo_stock,
-                            'fv' => '',
-                            'stockt' => $nuevo_stock,
-                            'fecha' => $fecha,
-                            'estado' => '0'
-                        );
-                        $stock->insert($data_stock);
-                        
-                        // Actualizar stock en tabla productos
-                        $productos_tabla = Sdba::table('productos');
-                        $productos_tabla->where('id_producto', $id_producto);
-                        $data_producto = array('stockp' => $nuevo_stock);
-                        $productos_tabla->update($data_producto);
-                    }
+                    // Descontar stock
+                    $nuevo_stock = $stock_disponible - $cantidad;
+                    $motivo = 'V-' . $id_venta . '-EDIT';
+                    $data_stock = array(
+                        'id_stock' => '',
+                        'producto' => $id_producto,
+                        'ingreso' => 0,
+                        'egreso' => $cantidad,
+                        'motivo' => $motivo,
+                        'stock' => $nuevo_stock,
+                        'fv' => '',
+                        'stockt' => $nuevo_stock,
+                        'fecha' => $fecha,
+                        'estado' => '0'
+                    );
+                    $stock->insert($data_stock);
+                    
+                    // Actualizar productos
+                    $productos_tabla = Sdba::table('productos');
+                    $productos_tabla->where('id_producto', $id_producto);
+                    $productos_tabla->update(array('stockp' => $nuevo_stock));
                     
                     // Insertar nuevo detalle
                     $detalle_ventas = Sdba::table('detalle_ventas');
@@ -179,7 +137,7 @@ if (isset($_POST) && !empty($_POST)) {
                         'id_detalle' => '',
                         'venta' => $id_venta,
                         'producto' => $id_producto,
-                        'id_vp' => $id_vp,
+                        'id_vp' => $producto['id_vp'],
                         'cantidad' => $cantidad,
                         'precio' => $precio,
                         'total' => $total_producto,
@@ -188,20 +146,13 @@ if (isset($_POST) && !empty($_POST)) {
                     $detalle_ventas->insert($data_detalle);
                 }
                 
-                // PASO 4: Actualizar datos de la venta
+                // PASO 4: Actualizar venta
                 $ventas = Sdba::table('ventas');
                 $ventas->where('id_venta', $id_venta);
-                $data_venta = array(
+                $ventas->update(array(
                     'fecha' => $fecha,
-                    'total' => $total_venta,
-                    'cliente' => $id_cliente,
-                    'tipo' => $tipo,
-                    'forma' => $forma
-                );
-                $ventas->update($data_venta);
-                
-                // PASO 5: Log de edición (simplificado)
-                // La venta fue editada exitosamente por usuario ID: $id_usuario
+                    'total' => $total_venta
+                ));
                 
                 $respuestaOk = true;
                 $mensajeError = 'Venta actualizada correctamente';
@@ -223,5 +174,10 @@ $salidaJson = array(
     'venta_id' => $venta_id
 );
 
+// Limpiar cualquier salida previa
+ob_clean();
+
+// Devolver solo JSON limpio
 echo json_encode($salidaJson);
+exit();
 ?>

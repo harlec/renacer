@@ -157,21 +157,23 @@ foreach ($el as $value) {
                                                         <small class="text-muted">El cliente no se puede modificar en la edición</small>
                                                     </div>
                                                     
-                                                    <div class="form-group">
+                                                    <div class="form-group" style="display: none;">
                                                         <label for="tipo">Tipo</label>
                                                         <select class="form-control" name="tipo" id="tipo">
                                                             <option value="1" <?php echo ($venta_data['tipo'] == '1') ? 'selected' : ''; ?>>Contado</option>
                                                             <option value="2" <?php echo ($venta_data['tipo'] == '2') ? 'selected' : ''; ?>>Crédito</option>
                                                         </select>
+                                                        <small class="text-muted">Campo oculto - se mantiene valor original</small>
                                                     </div>
                                                     
-                                                    <div class="form-group">
+                                                    <div class="form-group" style="display: none;">
                                                         <label for="forma">Forma de Pago</label>
                                                         <select class="form-control" name="forma" id="forma">
                                                             <option value="1" <?php echo ($venta_data['forma'] == '1') ? 'selected' : ''; ?>>Efectivo</option>
                                                             <option value="2" <?php echo ($venta_data['forma'] == '2') ? 'selected' : ''; ?>>Tar. Débito</option>
                                                             <option value="3" <?php echo ($venta_data['forma'] == '3') ? 'selected' : ''; ?>>Tar. Crédito</option>
                                                         </select>
+                                                        <small class="text-muted">Campo oculto - se mantiene valor original</small>
                                                     </div>
 
                                                     <h4>Productos en la Venta</h4>
@@ -431,9 +433,6 @@ foreach ($el as $value) {
             var datosFormulario = {
                 id_venta: $('input[name="id_venta"]').val(),
                 fecha: fecha,
-                cliente: $('input[name="cliente"]').val(), // Se mantiene el mismo cliente
-                tipo: $('select[name="tipo"]').val(),
-                forma: $('select[name="forma"]').val(),
                 productos: productos
             };
 
