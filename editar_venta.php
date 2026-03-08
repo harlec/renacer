@@ -153,7 +153,8 @@ foreach ($el as $value) {
                                                     
                                                     <div class="form-group">
                                                         <label for="cliente">Cliente</label>
-                                                        <input type="text" class="form-control" name="cliente" id="cliente" value="<?php echo $cliente_data['cliente']; ?>">
+                                                        <input type="text" class="form-control" name="cliente" id="cliente" value="<?php echo $cliente_data['cliente']; ?>" readonly style="background-color: #f5f5f5;">
+                                                        <small class="text-muted">El cliente no se puede modificar en la edición</small>
                                                     </div>
                                                     
                                                     <div class="form-group">
@@ -375,13 +376,7 @@ foreach ($el as $value) {
             e.preventDefault();
             
             // Validar campos del formulario
-            var cliente = $('input[name="cliente"]').val().trim();
             var fecha = $('input[name="fecha"]').val();
-            
-            if (!cliente) {
-                swal('Error', 'El campo cliente es obligatorio', 'error');
-                return;
-            }
             
             if (!fecha) {
                 swal('Error', 'La fecha es obligatoria', 'error');
@@ -436,7 +431,7 @@ foreach ($el as $value) {
             var datosFormulario = {
                 id_venta: $('input[name="id_venta"]').val(),
                 fecha: fecha,
-                cliente: cliente,
+                cliente: $('input[name="cliente"]').val(), // Se mantiene el mismo cliente
                 tipo: $('select[name="tipo"]').val(),
                 forma: $('select[name="forma"]').val(),
                 productos: productos

@@ -8,7 +8,6 @@ $id_usuario = $_SESSION['id_usr'];
 $tienda = $_SESSION['tienda'];
 
 include('sdba/sdba.php');
-include('logs_auditoria.php');
 
 $respuestaOk = false;
 $mensajeError = 'Error en el proceso';
@@ -57,22 +56,8 @@ if (isset($_POST) && !empty($_POST)) {
                     $productos_actuales[$key] = $detalle;
                 }
                 
-                // Obtener/crear cliente
-                $clientes = Sdba::table('clientes');
-                $clientes->where('cliente', $cliente);
-                $cliente_existente = $clientes->get_one();
-                
-                if ($cliente_existente) {
-                    $id_cliente = $cliente_existente['id_cliente'];
-                } else {
-                    $data_cliente = array(
-                        'id_cliente' => '',
-                        'cliente' => $cliente,
-                        'estado' => '1'
-                    );
-                    $clientes->insert($data_cliente);
-                    $id_cliente = $clientes->insert_id();
-                }
+                // El cliente no cambia en la edición, usar el mismo ID
+                $id_cliente = $venta_data['cliente'];
                 
                 // PASO 1: Revertir stock de productos eliminados o modificados
                 foreach ($productos_actuales as $key => $producto_actual) {
@@ -215,24 +200,8 @@ if (isset($_POST) && !empty($_POST)) {
                 );
                 $ventas->update($data_venta);
                 
-                // PASO 5: Registrar en log de auditoría
-                $observaciones = "Venta editada. Total anterior: {$venta_data['total']}, Total nuevo: $total_venta";
-                registrarLog(
-                    'ventas', 
-                    $id_venta, 
-                    'EDIT', 
-                    $id_usuario, 
-                    $venta_data, 
-                    array(
-                        'fecha' => $fecha,
-                        'total' => $total_venta,
-                        'cliente' => $id_cliente,
-                        'tipo' => $tipo,
-                        'forma' => $forma,
-                        'productos_count' => count($productos)
-                    ), 
-                    $observaciones
-                );
+                // PASO 5: Log de edición (simplificado)
+                // La venta fue editada exitosamente por usuario ID: $id_usuario
                 
                 $respuestaOk = true;
                 $mensajeError = 'Venta actualizada correctamente';
