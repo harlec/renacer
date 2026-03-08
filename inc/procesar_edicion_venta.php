@@ -25,8 +25,10 @@ if (isset($_POST) && !empty($_POST)) {
     $fecha_ope = date("Y-m-d H:i:s");
 
     // Validaciones de seguridad
-    if (empty($id_venta) || empty($fecha) || empty($cliente) || empty($productos)) {
-        $mensajeError = 'Faltan datos obligatorios';
+    if (empty($id_venta) || empty($fecha) || empty($cliente)) {
+        $mensajeError = 'Faltan datos obligatorios (ID venta, fecha o cliente)';
+    } elseif (empty($productos) || !is_array($productos)) {
+        $mensajeError = 'No se recibieron productos válidos para la venta';
     } else {
         
         // Verificar que la venta existe y se puede editar
@@ -238,7 +240,9 @@ if (isset($_POST) && !empty($_POST)) {
                 
             } catch (Exception $e) {
                 $respuestaOk = false;
-                $mensajeError = $e->getMessage();
+                $mensajeError = "Error en el proceso: " . $e->getMessage();
+                // Log del error para debugging
+                error_log("Error en edición de venta ID $id_venta: " . $e->getMessage());
             }
         }
     }

@@ -186,10 +186,10 @@ foreach ($el as $value) {
                                                                     <strong><?php echo $det['nom_prod']; ?></strong>
                                                                 </div>
                                                                 <div class="col-md-2">
-                                                                    <input type="number" class="form-control cantidad-prod" value="<?php echo $det['cantidad']; ?>" min="0" step="0.01">
+                                                                    <input type="text" pattern="[0-9]*[.]?[0-9]*" class="form-control cantidad-prod" value="<?php echo $det['cantidad']; ?>">
                                                                 </div>
                                                                 <div class="col-md-2">
-                                                                    <input type="number" class="form-control precio-prod" value="<?php echo $det['precio']; ?>" min="0" step="0.01">
+                                                                    <input type="text" pattern="[0-9]*[.]?[0-9]*" class="form-control precio-prod" value="<?php echo number_format($det['precio'], 3, '.', ''); ?>">
                                                                 </div>
                                                                 <div class="col-md-2">
                                                                     <span class="total-prod"><?php echo $det['total']; ?></span>
@@ -265,6 +265,14 @@ foreach ($el as $value) {
     <script>
     $(document).ready(function() {
         
+        // CSS para campos con errores
+        $('<style>').prop('type', 'text/css').html(`
+            .error {
+                border-color: #d9534f !important;
+                box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 0 3px rgba(217,83,79,.1);
+            }
+        `).appendTo('head');
+        
         // Inicializar DataTable
         $('#datos').DataTable({
             "language": {
@@ -276,9 +284,11 @@ foreach ($el as $value) {
         function recalcularTotales() {
             var total = 0;
             $('.producto-item').each(function() {
-                var cantidad = parseFloat($(this).find('.cantidad-prod').val()) || 0;
-                var precio = parseFloat($(this).find('.precio-prod').val()) || 0;
-                var subtotal = cantidad * precio;
+                var cantidadVal = $(this).find('.cantidad-prod').val().replace(',', '.');
+                var precioVal = $(this).find('.precio-prod').val().replace(',', '.');
+                var cantidad = parseFloat(cantidadVal) || 0;
+                var precio = parseFloat(precioVal) || 0;
+                var subtotal = Math.round((cantidad * precio) * 100) / 100; // Redondear a 2 decimales
                 $(this).find('.total-prod').text(subtotal.toFixed(2));
                 total += subtotal;
             });
@@ -286,7 +296,9 @@ foreach ($el as $value) {
         }
 
         // Event listeners para cambios en cantidad y precio
-        $(document).on('input', '.cantidad-prod, .precio-prod', function() {
+        $(document).on('input keyup', '.cantidad-prod, .precio-prod', function() {
+            // Remover clase de error al empezar a escribir
+            $(this).removeClass('error');
             recalcularTotales();
         });
 
@@ -335,10 +347,10 @@ foreach ($el as $value) {
                             <strong>${nomProd}</strong>
                         </div>
                         <div class="col-md-2">
-                            <input type="number" class="form-control cantidad-prod" value="1" min="0" step="0.01">
+                            <input type="text" pattern="[0-9]*[.]?[0-9]*" class="form-control cantidad-prod" value="1">
                         </div>
                         <div class="col-md-2">
-                            <input type="number" class="form-control precio-prod" value="${precio.toFixed(2)}" min="0" step="0.01">
+                            <input type="text" pattern="[0-9]*[.]?[0-9]*" class="form-control precio-prod" value="${precio.toFixed(3)}">
                         </div>
                         <div class="col-md-2">
                             <span class="total-prod">${precio.toFixed(2)}</span>
@@ -362,17 +374,55 @@ foreach ($el as $value) {
         $('#form_editar_venta').on('submit', function(e) {
             e.preventDefault();
             
+            // Validar campos del formulario
+            var cliente = $('input[name="cliente"]').val().trim();
+            var fecha = $('input[name="fecha"]').val();
+            
+            if (!cliente) {
+                swal('Error', 'El campo cliente es obligatorio', 'error');
+                return;
+            }
+            
+            if (!fecha) {
+                swal('Error', 'La fecha es obligatoria', 'error');
+                return;
+            }
+            
+            // Limpiar y validar campos numéricos
+            var hayErrores = false;
+            $('.cantidad-prod, .precio-prod').each(function() {
+                var valor = $(this).val().replace(',', '.'); // Reemplazar coma por punto
+                var numero = parseFloat(valor);
+                
+                if (isNaN(numero) || numero < 0) {
+                    $(this).addClass('error');
+                    hayErrores = true;
+                } else {
+                    $(this).removeClass('error');
+                    $(this).val(numero); // Normalizar el valor
+                }
+            });
+            
+            if (hayErrores) {
+                swal('Error', 'Hay errores en los campos numéricos. Verifique las cantidades y precios.', 'error');
+                return;
+            }
+            
             // Recopilar datos de productos
             var productos = [];
             $('.producto-item').each(function() {
-                var cantidad = parseFloat($(this).find('.cantidad-prod').val()) || 0;
+                var cantidadVal = $(this).find('.cantidad-prod').val().replace(',', '.');
+                var precioVal = $(this).find('.precio-prod').val().replace(',', '.');
+                var cantidad = parseFloat(cantidadVal) || 0;
+                var precio = parseFloat(precioVal) || 0;
+                
                 if (cantidad > 0) {
                     productos.push({
                         detalle_id: $(this).data('detalle-id'),
                         producto_id: $(this).find('.producto-id').val(),
                         id_vp: $(this).find('.id-vp').val(),
                         cantidad: cantidad,
-                        precio: parseFloat($(this).find('.precio-prod').val()) || 0,
+                        precio: precio,
                         cantidad_original: parseFloat($(this).find('.cantidad-original').val()) || 0
                     });
                 }
@@ -385,12 +435,15 @@ foreach ($el as $value) {
 
             var datosFormulario = {
                 id_venta: $('input[name="id_venta"]').val(),
-                fecha: $('input[name="fecha"]').val(),
-                cliente: $('input[name="cliente"]').val(),
+                fecha: fecha,
+                cliente: cliente,
                 tipo: $('select[name="tipo"]').val(),
                 forma: $('select[name="forma"]').val(),
                 productos: productos
             };
+
+            console.log('Datos que se enviarán:', datosFormulario);
+            console.log('Productos:', productos);
 
             $.ajax({
                 cache: false,
@@ -399,6 +452,7 @@ foreach ($el as $value) {
                 url: "/inc/procesar_edicion_venta.php",
                 data: datosFormulario,
                 success: function(response) {
+                    console.log('Respuesta del servidor:', response);
                     if (response.respuesta == false) {
                         swal('Error', response.mensaje, 'error');
                     } else {
@@ -407,8 +461,10 @@ foreach ($el as $value) {
                         });
                     }
                 },
-                error: function() {
-                    swal('Error', 'Error del sistema al procesar la solicitud', 'error');
+                error: function(xhr, status, error) {
+                    console.log('Error AJAX:', {xhr: xhr, status: status, error: error});
+                    console.log('Respuesta del servidor:', xhr.responseText);
+                    swal('Error', 'Error del sistema: ' + error + '. Ver consola para más detalles.', 'error');
                 }
             });
         });
