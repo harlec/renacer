@@ -322,6 +322,7 @@ foreach ($el as $value) {
             var precio = parseFloat(fila.find('.precio_venta').val());
             var idProducto = $(this).val();
             var idVp = fila.find('.id_vp').val();
+            var cantidad_vp = fila.find('.cantidad_vp').val();
             
             if (stock <= 0) {
                 swal('Advertencia', 'No hay stock disponible para este producto', 'warning');
@@ -350,7 +351,7 @@ foreach ($el as $value) {
                             <strong>${nomProd}</strong>
                         </div>
                         <div class="col-md-2">
-                            <input type="text" pattern="[0-9]*[.]?[0-9]*" class="form-control cantidad-prod" value="1">
+                            <input type="text" pattern="[0-9]*[.]?[0-9]*" class="form-control cantidad-prod" value="${cantidad_vp}">
                         </div>
                         <div class="col-md-2">
                             <input type="text" pattern="[0-9]*[.]?[0-9]*" class="form-control precio-prod" value="${precio.toFixed(3)}">
