@@ -13,6 +13,9 @@ if (!in_array($_SESSION['usuario'], $usuarios_permitidos)) {
 
 $hoy = date('Y-m-d');
 $mes_actual = date('Y-m');
+$usuario_id = $_SESSION['id_usr'];
+$es_admin = ($_SESSION['type'] == 'admin');
+
 // VENTAS DEL DÍA
 $query_ventas_dia = "SELECT COUNT(*) as total FROM ventas WHERE DATE(fecha) = '$hoy' AND estado != '2'";
 if (!$es_admin) {
