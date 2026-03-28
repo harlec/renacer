@@ -54,6 +54,7 @@ try {
     // Mejores clientes - Por cantidad de ventas y monto total
     $ventas_todas = Sdba::table('ventas');
     $ventas_todas->where('estado !=', '2');
+	$ventas_todas->left_join('cliente','clientes','id_cliente');
     $ventas_todas_data = $ventas_todas->get();
     
     $clientes_info = array();
