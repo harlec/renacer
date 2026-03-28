@@ -236,54 +236,7 @@ foreach ($el as $value) {
 						    </table>
 
 
-						<!-- Nav tabs -->
-						<!-- <ul class="nav nav-tabs" role="tablist" id="myTab">
-						  <li class="active"><a href="#currentIssue" role="tab" data-toggle="tab">Productos</a></li>
-						  <li ><a href="#otro" role="tab" data-toggle="tab">Agrupados</a></li>
-						</ul>
-
-						Tab panes
-						<div class="tab-content">
-						  <div class="tab-pane active" id="currentIssue">
-						  	<table id="datos" class="table table-hover table-responsive"> 
-						    	<thead> 
-						    		<tr> 
-						    			<th>Producto</th>
-						    			<th>Unidad</th>
-						    			<th>Stock</th>
-						    			<th>Precio</th> 
-						    			<th></th> 
-						    		</tr> 
-						    	</thead> 
-						    	<tbody> 
-						    		<?php //echo $datos; ?>
-						    	</tbody> 
-						    </table>
-						  </div>
-						  <div class="tab-pane " id="otro">
-						  	<select id="select_p">
-						  		<option value="">seleccione producto</option>
-						  		<?= $variantes_lst; ?>
-						  	</select>
-						  	&nbsp;&nbsp<input class="" id="canti_variante" value="" type="text" name="canti_variante">
-						  	<h4>Variantes de precios <input type="button" class="btn  btn-success" id="add"value="+" /></h4>
-			    			<table id="variantes" class="table">
-			    				<thead>
-			    					<tr>
-			    						<th>Producto</th>
-			    						<th>Cantidad</th>
-			    						<th></th>
-			    					</tr>
-			    				</thead>
-			    				<tbody>
-			    					
-			    				</tbody>
-			    			</table>
-						  </div>
-						  
-						</div> -->
-
-
+						
 					    
 					</div>
 				</div>
