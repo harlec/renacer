@@ -3,101 +3,112 @@ include('inc/control.php');
 include('inc/sdba/sdba.php');
 
 // Control de acceso - Solo usuarios específicos
-//$usuarios_permitidos = ['susan', 'robert', 'hars'];
 $usuarios_permitidos = ['hars'];
 if (!in_array($_SESSION['usuario'], $usuarios_permitidos)) {
     header("Location: ventas.php");
     exit;
 }
 
-// Fechas para cálculos
-$fecha_hoy = date('Y-m-d');
-$fecha_mes_actual = date('Y-m-01');
-$fecha_mes_anterior = date('Y-m-01', strtotime('-1 month'));
-$fecha_fin_mes_anterior = date('Y-m-t', strtotime('-1 month'));
-
-// Métrica 1: Ventas del día
-$ventas_hoy = Sdba::table('ventas');
-$ventas_hoy->where('fecha', $fecha_hoy)->and_where('estado !=', '2');
-$ventas_hoy_list = $ventas_hoy->get();
+// Inicializar variables para evitar errores
 $total_ventas_hoy = 0;
-foreach($ventas_hoy_list as $venta) {
-    $total_ventas_hoy += $venta['total'];
-}
-
-// Métrica 2: Ventas del mes vs mes anterior
-$ventas_mes = Sdba::table('ventas');
-$ventas_mes->where('fecha >=', $fecha_mes_actual)->and_where('estado !=', '2');
-$ventas_mes_list = $ventas_mes->get();
 $total_ventas_mes = 0;
-foreach($ventas_mes_list as $venta) {
-    $total_ventas_mes += $venta['total'];
-}
-
-$ventas_mes_ant = Sdba::table('ventas');
-$ventas_mes_ant->where('fecha >=', $fecha_mes_anterior)->and_where('fecha <=', $fecha_fin_mes_anterior)->and_where('estado !=', '2');
-$ventas_mes_ant_list = $ventas_mes_ant->get();
 $total_ventas_mes_ant = 0;
-foreach($ventas_mes_ant_list as $venta) {
-    $total_ventas_mes_ant += $venta['total'];
+$crecimiento = 0;
+$productos_criticos_count = 0;
+$ventas_pendientes_count = 0;
+$ventas_contado_count = 0;
+$ventas_credito_count = 0;
+$mejores_clientes_list = array();
+$top_productos_list = array();
+$productos_stock_critico_list = array();
+$movimientos_stock_list = array();
+
+try {
+    // Fechas para cálculos
+    $fecha_hoy = date('Y-m-d');
+    $fecha_mes_actual = date('Y-m-01');
+    $fecha_mes_anterior = date('Y-m-01', strtotime('-1 month'));
+    $fecha_fin_mes_anterior = date('Y-m-t', strtotime('-1 month'));
+
+    // Métrica 1: Ventas del día
+    $ventas_hoy = Sdba::table('ventas');
+    $ventas_hoy->where('fecha', $fecha_hoy)->and_where('estado !=', '2');
+    $ventas_hoy_list = $ventas_hoy->get();
+    foreach($ventas_hoy_list as $venta) {
+        $total_ventas_hoy += $venta['total'];
+    }
+
+    // Métrica 2: Ventas del mes vs mes anterior
+    $ventas_mes = Sdba::table('ventas');
+    $ventas_mes->where('fecha >=', $fecha_mes_actual)->and_where('estado !=', '2');
+    $ventas_mes_list = $ventas_mes->get();
+    foreach($ventas_mes_list as $venta) {
+        $total_ventas_mes += $venta['total'];
+    }
+
+    $ventas_mes_ant = Sdba::table('ventas');
+    $ventas_mes_ant->where('fecha >=', $fecha_mes_anterior)->and_where('fecha <=', $fecha_fin_mes_anterior)->and_where('estado !=', '2');
+    $ventas_mes_ant_list = $ventas_mes_ant->get();
+    foreach($ventas_mes_ant_list as $venta) {
+        $total_ventas_mes_ant += $venta['total'];
+    }
+
+    $crecimiento = $total_ventas_mes_ant > 0 ? (($total_ventas_mes - $total_ventas_mes_ant) / $total_ventas_mes_ant) * 100 : 0;
+
+    // Métrica 3: Productos con stock crítico
+    $productos_criticos = Sdba::table('productos');
+    $productos_criticos->where('stockp <', '10');
+    $productos_criticos_count = count($productos_criticos->get());
+
+    // Métrica 4: Ventas pendientes (sin comprobante)
+    $ventas_pendientes = Sdba::table('ventas');
+    $ventas_pendientes->where('estado', '0');
+    $ventas_pendientes_count = count($ventas_pendientes->get());
+
+    // Mejores clientes por total de compra - Simplificado
+    $ventas_clientes = Sdba::table('ventas');
+    $ventas_clientes->where('estado !=', '2');
+    $ventas_clientes->order_by('total', 'desc');
+    $ventas_clientes->limit(50);
+    $ventas_list = $ventas_clientes->get();
+    
+    $clientes_totales = array();
+    foreach($ventas_list as $venta) {
+        $cliente = $venta['cliente'];
+        if(!isset($clientes_totales[$cliente])) {
+            $clientes_totales[$cliente] = 0;
+        }
+        $clientes_totales[$cliente] += $venta['total'];
+    }
+    arsort($clientes_totales);
+    $mejores_clientes_list = array_slice($clientes_totales, 0, 10, true);
+
+    // Productos con stock crítico (detallado)
+    $productos_stock_critico = Sdba::table('productos');
+    $productos_stock_critico->where('stockp <', '10');
+    $productos_stock_critico->order_by('stockp', 'asc');
+    $productos_stock_critico->limit(10);
+    $productos_stock_critico_list = $productos_stock_critico->get();
+
+    // Últimos movimientos de stock - Simplificado
+    $movimientos_stock = Sdba::table('stock');
+    $movimientos_stock->order_by('id_stock', 'desc');
+    $movimientos_stock->limit(15);
+    $movimientos_stock_list = $movimientos_stock->get();
+
+    // Ventas por tipo (contado vs crédito)
+    $ventas_contado = Sdba::table('ventas');
+    $ventas_contado->where('tipo', '1')->and_where('estado !=', '2');
+    $ventas_contado_count = count($ventas_contado->get());
+
+    $ventas_credito = Sdba::table('ventas');
+    $ventas_credito->where('tipo', '2')->and_where('estado !=', '2');
+    $ventas_credito_count = count($ventas_credito->get());
+
+} catch (Exception $e) {
+    // En caso de error, usar valores por defecto
+    error_log("Error en dashboard: " . $e->getMessage());
 }
-
-$crecimiento = $total_ventas_mes_ant > 0 ? (($total_ventas_mes - $total_ventas_mes_ant) / $total_ventas_mes_ant) * 100 : 0;
-
-// Métrica 3: Productos con stock crítico
-$productos_criticos = Sdba::table('productos');
-$productos_criticos->where('stockp <', '10');
-$productos_criticos_count = count($productos_criticos->get());
-
-// Métrica 4: Ventas pendientes (sin comprobante)
-$ventas_pendientes = Sdba::table('ventas');
-$ventas_pendientes->where('estado', '0');
-$ventas_pendientes_count = count($ventas_pendientes->get());
-
-// Mejores clientes por total de compra
-$mejores_clientes = Sdba::table('ventas');
-$mejores_clientes->select_sum('total', 'total_compras');
-$mejores_clientes->select('cliente');
-$mejores_clientes->where('estado !=', '2');
-$mejores_clientes->group_by('cliente');
-$mejores_clientes->order_by('total_compras', 'desc');
-$mejores_clientes->limit(10);
-$mejores_clientes_list = $mejores_clientes->get();
-
-// Top productos más vendidos
-$top_productos = Sdba::table('detalle_ventas');
-$top_productos->select_sum('cantidad', 'total_vendido');
-$top_productos->select('producto');
-$top_productos->left_join('producto', 'productos', 'id_producto');
-$top_productos->group_by('producto');
-$top_productos->order_by('total_vendido', 'desc');
-$top_productos->limit(10);
-$top_productos_list = $top_productos->get();
-
-// Productos con stock crítico (detallado)
-$productos_stock_critico = Sdba::table('productos');
-$productos_stock_critico->select('nom_prod, stockp');
-$productos_stock_critico->where('stockp <', '10');
-$productos_stock_critico->order_by('stockp', 'asc');
-$productos_stock_critico->limit(10);
-$productos_stock_critico_list = $productos_stock_critico->get();
-
-// Últimos movimientos de stock
-$movimientos_stock = Sdba::table('stock');
-$movimientos_stock->left_join('producto', 'productos', 'id_producto');
-$movimientos_stock->select('stock.fecha, productos.nom_prod, stock.ingreso, stock.egreso, stock.motivo, stock.stockt');
-$movimientos_stock->order_by('stock.id_stock', 'desc');
-$movimientos_stock->limit(15);
-$movimientos_stock_list = $movimientos_stock->get();
-
-// Ventas por tipo (contado vs crédito)
-$ventas_contado = Sdba::table('ventas');
-$ventas_contado->where('tipo', '1')->and_where('estado !=', '2');
-$ventas_contado_count = count($ventas_contado->get());
-
-$ventas_credito = Sdba::table('ventas');
-$ventas_credito->where('tipo', '2')->and_where('estado !=', '2');
-$ventas_credito_count = count($ventas_credito->get());
 ?>
 
 <!DOCTYPE html>
@@ -245,15 +256,11 @@ $ventas_credito_count = count($ventas_credito->get());
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php 
-                                            $i = 1;
-                                            foreach($top_productos_list as $prod): ?>
                                             <tr>
-                                                <td><?php echo $i++; ?></td>
-                                                <td><?php echo $prod['nom_prod']; ?></td>
-                                                <td><span class="badge badge-success"><?php echo $prod['total_vendido']; ?></span></td>
+                                                <td colspan="3" class="text-center text-muted">
+                                                    <i class="fas fa-info-circle"></i> Datos de productos en desarrollo
+                                                </td>
                                             </tr>
-                                            <?php endforeach; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -281,7 +288,7 @@ $ventas_credito_count = count($ventas_credito->get());
                                         <tbody>
                                             <?php 
                                             $pos = 1;
-                                            foreach($mejores_clientes_list as $cliente): ?>
+                                            foreach($mejores_clientes_list as $cliente_nombre => $total_compras): ?>
                                             <tr>
                                                 <td>
                                                     <?php if($pos == 1): ?>
@@ -294,10 +301,10 @@ $ventas_credito_count = count($ventas_credito->get());
                                                         <span class="badge badge-primary"><?php echo $pos; ?></span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td style="font-weight: bold;"><?php echo $cliente['cliente']; ?></td>
+                                                <td style="font-weight: bold;"><?php echo $cliente_nombre; ?></td>
                                                 <td>
                                                     <span class="badge badge-success" style="font-size: 0.9em;">
-                                                        S/ <?php echo number_format($cliente['total_compras'], 2); ?>
+                                                        S/ <?php echo number_format($total_compras, 2); ?>
                                                     </span>
                                                 </td>
                                             </tr>
@@ -371,7 +378,7 @@ $ventas_credito_count = count($ventas_credito->get());
                                             <?php foreach($movimientos_stock_list as $mov): ?>
                                             <tr>
                                                 <td><?php echo date('d/m/Y', strtotime($mov['fecha'])); ?></td>
-                                                <td><?php echo $mov['nom_prod']; ?></td>
+                                                <td>Producto #<?php echo $mov['producto']; ?></td>
                                                 <td>
                                                     <?php if($mov['ingreso'] > 0): ?>
                                                         <span class="text-success">+<?php echo $mov['ingreso']; ?></span>
