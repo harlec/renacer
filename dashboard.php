@@ -83,21 +83,30 @@ try {
         $mejores_clientes_list = array_slice($clientes_info, 0, 10);
     }
     
-    // Productos más vendidos - Top 10 con LEFT JOIN correcto
+    // Productos más vendidos - Top 10 (método simplificado sin JOIN)
     $detalle_ventas_todas = Sdba::table('detalle_ventas');
-    $detalle_ventas_todas->left_join('producto','productos','id_producto');
     $detalle_ventas_todas_data = $detalle_ventas_todas->get();
     
     $productos_vendidos = array();
     foreach($detalle_ventas_todas_data as $detalle) {
-        $nombre_producto = $detalle['nom_prod']; // Campo correcto de la tabla productos
-        if(!isset($productos_vendidos[$nombre_producto])) {
-            $productos_vendidos[$nombre_producto] = array(
-                'nombre' => $nombre_producto,
-                'cantidad_total' => 0
-            );
+        $id_producto = $detalle['producto']; // ID del producto
+        
+        // Consulta individual para obtener nombre del producto
+        $producto_info = Sdba::table('productos');
+        $producto_info->where('id_producto', $id_producto);
+        $producto_data = $producto_info->get();
+        
+        if(!empty($producto_data)) {
+            $nombre_producto = $producto_data[0]['nom_prod'];
+            
+            if(!isset($productos_vendidos[$nombre_producto])) {
+                $productos_vendidos[$nombre_producto] = array(
+                    'nombre' => $nombre_producto,
+                    'cantidad_total' => 0
+                );
+            }
+            $productos_vendidos[$nombre_producto]['cantidad_total'] += intval($detalle['cantidad']);
         }
-        $productos_vendidos[$nombre_producto]['cantidad_total'] += intval($detalle['cantidad']);
     }
     
     // Ordenar por cantidad vendida - Compatible PHP 7.4
