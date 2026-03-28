@@ -169,7 +169,7 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
 		
 		<div class="kbg">
 			<div class="container-fluid">
-                <div class="row" style="margin-top: 70px;">
+                <div class="row">
                     <div class="col-md-12">
                         <h2><i class="fas fa-chart-line"></i> Dashboard Ejecutivo</h2>
                         <p class="text-muted">Panel de control para usuarios autorizados</p>
