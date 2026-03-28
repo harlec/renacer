@@ -86,47 +86,42 @@ try {
         $mejores_clientes_list = array_slice($clientes_info, 0, 10);
     }
     
-    // Productos más vendidos - Top 10 con LEFT JOIN robusto
-    try {
-        $detalle_ventas_todas = Sdba::table('detalle_ventas');
-        $detalle_ventas_todas->left_join('producto', 'productos', 'id_producto');
-        $detalle_ventas_todas_data = $detalle_ventas_todas->get();
-        
-        if (is_array($detalle_ventas_todas_data)) {
-            $productos_vendidos = array();
-            foreach($detalle_ventas_todas_data as $detalle) {
-                if (isset($detalle['nom_prod']) && isset($detalle['cantidad']) && isset($detalle['total'])) {
-                    $nombre_producto = trim($detalle['nom_prod']);
-                    
-                    if(!empty($nombre_producto)) {
-                        if(!isset($productos_vendidos[$nombre_producto])) {
-                            $productos_vendidos[$nombre_producto] = array(
-                                'nombre' => $nombre_producto,
-                                'cantidad_total' => 0,
-                                'monto_total' => 0
-                            );
-                        }
-                        $productos_vendidos[$nombre_producto]['cantidad_total'] += intval($detalle['cantidad']);
-                        $productos_vendidos[$nombre_producto]['monto_total'] += floatval($detalle['total']);
+    // Productos más vendidos - Top 10
+    $detalle_ventas_todas = Sdba::table('detalle_ventas');
+    $detalle_ventas_todas->left_join('producto', 'productos', 'id_producto');
+    $detalle_ventas_todas_data = $detalle_ventas_todas->get();
+    
+    $productos_vendidos = array();
+    if (is_array($detalle_ventas_todas_data)) {
+        foreach($detalle_ventas_todas_data as $detalle) {
+            if (isset($detalle['nom_prod']) && isset($detalle['cantidad']) && isset($detalle['total'])) {
+                $nombre_producto = trim($detalle['nom_prod']);
+                
+                if(!empty($nombre_producto)) {
+                    if(!isset($productos_vendidos[$nombre_producto])) {
+                        $productos_vendidos[$nombre_producto] = array(
+                            'nombre' => $nombre_producto,
+                            'cantidad_total' => 0,
+                            'monto_total' => 0
+                        );
                     }
+                    $productos_vendidos[$nombre_producto]['cantidad_total'] += intval($detalle['cantidad']);
+                    $productos_vendidos[$nombre_producto]['monto_total'] += floatval($detalle['total']);
                 }
             }
-            
-            // Ordenar por cantidad vendida - Compatible PHP 7.4
-            if (!empty($productos_vendidos)) {
-                usort($productos_vendidos, function($a, $b) {
-                    if ($a['cantidad_total'] == $b['cantidad_total']) {
-                        return 0;
-                    }
-                    return ($a['cantidad_total'] > $b['cantidad_total']) ? -1 : 1;
-                });
-                
-                $productos_mas_vendidos_list = array_slice($productos_vendidos, 0, 10);
-            }
         }
-    } catch (Exception $e) {
-        // Si falla el JOIN, usar array vacío
-        $productos_mas_vendidos_list = array();
+    }
+    
+    // Ordenar por cantidad vendida - Compatible PHP 7.4
+    if (!empty($productos_vendidos)) {
+        usort($productos_vendidos, function($a, $b) {
+            if ($a['cantidad_total'] == $b['cantidad_total']) {
+                return 0;
+            }
+            return ($a['cantidad_total'] > $b['cantidad_total']) ? -1 : 1;
+        });
+        
+        $productos_mas_vendidos_list = array_slice($productos_vendidos, 0, 10);
     }
     
 } catch (Exception $e) {
@@ -139,11 +134,15 @@ try {
     $productos_mas_vendidos_list = array();
 }
 
-// Asegurar valores numéricos
-$total_ventas_hoy = floatval($total_ventas_hoy);
-$total_ventas_mes = floatval($total_ventas_mes);
-$productos_criticos_count = intval($productos_criticos_count);
-$ventas_pendientes_count = intval($ventas_pendientes_count);
+// Asegurar valores numéricos - Validación robusta
+$total_ventas_hoy = is_numeric($total_ventas_hoy) ? floatval($total_ventas_hoy) : 0;
+$total_ventas_mes = is_numeric($total_ventas_mes) ? floatval($total_ventas_mes) : 0;
+$productos_criticos_count = is_numeric($productos_criticos_count) ? intval($productos_criticos_count) : 0;
+$ventas_pendientes_count = is_numeric($ventas_pendientes_count) ? intval($ventas_pendientes_count) : 0;
+
+// Validar arrays
+if (!is_array($mejores_clientes_list)) $mejores_clientes_list = array();
+if (!is_array($productos_mas_vendidos_list)) $productos_mas_vendidos_list = array();
 ?>
 
 <!DOCTYPE html>
@@ -209,7 +208,7 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
 		
 		<div class="kbg">
 			<div class="container-fluid">
-                <div class="row">
+                <div class="row" style="margin-top: 70px;">
                     <div class="col-md-12">
                         <h2><i class="fas fa-chart-line"></i> Dashboard Ejecutivo</h2>
                         <p class="text-muted">Panel de control para usuarios autorizados</p>
@@ -269,7 +268,9 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                                         <tbody>
                                             <?php 
                                             $pos = 1;
-                                            foreach($mejores_clientes_list as $cliente): ?>
+                                            if (is_array($mejores_clientes_list)) {
+                                            foreach($mejores_clientes_list as $cliente): 
+                                                if (isset($cliente['nombre']) && isset($cliente['cantidad_ventas']) && isset($cliente['monto_total'])): ?>
                                             <tr>
                                                 <td>
                                                     <?php if($pos == 1): ?>
@@ -282,13 +283,13 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                                                         <span class="badge badge-primary"><?php echo $pos; ?></span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td style="font-weight: bold;"><?php echo $cliente['nombre']; ?></td>
+                                                <td style="font-weight: bold;"><?php echo htmlspecialchars($cliente['nombre']); ?></td>
                                                 <td>
-                                                    <span class="badge badge-info"><?php echo $cliente['cantidad_ventas']; ?> ventas</span>
+                                                    <span class="badge badge-info"><?php echo intval($cliente['cantidad_ventas']); ?> ventas</span>
                                                 </td>
                                                 <td>
                                                     <span class="badge badge-success" style="font-size: 0.9em;">
-                                                        S/ <?php echo number_format($cliente['monto_total'], 2); ?>
+                                                        S/ <?php echo number_format(floatval($cliente['monto_total']), 2); ?>
                                                     </span>
                                                 </td>
                                             </tr>
@@ -325,7 +326,9 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                                         <tbody>
                                             <?php 
                                             $pos = 1;
-                                            foreach($productos_mas_vendidos_list as $producto): ?>
+                                            if (is_array($productos_mas_vendidos_list)) {
+                                            foreach($productos_mas_vendidos_list as $producto): 
+                                                if (isset($producto['nombre']) && isset($producto['cantidad_total']) && isset($producto['monto_total'])): ?>
                                             <tr>
                                                 <td>
                                                     <?php if($pos == 1): ?>
@@ -338,15 +341,15 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                                                         <span class="badge badge-success"><?php echo $pos; ?></span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td style="font-weight: bold;"><?php echo $producto['nombre']; ?></td>
+                                                <td style="font-weight: bold;"><?php echo htmlspecialchars($producto['nombre']); ?></td>
                                                 <td>
                                                     <span class="badge badge-primary" style="font-size: 0.9em;">
-                                                        <?php echo number_format($producto['cantidad_total']); ?> unidades
+                                                        <?php echo number_format(intval($producto['cantidad_total'])); ?> unidades
                                                     </span>
                                                 </td>
                                                 <td>
                                                     <span class="badge badge-success" style="font-size: 0.9em;">
-                                                        S/ <?php echo number_format($producto['monto_total'], 2); ?>
+                                                        S/ <?php echo number_format(floatval($producto['monto_total']), 2); ?>
                                                     </span>
                                                 </td>
                                             </tr>
