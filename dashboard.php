@@ -18,6 +18,9 @@ $mejores_clientes_list = array();
 $productos_mas_vendidos_list = array();
 
 try {
+    // Configurar timeout para evitar cuelgues
+    set_time_limit(30);
+    
     $fecha_hoy = date('Y-m-d');
     $fecha_mes = date('Y-m-01');
     
@@ -83,38 +86,47 @@ try {
         $mejores_clientes_list = array_slice($clientes_info, 0, 10);
     }
     
-    // Productos más vendidos - Top 10 con LEFT JOIN optimizado
-    $detalle_ventas_todas = Sdba::table('detalle_ventas');
-    $detalle_ventas_todas->left_join('producto', 'productos', 'id_producto');
-    $detalle_ventas_todas_data = $detalle_ventas_todas->get();
-    
-    $productos_vendidos = array();
-    foreach($detalle_ventas_todas_data as $detalle) {
-        $nombre_producto = $detalle['nom_prod']; // Campo del JOIN
+    // Productos más vendidos - Top 10 con LEFT JOIN robusto
+    try {
+        $detalle_ventas_todas = Sdba::table('detalle_ventas');
+        $detalle_ventas_todas->left_join('producto', 'productos', 'id_producto');
+        $detalle_ventas_todas_data = $detalle_ventas_todas->get();
         
-        if(!empty($nombre_producto)) {
-            if(!isset($productos_vendidos[$nombre_producto])) {
-                $productos_vendidos[$nombre_producto] = array(
-                    'nombre' => $nombre_producto,
-                    'cantidad_total' => 0,
-                    'monto_total' => 0
-                );
+        if (is_array($detalle_ventas_todas_data)) {
+            $productos_vendidos = array();
+            foreach($detalle_ventas_todas_data as $detalle) {
+                if (isset($detalle['nom_prod']) && isset($detalle['cantidad']) && isset($detalle['total'])) {
+                    $nombre_producto = trim($detalle['nom_prod']);
+                    
+                    if(!empty($nombre_producto)) {
+                        if(!isset($productos_vendidos[$nombre_producto])) {
+                            $productos_vendidos[$nombre_producto] = array(
+                                'nombre' => $nombre_producto,
+                                'cantidad_total' => 0,
+                                'monto_total' => 0
+                            );
+                        }
+                        $productos_vendidos[$nombre_producto]['cantidad_total'] += intval($detalle['cantidad']);
+                        $productos_vendidos[$nombre_producto]['monto_total'] += floatval($detalle['total']);
+                    }
+                }
             }
-            $productos_vendidos[$nombre_producto]['cantidad_total'] += intval($detalle['cantidad']);
-            $productos_vendidos[$nombre_producto]['monto_total'] += floatval($detalle['total']);
+            
+            // Ordenar por cantidad vendida - Compatible PHP 7.4
+            if (!empty($productos_vendidos)) {
+                usort($productos_vendidos, function($a, $b) {
+                    if ($a['cantidad_total'] == $b['cantidad_total']) {
+                        return 0;
+                    }
+                    return ($a['cantidad_total'] > $b['cantidad_total']) ? -1 : 1;
+                });
+                
+                $productos_mas_vendidos_list = array_slice($productos_vendidos, 0, 10);
+            }
         }
-    }
-    
-    // Ordenar por cantidad vendida - Compatible PHP 7.4
-    if (!empty($productos_vendidos)) {
-        usort($productos_vendidos, function($a, $b) {
-            if ($a['cantidad_total'] == $b['cantidad_total']) {
-                return 0;
-            }
-            return ($a['cantidad_total'] > $b['cantidad_total']) ? -1 : 1;
-        });
-        
-        $productos_mas_vendidos_list = array_slice($productos_vendidos, 0, 10);
+    } catch (Exception $e) {
+        // Si falla el JOIN, usar array vacío
+        $productos_mas_vendidos_list = array();
     }
     
 } catch (Exception $e) {
