@@ -86,11 +86,12 @@ try {
     
     // Productos más vendidos - Top 10
     $detalle_ventas_todas = Sdba::table('detalle_ventas');
+    $detalle_ventas_todas->left_join('productos','productos','id_producto');
     $detalle_ventas_todas_data = $detalle_ventas_todas->get();
     
     $productos_vendidos = array();
     foreach($detalle_ventas_todas_data as $detalle) {
-        $producto = $detalle['nom_producto'];
+        $producto = $detalle['nom_prod']; // Nombre del producto desde la tabla productos
         if(!isset($productos_vendidos[$producto])) {
             $productos_vendidos[$producto] = array(
                 'nombre' => $producto,
