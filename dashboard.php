@@ -85,14 +85,27 @@ try {
     $productos_stock_critico->order_by('stockp', 'asc');
     $productos_stock_critico_list = $productos_stock_critico->get(10);
     
-    // Contadores simples
-    $ventas_contado = Sdba::table('ventas');
-    $ventas_contado->where('tipo', '1')->and_where('estado !=', '2');
-    $ventas_contado_count = $ventas_contado->total();
+    // Contadores simples - SIN usar columna tipo que no existe
+    $todas_ventas_activas = Sdba::table('ventas');
+    $todas_ventas_activas->where('estado !=', '2');
+    $todas_ventas_data = $todas_ventas_activas->get();
     
-    $ventas_credito = Sdba::table('ventas');
-    $ventas_credito->where('tipo', '2')->and_where('estado !=', '2');
-    $ventas_credito_count = $ventas_credito->total();
+    $ventas_contado_count = 0;
+    $ventas_credito_count = 0;
+    
+    foreach($todas_ventas_data as $venta) {
+        // Usar columna 'forma' si existe, sino contar todas como contado
+        if(isset($venta['forma'])) {
+            if($venta['forma'] == '1') {
+                $ventas_contado_count++;
+            } else {
+                $ventas_credito_count++;
+            }
+        } else {
+            // Si no hay campo forma, contar todo como contado
+            $ventas_contado_count++;
+        }
+    }
     
 } catch (Exception $e) {
     // Valores por defecto en caso de error
