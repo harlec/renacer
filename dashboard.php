@@ -41,10 +41,9 @@ try {
         }
     }
     
-    // Métrica 3: Productos más vendidos (conteo total)
-    $detalle_ventas = Sdba::table('detalle_ventas');
-    $detalle_ventas_data = $detalle_ventas->get();
-    $productos_criticos_count = count($detalle_ventas_data);
+    // Métrica 3: Total de productos vendidos
+    $detalle_ventas_total = Sdba::table('detalle_ventas');
+    $productos_criticos_count = $detalle_ventas_total->total();
     
     // Métrica 4: Ventas pendientes
     $ventas_pendientes = Sdba::table('ventas');
@@ -84,21 +83,21 @@ try {
         $mejores_clientes_list = array_slice($clientes_info, 0, 10);
     }
     
-    // Productos más vendidos - Top 10
+    // Productos más vendidos - Top 10 con LEFT JOIN correcto
     $detalle_ventas_todas = Sdba::table('detalle_ventas');
-    $detalle_ventas_todas->left_join('productos','productos','id_producto');
+    $detalle_ventas_todas->left_join('producto','productos','id_producto');
     $detalle_ventas_todas_data = $detalle_ventas_todas->get();
     
     $productos_vendidos = array();
     foreach($detalle_ventas_todas_data as $detalle) {
-        $producto = $detalle['nom_prod']; // Nombre del producto desde la tabla productos
-        if(!isset($productos_vendidos[$producto])) {
-            $productos_vendidos[$producto] = array(
-                'nombre' => $producto,
+        $nombre_producto = $detalle['nom_prod']; // Campo correcto de la tabla productos
+        if(!isset($productos_vendidos[$nombre_producto])) {
+            $productos_vendidos[$nombre_producto] = array(
+                'nombre' => $nombre_producto,
                 'cantidad_total' => 0
             );
         }
-        $productos_vendidos[$producto]['cantidad_total'] += intval($detalle['cantidad']);
+        $productos_vendidos[$nombre_producto]['cantidad_total'] += intval($detalle['cantidad']);
     }
     
     // Ordenar por cantidad vendida - Compatible PHP 7.4
@@ -289,7 +288,7 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                         </div>
                     </div>
 
-                    <!-- Productos Más Vendidos -->
+                    <!-- Top 10 Productos Más Vendidos -->
                     <div class="col-md-6">
                         <div class="panel panel-default">
                             <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
