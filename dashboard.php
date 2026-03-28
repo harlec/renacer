@@ -53,31 +53,32 @@ try {
     $ventas_pendientes->where('estado', '0');
     $ventas_pendientes_count = $ventas_pendientes->total();
     
-    // Mejores clientes - Método simple
+    // Mejores clientes - Por cantidad de ventas y monto total
     $ventas_todas = Sdba::table('ventas');
     $ventas_todas->where('estado !=', '2');
     $ventas_todas_data = $ventas_todas->get();
     
-    $clientes_totales = array();
+    $clientes_info = array();
     foreach($ventas_todas_data as $venta) {
         $cliente = $venta['cliente'];
-        if(!isset($clientes_totales[$cliente])) {
-            $clientes_totales[$cliente] = 0;
+        if(!isset($clientes_info[$cliente])) {
+            $clientes_info[$cliente] = array(
+                'nombre' => $cliente,
+                'cantidad_ventas' => 0,
+                'monto_total' => 0
+            );
         }
-        $clientes_totales[$cliente] += $venta['total'];
+        $clientes_info[$cliente]['cantidad_ventas']++;
+        $clientes_info[$cliente]['monto_total'] += floatval($venta['total']);
     }
     
-    // Ordenar clientes por total
-    arsort($clientes_totales);
-    $contador = 0;
-    foreach($clientes_totales as $cliente => $total) {
-        if($contador >= 10) break;
-        $mejores_clientes_list[] = array(
-            'cliente' => $cliente,
-            'total_compras' => $total
-        );
-        $contador++;
-    }
+    // Ordenar clientes por monto total
+    usort($clientes_info, function($a, $b) {
+        return $b['monto_total'] <=> $a['monto_total'];
+    });
+    
+    // Tomar los primeros 10
+    $mejores_clientes_list = array_slice($clientes_info, 0, 10);
     
     // Productos con stock crítico
     $productos_stock_critico = Sdba::table('productos');
@@ -85,27 +86,7 @@ try {
     $productos_stock_critico->order_by('stockp', 'asc');
     $productos_stock_critico_list = $productos_stock_critico->get(10);
     
-    // Contadores simples - SIN usar columna tipo que no existe
-    $todas_ventas_activas = Sdba::table('ventas');
-    $todas_ventas_activas->where('estado !=', '2');
-    $todas_ventas_data = $todas_ventas_activas->get();
-    
-    $ventas_contado_count = 0;
-    $ventas_credito_count = 0;
-    
-    foreach($todas_ventas_data as $venta) {
-        // Usar columna 'forma' si existe, sino contar todas como contado
-        if(isset($venta['forma'])) {
-            if($venta['forma'] == '1') {
-                $ventas_contado_count++;
-            } else {
-                $ventas_credito_count++;
-            }
-        } else {
-            // Si no hay campo forma, contar todo como contado
-            $ventas_contado_count++;
-        }
-    }
+
     
 } catch (Exception $e) {
     // Valores por defecto en caso de error
@@ -113,8 +94,6 @@ try {
     $total_ventas_mes = 0;
     $productos_criticos_count = 0;
     $ventas_pendientes_count = 0;
-    $ventas_contado_count = 0;
-    $ventas_credito_count = 0;
     $mejores_clientes_list = array();
     $productos_stock_critico_list = array();
 }
@@ -124,8 +103,6 @@ $total_ventas_hoy = floatval($total_ventas_hoy);
 $total_ventas_mes = floatval($total_ventas_mes);
 $productos_criticos_count = intval($productos_criticos_count);
 $ventas_pendientes_count = intval($ventas_pendientes_count);
-$ventas_contado_count = intval($ventas_contado_count);
-$ventas_credito_count = intval($ventas_credito_count);
 ?>
 
 <!DOCTYPE html>
@@ -191,7 +168,7 @@ $ventas_credito_count = intval($ventas_credito_count);
 		
 		<div class="kbg">
 			<div class="container-fluid">
-                <div class="row" style="margin-top: 70px;">
+                <div class="row">
                     <div class="col-md-12">
                         <h2><i class="fas fa-chart-line"></i> Dashboard Ejecutivo</h2>
                         <p class="text-muted">Panel exclusivo para usuarios autorizados</p>
@@ -235,7 +212,7 @@ $ventas_credito_count = intval($ventas_credito_count);
                     <div class="col-md-6">
                         <div class="panel panel-default">
                             <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                                <h4><i class="fas fa-crown"></i> 👑 Mejores Clientes por Total de Compra</h4>
+                                <h4><i class="fas fa-crown"></i> 👑 Mejores Clientes por Ventas y Monto</h4>
                             </div>
                             <div class="panel-body">
                                 <div class="table-responsive">
@@ -244,7 +221,8 @@ $ventas_credito_count = intval($ventas_credito_count);
                                             <tr>
                                                 <th>Pos.</th>
                                                 <th>Cliente</th>
-                                                <th>Total Comprado</th>
+                                                <th>Cant. Ventas</th>
+                                                <th>Monto Total (S/)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -263,17 +241,20 @@ $ventas_credito_count = intval($ventas_credito_count);
                                                         <span class="badge badge-primary"><?php echo $pos; ?></span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td style="font-weight: bold;"><?php echo $cliente['cliente']; ?></td>
+                                                <td style="font-weight: bold;"><?php echo $cliente['nombre']; ?></td>
+                                                <td>
+                                                    <span class="badge badge-info"><?php echo $cliente['cantidad_ventas']; ?> ventas</span>
+                                                </td>
                                                 <td>
                                                     <span class="badge badge-success" style="font-size: 0.9em;">
-                                                        S/ <?php echo number_format($cliente['total_compras'], 2); ?>
+                                                        S/ <?php echo number_format($cliente['monto_total'], 2); ?>
                                                     </span>
                                                 </td>
                                             </tr>
                                             <?php $pos++; endforeach; ?>
                                             <?php if (empty($mejores_clientes_list)): ?>
                                             <tr>
-                                                <td colspan="3" class="text-center text-muted">No hay datos disponibles</td>
+                                                <td colspan="4" class="text-center text-muted">No hay datos disponibles</td>
                                             </tr>
                                             <?php endif; ?>
                                         </tbody>
@@ -324,29 +305,6 @@ $ventas_credito_count = intval($ventas_credito_count);
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gráfico Simple -->
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="panel panel-default">
-                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd;">
-                                <h4><i class="fas fa-chart-pie"></i> Distribución de Ventas</h4>
-                            </div>
-                            <div class="panel-body text-center">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <h3><i class="fas fa-money-bill text-success"></i> Contado</h3>
-                                        <h2 class="text-success"><?php echo $ventas_contado_count; ?> ventas</h2>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h3><i class="fas fa-credit-card text-warning"></i> Crédito</h3>
-                                        <h2 class="text-warning"><?php echo $ventas_credito_count; ?> ventas</h2>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -461,9 +419,6 @@ $ventas_credito_count = intval($ventas_credito_count);
                             <div class="metric-icon"><i class="fas fa-chart-line"></i></div>
                             <div class="metric-number">S/ <?php echo number_format($total_ventas_mes, 2); ?></div>
                             <div class="metric-label">Ventas del Mes</div>
-                            <small class="<?php echo $crecimiento >= 0 ? 'growth-positive' : 'growth-negative'; ?>">
-                                <?php echo $crecimiento >= 0 ? '+' : ''; ?><?php echo number_format($crecimiento, 1); ?>% vs mes anterior
-                            </small>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -483,54 +438,11 @@ $ventas_credito_count = intval($ventas_credito_count);
                 </div>
 
                 <div class="row">
-                    <!-- Panel Izquierdo -->
+                    <!-- Mejores Clientes -->
                     <div class="col-md-6">
-                        <!-- Gráfico de Ventas Contado vs Crédito -->
-                        <div class="panel panel-default">
-                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd;">
-                                <h4><i class="fas fa-pie-chart"></i> Ventas por Tipo de Pago</h4>
-                            </div>
-                            <div class="panel-body">
-                                <div class="chart-container">
-                                    <canvas id="pieChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Top Productos Más Vendidos -->
-                        <div class="panel panel-default">
-                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd;">
-                                <h4><i class="fas fa-trophy"></i> Top 10 Productos Más Vendidos</h4>
-                            </div>
-                            <div class="panel-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-small">
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Producto</th>
-                                                <th>Cantidad Vendida</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted">
-                                                    <i class="fas fa-info-circle"></i> Datos de productos en desarrollo
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Panel Derecho -->
-                    <div class="col-md-6">
-                        <!-- MEJORES CLIENTES POR TOTAL DE COMPRA -->
                         <div class="panel panel-default">
                             <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                                <h4><i class="fas fa-crown"></i> 👑 Mejores Clientes por Total de Compra</h4>
+                                <h4><i class="fas fa-crown"></i> 👑 Mejores Clientes por Ventas y Monto</h4>
                             </div>
                             <div class="panel-body">
                                 <div class="table-responsive">
@@ -539,13 +451,14 @@ $ventas_credito_count = intval($ventas_credito_count);
                                             <tr>
                                                 <th>Pos.</th>
                                                 <th>Cliente</th>
-                                                <th>Total Comprado</th>
+                                                <th>Cant. Ventas</th>
+                                                <th>Monto Total (S/)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php 
                                             $pos = 1;
-                                            foreach($mejores_clientes_list as $cliente_nombre => $total_compras): ?>
+                                            foreach($mejores_clientes_list as $cliente): ?>
                                             <tr>
                                                 <td>
                                                     <?php if($pos == 1): ?>
@@ -558,21 +471,31 @@ $ventas_credito_count = intval($ventas_credito_count);
                                                         <span class="badge badge-primary"><?php echo $pos; ?></span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td style="font-weight: bold;"><?php echo $cliente_nombre; ?></td>
+                                                <td style="font-weight: bold;"><?php echo $cliente['nombre']; ?></td>
+                                                <td>
+                                                    <span class="badge badge-info"><?php echo $cliente['cantidad_ventas']; ?> ventas</span>
+                                                </td>
                                                 <td>
                                                     <span class="badge badge-success" style="font-size: 0.9em;">
-                                                        S/ <?php echo number_format($total_compras, 2); ?>
+                                                        S/ <?php echo number_format($cliente['monto_total'], 2); ?>
                                                     </span>
                                                 </td>
                                             </tr>
                                             <?php $pos++; endforeach; ?>
+                                            <?php if (empty($mejores_clientes_list)): ?>
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted">No hay datos disponibles</td>
+                                            </tr>
+                                            <?php endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Productos con Stock Crítico -->
+                    <!-- Stock Crítico -->
+                    <div class="col-md-6">
                         <div class="panel panel-default">
                             <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd;">
                                 <h4><i class="fas fa-exclamation-triangle text-warning"></i> Stock Crítico (< 10)</h4>
@@ -603,6 +526,29 @@ $ventas_credito_count = intval($ventas_credito_count);
                                                 </td>
                                             </tr>
                                             <?php endforeach; ?>
+                                            <?php if (empty($productos_stock_critico_list)): ?>
+                                            <tr>
+                                                <td colspan="3" class="text-center text-success">
+                                                    <i class="fas fa-check-circle"></i> Todos los productos tienen stock suficiente
+                                                </td>
+                                            </tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                                                    <?php if($prod['stockp'] <= 0): ?>
+                                                        <span class="badge badge-danger">AGOTADO</span>
+                                                    <?php elseif($prod['stockp'] <= 5): ?>
+                                                        <span class="badge badge-danger">CRÍTICO</span>
+                                                    <?php else: ?>
+                                                        <span class="badge badge-warning">BAJO</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -610,48 +556,21 @@ $ventas_credito_count = intval($ventas_credito_count);
                         </div>
                     </div>
                 </div>
+			</div>
+		</div>
 
-                <!-- Últimos Movimientos de Stock -->
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="panel panel-default">
-                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd;">
-                                <h4><i class="fas fa-exchange-alt"></i> Últimos Movimientos de Stock</h4>
-                            </div>
-                            <div class="panel-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-small">
-                                        <thead>
-                                            <tr>
-                                                <th>Fecha</th>
-                                                <th>Producto</th>
-                                                <th>Ingreso</th>
-                                                <th>Egreso</th>
-                                                <th>Stock Final</th>
-                                                <th>Motivo</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach($movimientos_stock_list as $mov): ?>
-                                            <tr>
-                                                <td><?php echo date('d/m/Y', strtotime($mov['fecha'])); ?></td>
-                                                <td>Producto #<?php echo $mov['producto']; ?></td>
-                                                <td>
-                                                    <?php if($mov['ingreso'] > 0): ?>
-                                                        <span class="text-success">+<?php echo $mov['ingreso']; ?></span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <?php if($mov['egreso'] > 0): ?>
-                                                        <span class="text-danger">-<?php echo $mov['egreso']; ?></span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td><strong><?php echo $mov['stockt']; ?></strong></td>
-                                                <td><small class="text-muted"><?php echo $mov['motivo']; ?></small></td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+        <!-- Auto-refresh cada 5 minutos -->
+        <script>
+            setTimeout(function(){
+                location.reload();
+            }, 300000);
+        </script>
+
+	<!-- jQuery y Bootstrap -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</body>
+</html>
                                 </div>
                             </div>
                         </div>
