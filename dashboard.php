@@ -56,21 +56,25 @@ try {
     // Mejores clientes - Por cantidad de ventas y monto total
     $ventas_todas = Sdba::table('ventas');
     $ventas_todas->where('estado !=', '2');
-	$ventas_todas->left_join('cliente','clientes','id_cliente');
+    $ventas_todas->left_join('cliente','clientes','id_cliente');
     $ventas_todas_data = $ventas_todas->get();
     
     $clientes_info = array();
-    foreach($ventas_todas_data as $venta) {
-        $cliente = $venta['cliente'];
-        if(!isset($clientes_info[$cliente])) {
-            $clientes_info[$cliente] = array(
-                'nombre' => $cliente,
-                'cantidad_ventas' => 0,
-                'monto_total' => 0
-            );
+    if (is_array($ventas_todas_data)) {
+        foreach($ventas_todas_data as $venta) {
+            if (isset($venta['cliente']) && !empty($venta['cliente'])) {
+                $cliente = trim($venta['cliente']);  // Nombre del cliente desde el JOIN
+                if(!isset($clientes_info[$cliente])) {
+                    $clientes_info[$cliente] = array(
+                        'nombre' => $cliente,
+                        'cantidad_ventas' => 0,
+                        'monto_total' => 0
+                    );
+                }
+                $clientes_info[$cliente]['cantidad_ventas']++;
+                $clientes_info[$cliente]['monto_total'] += floatval($venta['total']);
+            }
         }
-        $clientes_info[$cliente]['cantidad_ventas']++;
-        $clientes_info[$cliente]['monto_total'] += floatval($venta['total']);
     }
     
     // Ordenar clientes por monto total - Compatible PHP 7.4
