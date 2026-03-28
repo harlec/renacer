@@ -96,10 +96,12 @@ try {
             if(!isset($productos_vendidos[$nombre_producto])) {
                 $productos_vendidos[$nombre_producto] = array(
                     'nombre' => $nombre_producto,
-                    'cantidad_total' => 0
+                    'cantidad_total' => 0,
+                    'monto_total' => 0
                 );
             }
             $productos_vendidos[$nombre_producto]['cantidad_total'] += intval($detalle['cantidad']);
+            $productos_vendidos[$nombre_producto]['monto_total'] += floatval($detalle['total']);
         }
     }
     
@@ -304,7 +306,8 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                                             <tr>
                                                 <th>Pos.</th>
                                                 <th>Producto</th>
-                                                <th>Cantidad Vendida</th>
+                                                <th>Cantidad</th>
+                                                <th>Monto Total (S/)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -329,11 +332,16 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                                                         <?php echo number_format($producto['cantidad_total']); ?> unidades
                                                     </span>
                                                 </td>
+                                                <td>
+                                                    <span class="badge badge-success" style="font-size: 0.9em;">
+                                                        S/ <?php echo number_format($producto['monto_total'], 2); ?>
+                                                    </span>
+                                                </td>
                                             </tr>
                                             <?php $pos++; endforeach; ?>
                                             <?php if (empty($productos_mas_vendidos_list)): ?>
                                             <tr>
-                                                <td colspan="3" class="text-center text-muted">
+                                                <td colspan="4" class="text-center text-muted">
                                                     <i class="fas fa-info-circle"></i> No hay datos de ventas disponibles
                                                 </td>
                                             </tr>
