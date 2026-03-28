@@ -15,7 +15,7 @@ $total_ventas_mes = 0;
 $productos_criticos_count = 0;
 $ventas_pendientes_count = 0;
 $mejores_clientes_list = array();
-$productos_stock_critico_list = array();
+$productos_mas_vendidos_list = array();
 
 try {
     $fecha_hoy = date('Y-m-d');
@@ -41,10 +41,10 @@ try {
         }
     }
     
-    // Métrica 3: Productos con stock crítico
-    $productos_criticos = Sdba::table('productos');
-    $productos_criticos->where('stockp <', '10');
-    $productos_criticos_count = $productos_criticos->total();
+    // Métrica 3: Productos más vendidos (conteo total)
+    $detalle_ventas = Sdba::table('detalle_ventas');
+    $detalle_ventas_data = $detalle_ventas->get();
+    $productos_criticos_count = count($detalle_ventas_data);
     
     // Métrica 4: Ventas pendientes
     $ventas_pendientes = Sdba::table('ventas');
@@ -84,11 +84,33 @@ try {
         $mejores_clientes_list = array_slice($clientes_info, 0, 10);
     }
     
-    // Productos con stock crítico
-    $productos_stock_critico = Sdba::table('productos');
-    $productos_stock_critico->where('stockp <', '10');
-    $productos_stock_critico->order_by('stockp', 'asc');
-    $productos_stock_critico_list = $productos_stock_critico->get(10);
+    // Productos más vendidos - Top 10
+    $detalle_ventas_todas = Sdba::table('detalle_ventas');
+    $detalle_ventas_todas_data = $detalle_ventas_todas->get();
+    
+    $productos_vendidos = array();
+    foreach($detalle_ventas_todas_data as $detalle) {
+        $producto = $detalle['nom_producto'];
+        if(!isset($productos_vendidos[$producto])) {
+            $productos_vendidos[$producto] = array(
+                'nombre' => $producto,
+                'cantidad_total' => 0
+            );
+        }
+        $productos_vendidos[$producto]['cantidad_total'] += intval($detalle['cantidad']);
+    }
+    
+    // Ordenar por cantidad vendida - Compatible PHP 7.4
+    if (!empty($productos_vendidos)) {
+        usort($productos_vendidos, function($a, $b) {
+            if ($a['cantidad_total'] == $b['cantidad_total']) {
+                return 0;
+            }
+            return ($a['cantidad_total'] > $b['cantidad_total']) ? -1 : 1;
+        });
+        
+        $productos_mas_vendidos_list = array_slice($productos_vendidos, 0, 10);
+    }
     
 } catch (Exception $e) {
     // Valores por defecto en caso de error
@@ -97,7 +119,7 @@ try {
     $productos_criticos_count = 0;
     $ventas_pendientes_count = 0;
     $mejores_clientes_list = array();
-    $productos_stock_critico_list = array();
+    $productos_mas_vendidos_list = array();
 }
 
 // Asegurar valores numéricos
@@ -197,7 +219,7 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                         <div class="metric-card warning">
                             <div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
                             <div class="metric-number"><?php echo $productos_criticos_count; ?></div>
-                            <div class="metric-label">Stock Crítico</div>
+                            <div class="metric-label">Productos Vendidos</div>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -266,42 +288,50 @@ $ventas_pendientes_count = intval($ventas_pendientes_count);
                         </div>
                     </div>
 
-                    <!-- Stock Crítico -->
+                    <!-- Productos Más Vendidos -->
                     <div class="col-md-6">
                         <div class="panel panel-default">
-                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd;">
-                                <h4><i class="fas fa-exclamation-triangle text-warning"></i> Stock Crítico (< 10)</h4>
+                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                                <h4><i class="fas fa-fire"></i> 🔥 Top 10 Productos Más Vendidos</h4>
                             </div>
                             <div class="panel-body">
                                 <div class="table-responsive">
                                     <table class="table table-striped table-small">
                                         <thead>
                                             <tr>
+                                                <th>Pos.</th>
                                                 <th>Producto</th>
-                                                <th>Stock Actual</th>
-                                                <th>Estado</th>
+                                                <th>Cantidad Vendida</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach($productos_stock_critico_list as $prod): ?>
+                                            <?php 
+                                            $pos = 1;
+                                            foreach($productos_mas_vendidos_list as $producto): ?>
                                             <tr>
-                                                <td><?php echo $prod['nom_prod']; ?></td>
-                                                <td><?php echo $prod['stockp']; ?></td>
                                                 <td>
-                                                    <?php if($prod['stockp'] <= 0): ?>
-                                                        <span class="badge badge-danger">AGOTADO</span>
-                                                    <?php elseif($prod['stockp'] <= 5): ?>
-                                                        <span class="badge badge-danger">CRÍTICO</span>
+                                                    <?php if($pos == 1): ?>
+                                                        <span class="badge" style="background: gold; color: black;">🥇 <?php echo $pos; ?></span>
+                                                    <?php elseif($pos == 2): ?>
+                                                        <span class="badge" style="background: silver; color: black;">🥈 <?php echo $pos; ?></span>
+                                                    <?php elseif($pos == 3): ?>
+                                                        <span class="badge" style="background: #cd7f32; color: white;">🥉 <?php echo $pos; ?></span>
                                                     <?php else: ?>
-                                                        <span class="badge badge-warning">BAJO</span>
+                                                        <span class="badge badge-success"><?php echo $pos; ?></span>
                                                     <?php endif; ?>
                                                 </td>
+                                                <td style="font-weight: bold;"><?php echo $producto['nombre']; ?></td>
+                                                <td>
+                                                    <span class="badge badge-primary" style="font-size: 0.9em;">
+                                                        <?php echo number_format($producto['cantidad_total']); ?> unidades
+                                                    </span>
+                                                </td>
                                             </tr>
-                                            <?php endforeach; ?>
-                                            <?php if (empty($productos_stock_critico_list)): ?>
+                                            <?php $pos++; endforeach; ?>
+                                            <?php if (empty($productos_mas_vendidos_list)): ?>
                                             <tr>
-                                                <td colspan="3" class="text-center text-success">
-                                                    <i class="fas fa-check-circle"></i> Todos los productos tienen stock suficiente
+                                                <td colspan="3" class="text-center text-muted">
+                                                    <i class="fas fa-info-circle"></i> No hay datos de ventas disponibles
                                                 </td>
                                             </tr>
                                             <?php endif; ?>
