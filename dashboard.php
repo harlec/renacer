@@ -1,6 +1,5 @@
 <?php
 include('inc/control.php');
-include('inc/sdba/sdba.php');
 
 // Control de acceso - Solo usuarios específicos
 $usuarios_permitidos = ['hars'];
@@ -9,107 +8,334 @@ if (!in_array($_SESSION['usuario'], $usuarios_permitidos)) {
     exit;
 }
 
-// Inicializar variables para evitar errores
+// Inicializar todas las variables
 $total_ventas_hoy = 0;
 $total_ventas_mes = 0;
-$total_ventas_mes_ant = 0;
 $crecimiento = 0;
 $productos_criticos_count = 0;
 $ventas_pendientes_count = 0;
 $ventas_contado_count = 0;
 $ventas_credito_count = 0;
 $mejores_clientes_list = array();
-$top_productos_list = array();
 $productos_stock_critico_list = array();
 $movimientos_stock_list = array();
 
+// Intentar conexión a base de datos de forma segura
 try {
-    // Fechas para cálculos
-    $fecha_hoy = date('Y-m-d');
-    $fecha_mes_actual = date('Y-m-01');
-    $fecha_mes_anterior = date('Y-m-01', strtotime('-1 month'));
-    $fecha_fin_mes_anterior = date('Y-m-t', strtotime('-1 month'));
-
-    // Métrica 1: Ventas del día
-    $ventas_hoy = Sdba::table('ventas');
-    $ventas_hoy->where('fecha', $fecha_hoy)->and_where('estado !=', '2');
-    $ventas_hoy_list = $ventas_hoy->get();
-    foreach($ventas_hoy_list as $venta) {
-        $total_ventas_hoy += $venta['total'];
-    }
-
-    // Métrica 2: Ventas del mes vs mes anterior
-    $ventas_mes = Sdba::table('ventas');
-    $ventas_mes->where('fecha >=', $fecha_mes_actual)->and_where('estado !=', '2');
-    $ventas_mes_list = $ventas_mes->get();
-    foreach($ventas_mes_list as $venta) {
-        $total_ventas_mes += $venta['total'];
-    }
-
-    $ventas_mes_ant = Sdba::table('ventas');
-    $ventas_mes_ant->where('fecha >=', $fecha_mes_anterior)->and_where('fecha <=', $fecha_fin_mes_anterior)->and_where('estado !=', '2');
-    $ventas_mes_ant_list = $ventas_mes_ant->get();
-    foreach($ventas_mes_ant_list as $venta) {
-        $total_ventas_mes_ant += $venta['total'];
-    }
-
-    $crecimiento = $total_ventas_mes_ant > 0 ? (($total_ventas_mes - $total_ventas_mes_ant) / $total_ventas_mes_ant) * 100 : 0;
-
-    // Métrica 3: Productos con stock crítico
-    $productos_criticos = Sdba::table('productos');
-    $productos_criticos->where('stockp <', '10');
-    $productos_criticos_count = count($productos_criticos->get());
-
-    // Métrica 4: Ventas pendientes (sin comprobante)
-    $ventas_pendientes = Sdba::table('ventas');
-    $ventas_pendientes->where('estado', '0');
-    $ventas_pendientes_count = count($ventas_pendientes->get());
-
-    // Mejores clientes por total de compra - Simplificado
-    $ventas_clientes = Sdba::table('ventas');
-    $ventas_clientes->where('estado !=', '2');
-    $ventas_clientes->order_by('total', 'desc');
-    $ventas_clientes->limit(50);
-    $ventas_list = $ventas_clientes->get();
+    include('inc/sdba/sdba.php');
     
-    $clientes_totales = array();
-    foreach($ventas_list as $venta) {
-        $cliente = $venta['cliente'];
-        if(!isset($clientes_totales[$cliente])) {
-            $clientes_totales[$cliente] = 0;
-        }
-        $clientes_totales[$cliente] += $venta['total'];
+    $fecha_hoy = date('Y-m-d');
+    
+    // Consulta simple para ventas del día
+    $ventas_hoy_query = "SELECT SUM(total) as total_dia FROM ventas WHERE fecha = '{$fecha_hoy}' AND estado != '2'";
+    $result = mysql_query($ventas_hoy_query);
+    if ($result && $row = mysql_fetch_array($result)) {
+        $total_ventas_hoy = $row['total_dia'] ? $row['total_dia'] : 0;
     }
-    arsort($clientes_totales);
-    $mejores_clientes_list = array_slice($clientes_totales, 0, 10, true);
-
-    // Productos con stock crítico (detallado)
-    $productos_stock_critico = Sdba::table('productos');
-    $productos_stock_critico->where('stockp <', '10');
-    $productos_stock_critico->order_by('stockp', 'asc');
-    $productos_stock_critico->limit(10);
-    $productos_stock_critico_list = $productos_stock_critico->get();
-
-    // Últimos movimientos de stock - Simplificado
-    $movimientos_stock = Sdba::table('stock');
-    $movimientos_stock->order_by('id_stock', 'desc');
-    $movimientos_stock->limit(15);
-    $movimientos_stock_list = $movimientos_stock->get();
-
-    // Ventas por tipo (contado vs crédito)
-    $ventas_contado = Sdba::table('ventas');
-    $ventas_contado->where('tipo', '1')->and_where('estado !=', '2');
-    $ventas_contado_count = count($ventas_contado->get());
-
-    $ventas_credito = Sdba::table('ventas');
-    $ventas_credito->where('tipo', '2')->and_where('estado !=', '2');
-    $ventas_credito_count = count($ventas_credito->get());
-
+    
+    // Ventas del mes
+    $fecha_mes = date('Y-m-01');
+    $ventas_mes_query = "SELECT SUM(total) as total_mes FROM ventas WHERE fecha >= '{$fecha_mes}' AND estado != '2'";
+    $result = mysql_query($ventas_mes_query);
+    if ($result && $row = mysql_fetch_array($result)) {
+        $total_ventas_mes = $row['total_mes'] ? $row['total_mes'] : 0;
+    }
+    
+    // Stock crítico
+    $stock_critico_query = "SELECT COUNT(*) as count FROM productos WHERE stockp < 10";
+    $result = mysql_query($stock_critico_query);
+    if ($result && $row = mysql_fetch_array($result)) {
+        $productos_criticos_count = $row['count'];
+    }
+    
+    // Ventas pendientes
+    $ventas_pendientes_query = "SELECT COUNT(*) as count FROM ventas WHERE estado = '0'";
+    $result = mysql_query($ventas_pendientes_query);
+    if ($result && $row = mysql_fetch_array($result)) {
+        $ventas_pendientes_count = $row['count'];
+    }
+    
+    // Mejores clientes - consulta simple
+    $clientes_query = "SELECT cliente, SUM(total) as total_compras FROM ventas WHERE estado != '2' GROUP BY cliente ORDER BY total_compras DESC LIMIT 10";
+    $result = mysql_query($clientes_query);
+    if ($result) {
+        while ($row = mysql_fetch_array($result)) {
+            $mejores_clientes_list[] = $row;
+        }
+    }
+    
+    // Productos críticos
+    $productos_query = "SELECT nom_prod, stockp FROM productos WHERE stockp < 10 ORDER BY stockp ASC LIMIT 10";
+    $result = mysql_query($productos_query);
+    if ($result) {
+        while ($row = mysql_fetch_array($result)) {
+            $productos_stock_critico_list[] = $row;
+        }
+    }
+    
+    // Contado vs crédito
+    $contado_query = "SELECT COUNT(*) as count FROM ventas WHERE tipo = '1' AND estado != '2'";
+    $result = mysql_query($contado_query);
+    if ($result && $row = mysql_fetch_array($result)) {
+        $ventas_contado_count = $row['count'];
+    }
+    
+    $credito_query = "SELECT COUNT(*) as count FROM ventas WHERE tipo = '2' AND estado != '2'";
+    $result = mysql_query($credito_query);
+    if ($result && $row = mysql_fetch_array($result)) {
+        $ventas_credito_count = $row['count'];
+    }
+    
 } catch (Exception $e) {
-    // En caso de error, usar valores por defecto
-    error_log("Error en dashboard: " . $e->getMessage());
+    // Si hay error, usar valores por defecto
+    $total_ventas_hoy = 0;
+    $total_ventas_mes = 0;
+    $productos_criticos_count = 0;
+    $ventas_pendientes_count = 0;
+    $ventas_contado_count = 0;
+    $ventas_credito_count = 0;
 }
 ?>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<title>Dashboard Ejecutivo - Sistema Renacer</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css">
+    <style>
+    .metric-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+    }
+    .metric-card.success { border-left-color: #28a745; }
+    .metric-card.warning { border-left-color: #ffc107; }
+    .metric-card.danger { border-left-color: #dc3545; }
+    .metric-card.info { border-left-color: #17a2b8; }
+    
+    .metric-number {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .metric-label {
+        color: #666;
+        font-size: 0.9em;
+        text-transform: uppercase;
+    }
+    .metric-icon {
+        float: right;
+        font-size: 3em;
+        opacity: 0.3;
+        margin-top: -10px;
+    }
+    .table-small { font-size: 0.85em; }
+    </style>
+</head>
+
+<body class="mobile dashboard escritorio">
+	<div class="">
+		<nav class="navbar navbar-inverse navbar-fixed-top">
+	      <div class="">
+	        <div class="navbar-header">
+	          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+	            <span class="sr-only">Toggle navigation</span>
+	            <span class="icon-bar"></span>
+	            <span class="icon-bar"></span>
+	            <span class="icon-bar"></span>
+	          </button>
+	          <a class="navbar-brand" href="#"><img class="img-responsive logo" src="/assets/img/harlec-sistema.png"></a>
+	        </div>
+	        <?php menu('1'); ?>
+	      </div>
+	    </nav>
+		
+		<div class="kbg">
+			<div class="container-fluid">
+                <div class="row" style="margin-top: 70px;">
+                    <div class="col-md-12">
+                        <h2><i class="fas fa-chart-line"></i> Dashboard Ejecutivo</h2>
+                        <p class="text-muted">Panel exclusivo para usuarios autorizados</p>
+                    </div>
+                </div>
+
+                <!-- Métricas Principales -->
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="metric-card success">
+                            <div class="metric-icon"><i class="fas fa-cash-register"></i></div>
+                            <div class="metric-number">S/ <?php echo number_format($total_ventas_hoy, 2); ?></div>
+                            <div class="metric-label">Ventas del Día</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card info">
+                            <div class="metric-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="metric-number">S/ <?php echo number_format($total_ventas_mes, 2); ?></div>
+                            <div class="metric-label">Ventas del Mes</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card warning">
+                            <div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="metric-number"><?php echo $productos_criticos_count; ?></div>
+                            <div class="metric-label">Stock Crítico</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card danger">
+                            <div class="metric-icon"><i class="fas fa-clock"></i></div>
+                            <div class="metric-number"><?php echo $ventas_pendientes_count; ?></div>
+                            <div class="metric-label">Ventas Pendientes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Mejores Clientes -->
+                    <div class="col-md-6">
+                        <div class="panel panel-default">
+                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <h4><i class="fas fa-crown"></i> 👑 Mejores Clientes por Total de Compra</h4>
+                            </div>
+                            <div class="panel-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-small">
+                                        <thead>
+                                            <tr>
+                                                <th>Pos.</th>
+                                                <th>Cliente</th>
+                                                <th>Total Comprado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php 
+                                            $pos = 1;
+                                            foreach($mejores_clientes_list as $cliente): ?>
+                                            <tr>
+                                                <td>
+                                                    <?php if($pos == 1): ?>
+                                                        <span class="badge" style="background: gold; color: black;">🥇 <?php echo $pos; ?></span>
+                                                    <?php elseif($pos == 2): ?>
+                                                        <span class="badge" style="background: silver; color: black;">🥈 <?php echo $pos; ?></span>
+                                                    <?php elseif($pos == 3): ?>
+                                                        <span class="badge" style="background: #cd7f32; color: white;">🥉 <?php echo $pos; ?></span>
+                                                    <?php else: ?>
+                                                        <span class="badge badge-primary"><?php echo $pos; ?></span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td style="font-weight: bold;"><?php echo $cliente['cliente']; ?></td>
+                                                <td>
+                                                    <span class="badge badge-success" style="font-size: 0.9em;">
+                                                        S/ <?php echo number_format($cliente['total_compras'], 2); ?>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <?php $pos++; endforeach; ?>
+                                            <?php if (empty($mejores_clientes_list)): ?>
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted">No hay datos disponibles</td>
+                                            </tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stock Crítico -->
+                    <div class="col-md-6">
+                        <div class="panel panel-default">
+                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd;">
+                                <h4><i class="fas fa-exclamation-triangle text-warning"></i> Stock Crítico (< 10)</h4>
+                            </div>
+                            <div class="panel-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-small">
+                                        <thead>
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th>Stock Actual</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach($productos_stock_critico_list as $prod): ?>
+                                            <tr>
+                                                <td><?php echo $prod['nom_prod']; ?></td>
+                                                <td><?php echo $prod['stockp']; ?></td>
+                                                <td>
+                                                    <?php if($prod['stockp'] <= 0): ?>
+                                                        <span class="badge badge-danger">AGOTADO</span>
+                                                    <?php elseif($prod['stockp'] <= 5): ?>
+                                                        <span class="badge badge-danger">CRÍTICO</span>
+                                                    <?php else: ?>
+                                                        <span class="badge badge-warning">BAJO</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                            <?php if (empty($productos_stock_critico_list)): ?>
+                                            <tr>
+                                                <td colspan="3" class="text-center text-success">
+                                                    <i class="fas fa-check-circle"></i> Todos los productos tienen stock suficiente
+                                                </td>
+                                            </tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico Simple -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="panel panel-default">
+                            <div class="panel-header" style="padding: 15px; border-bottom: 1px solid #ddd;">
+                                <h4><i class="fas fa-chart-pie"></i> Distribución de Ventas</h4>
+                            </div>
+                            <div class="panel-body text-center">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h3><i class="fas fa-money-bill text-success"></i> Contado</h3>
+                                        <h2 class="text-success"><?php echo $ventas_contado_count; ?> ventas</h2>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h3><i class="fas fa-credit-card text-warning"></i> Crédito</h3>
+                                        <h2 class="text-warning"><?php echo $ventas_credito_count; ?> ventas</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+			</div>
+		</div>
+
+        <!-- Auto-refresh cada 5 minutos -->
+        <script>
+            setTimeout(function(){
+                location.reload();
+            }, 300000);
+        </script>
+
+	<!-- jQuery y Bootstrap -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</body>
+</html>
 
 <!DOCTYPE html>
 <html lang="es">
