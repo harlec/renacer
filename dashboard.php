@@ -1,5 +1,6 @@
 <?php
 include('inc/control.php');
+include('inc/sdba/sdba.php');
 
 // Control de acceso - Solo usuarios específicos
 $usuarios_permitidos = ['hars'];
@@ -20,81 +21,79 @@ $mejores_clientes_list = array();
 $productos_stock_critico_list = array();
 $movimientos_stock_list = array();
 
-// Intentar conexión a base de datos de forma segura
 try {
-    include('inc/sdba/sdba.php');
-    
     $fecha_hoy = date('Y-m-d');
-    
-    // Consulta simple para ventas del día
-    $ventas_hoy_query = "SELECT SUM(total) as total_dia FROM ventas WHERE fecha = '{$fecha_hoy}' AND estado != '2'";
-    $result = mysql_query($ventas_hoy_query);
-    if ($result && $row = mysql_fetch_array($result)) {
-        $total_ventas_hoy = $row['total_dia'] ? $row['total_dia'] : 0;
-    }
-    
-    // Ventas del mes
     $fecha_mes = date('Y-m-01');
-    $ventas_mes_query = "SELECT SUM(total) as total_mes FROM ventas WHERE fecha >= '{$fecha_mes}' AND estado != '2'";
-    $result = mysql_query($ventas_mes_query);
-    if ($result && $row = mysql_fetch_array($result)) {
-        $total_ventas_mes = $row['total_mes'] ? $row['total_mes'] : 0;
-    }
     
-    // Stock crítico
-    $stock_critico_query = "SELECT COUNT(*) as count FROM productos WHERE stockp < 10";
-    $result = mysql_query($stock_critico_query);
-    if ($result && $row = mysql_fetch_array($result)) {
-        $productos_criticos_count = $row['count'];
-    }
+    // Métrica 1: Ventas del día
+    $ventas_hoy = Sdba::table('ventas');
+    $ventas_hoy->where('fecha', $fecha_hoy)->and_where('estado !=', '2');
+    $total_ventas_hoy = $ventas_hoy->sum('total');
     
-    // Ventas pendientes
-    $ventas_pendientes_query = "SELECT COUNT(*) as count FROM ventas WHERE estado = '0'";
-    $result = mysql_query($ventas_pendientes_query);
-    if ($result && $row = mysql_fetch_array($result)) {
-        $ventas_pendientes_count = $row['count'];
-    }
+    // Métrica 2: Ventas del mes  
+    $ventas_mes = Sdba::table('ventas');
+    $ventas_mes->where('fecha >=', $fecha_mes)->and_where('estado !=', '2');
+    $total_ventas_mes = $ventas_mes->sum('total');
     
-    // Mejores clientes - consulta simple
-    $clientes_query = "SELECT cliente, SUM(total) as total_compras FROM ventas WHERE estado != '2' GROUP BY cliente ORDER BY total_compras DESC LIMIT 10";
-    $result = mysql_query($clientes_query);
-    if ($result) {
-        while ($row = mysql_fetch_array($result)) {
-            $mejores_clientes_list[] = $row;
-        }
-    }
+    // Métrica 3: Productos con stock crítico
+    $productos_criticos = Sdba::table('productos');
+    $productos_criticos->where('stockp <', '10');
+    $productos_criticos_count = $productos_criticos->total();
     
-    // Productos críticos
-    $productos_query = "SELECT nom_prod, stockp FROM productos WHERE stockp < 10 ORDER BY stockp ASC LIMIT 10";
-    $result = mysql_query($productos_query);
-    if ($result) {
-        while ($row = mysql_fetch_array($result)) {
-            $productos_stock_critico_list[] = $row;
-        }
-    }
+    // Métrica 4: Ventas pendientes (sin comprobante)
+    $ventas_pendientes = Sdba::table('ventas');
+    $ventas_pendientes->where('estado', '0');
+    $ventas_pendientes_count = $ventas_pendientes->total();
     
-    // Contado vs crédito
-    $contado_query = "SELECT COUNT(*) as count FROM ventas WHERE tipo = '1' AND estado != '2'";
-    $result = mysql_query($contado_query);
-    if ($result && $row = mysql_fetch_array($result)) {
-        $ventas_contado_count = $row['count'];
-    }
+    // Mejores clientes por total de compra
+    $mejores_clientes = Sdba::table('ventas');
+    $mejores_clientes->sum('total', 'total_compras');
+    $mejores_clientes->where('estado !=', '2');
+    $mejores_clientes->group_by('cliente');
+    $mejores_clientes->order_by('total_compras', 'desc');
+    $mejores_clientes_list = $mejores_clientes->get(10);
     
-    $credito_query = "SELECT COUNT(*) as count FROM ventas WHERE tipo = '2' AND estado != '2'";
-    $result = mysql_query($credito_query);
-    if ($result && $row = mysql_fetch_array($result)) {
-        $ventas_credito_count = $row['count'];
-    }
+    // Productos con stock crítico (detallado)
+    $productos_stock_critico = Sdba::table('productos');
+    $productos_stock_critico->where('stockp <', '10');
+    $productos_stock_critico->order_by('stockp', 'asc');
+    $productos_stock_critico_list = $productos_stock_critico->get(10);
+    
+    // Últimos movimientos de stock
+    $movimientos_stock = Sdba::table('stock');
+    $movimientos_stock->left_join('producto', 'productos', 'id_producto');
+    $movimientos_stock->order_by('id_stock', 'desc');
+    $movimientos_stock_list = $movimientos_stock->get(15);
+    
+    // Ventas por tipo (contado vs crédito)
+    $ventas_contado = Sdba::table('ventas');
+    $ventas_contado->where('tipo', '1')->and_where('estado !=', '2');
+    $ventas_contado_count = $ventas_contado->total();
+    
+    $ventas_credito = Sdba::table('ventas');
+    $ventas_credito->where('tipo', '2')->and_where('estado !=', '2');
+    $ventas_credito_count = $ventas_credito->total();
     
 } catch (Exception $e) {
-    // Si hay error, usar valores por defecto
+    // En caso de error, usar valores por defecto
     $total_ventas_hoy = 0;
     $total_ventas_mes = 0;
     $productos_criticos_count = 0;
     $ventas_pendientes_count = 0;
     $ventas_contado_count = 0;
     $ventas_credito_count = 0;
+    $mejores_clientes_list = array();
+    $productos_stock_critico_list = array();
+    $movimientos_stock_list = array();
 }
+
+// Asegurar que las variables sean números válidos
+$total_ventas_hoy = $total_ventas_hoy ? $total_ventas_hoy : 0;
+$total_ventas_mes = $total_ventas_mes ? $total_ventas_mes : 0;
+$productos_criticos_count = $productos_criticos_count ? $productos_criticos_count : 0;
+$ventas_pendientes_count = $ventas_pendientes_count ? $ventas_pendientes_count : 0;
+$ventas_contado_count = $ventas_contado_count ? $ventas_contado_count : 0;
+$ventas_credito_count = $ventas_credito_count ? $ventas_credito_count : 0;
 ?>
 
 <!DOCTYPE html>
