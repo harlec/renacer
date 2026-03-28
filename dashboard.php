@@ -45,13 +45,23 @@ try {
     $ventas_pendientes->where('estado', '0');
     $ventas_pendientes_count = $ventas_pendientes->total();
     
-    // Mejores clientes por total de compra
-    $mejores_clientes = Sdba::table('ventas');
-    $mejores_clientes->sum('total', 'total_compras');
-    $mejores_clientes->where('estado !=', '2');
-    $mejores_clientes->group_by('cliente');
-    $mejores_clientes->order_by('total_compras', 'desc');
-    $mejores_clientes_list = $mejores_clientes->get(10);
+    // Mejores clientes por total de compra - Usando consulta directa
+    $query_clientes = "SELECT cliente, SUM(total) as total_compras 
+                      FROM ventas 
+                      WHERE estado != '2' 
+                      GROUP BY cliente 
+                      ORDER BY total_compras DESC 
+                      LIMIT 10";
+    
+    $mejores_clientes_db = Sdba::table('ventas');
+    $result = $mejores_clientes_db->db->query($query_clientes);
+    $mejores_clientes_list = array();
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $mejores_clientes_list[] = $row;
+        }
+        $result->free();
+    }
     
     // Productos con stock crítico (detallado)
     $productos_stock_critico = Sdba::table('productos');
