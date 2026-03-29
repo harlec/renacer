@@ -66,7 +66,7 @@ LIMIT 5";
 $productos_result = Sdba::db()->query($query_productos)->result();
 
 // CLIENTES CON MAYORES COMPRAS (Top 5 del mes)
-$query_clientes = "SELECT clientes.cliente as nombre_cliente, SUM(detalle_ventas.total) as total_compras, COUNT(DISTINCT ventas.id_venta) as num_compras
+$query_clientes = "SELECT clientes.cliente as nombre_cliente, SUM(detalle_ventas.cantidad * detalle_ventas.precio) as total_compras, COUNT(DISTINCT ventas.id_venta) as num_compras
 FROM ventas 
 LEFT JOIN detalle_ventas ON ventas.id_venta = detalle_ventas.venta 
 LEFT JOIN clientes ON ventas.cliente = clientes.id_cliente 
