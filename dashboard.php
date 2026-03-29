@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 include('inc/control.php');
@@ -51,7 +50,7 @@ $result_monto_mes = Sdba::db()->query($query_monto_mes)->row();
 $monto_mes = $result_monto_mes['monto'] ?: 0;
 
 // PRODUCTOS MÁS VENDIDOS (Top 5 del mes)
-$query_productos = "SELECT productos.nom_prod, SUM(detalle_ventas.cantidad) as total_vendido, SUM(detalle_ventas.total) as monto_total 
+$query_productos = "SELECT productos.nom_prod, SUM(detalle_ventas.cantidad) as total_vendido, SUM(detalle_ventas.cantidad * detalle_ventas.precio) as monto_total 
 FROM detalle_ventas 
 LEFT JOIN ventas ON detalle_ventas.venta = ventas.id_venta 
 LEFT JOIN productos ON detalle_ventas.producto = productos.id_producto 
