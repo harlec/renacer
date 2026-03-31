@@ -1,5 +1,8 @@
 <?php
 session_start();
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
 $usuario = $_SESSION['usuario'];
 $tienda = $_SESSION['tienda'];
 
@@ -103,13 +106,14 @@ foreach ($el as $value) {
 	<title>Sistema - Menu Principal</title>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php $v = '20260331'; ?>
     <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/custom.css?v=<?= $v ?>">
     <!-- <link rel="stylesheet" href="/assets/css/jquery-ui.min.css"> -->
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.0.5/sweetalert2.min.css">
     <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.22/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/jquery-ui.min.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/select2.min.css?v=<?= $v ?>">
+    <link rel="stylesheet" type="text/css" href="/assets/css/jquery-ui.min.css?v=<?= $v ?>">
 </head>
 
 <body class="mobile dashboard">
@@ -248,11 +252,11 @@ foreach ($el as $value) {
 	  
 	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-	<script src="/assets/js/jquery-ui.min.js"></script> 
+	<script src="/assets/js/jquery-ui.min.js?v=<?= $v ?>"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.0.5/sweetalert2.min.js"></script>
 	<script src="//cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
-	<script src="/assets/js/select2.full.min.js"></script> 
+	<script src="/assets/js/select2.full.min.js?v=<?= $v ?>"></script>
 	<script >
 	// A $( document ).ready() block.
 	$(document ).ready(function() {
