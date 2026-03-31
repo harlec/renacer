@@ -455,6 +455,7 @@ $('div.dataTables_filter input').on('keyup', function() {
 			var precio = $(this).closest('tr').find('.pre').val();
 			
 			var monto1 =  precio*cantidad;
+			var monto2 =  Number(monto1.toFixed(2));
 
 			total = (total - anterior + monto1);
 			total1 = total.toFixed(2);
@@ -463,7 +464,7 @@ $('div.dataTables_filter input').on('keyup', function() {
 			$("#total").val(total);
 			$("#total1").val(total1);
 			
-			$(this).closest('tr').find('.mon').val(monto1);
+			$(this).closest('tr').find('.mon').val(monto2);
 			$(this).closest('tr').find('.borrar').val(monto1);
 		});
 
