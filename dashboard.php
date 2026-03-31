@@ -4,9 +4,9 @@ include('inc/control.php');
 include('inc/sdba/sdba.php');
 
 // Control de acceso - Solo usuarios específicos
-$usuarios_permitidos = ['hars'];
+$usuarios_permitidos = ['hars', 'susan', 'robert'];
 if (!in_array($_SESSION['usuario'], $usuarios_permitidos)) {
-    header("Location: ventas.php");
+    header("Location: venta.php");
     exit;
 }
 
