@@ -19,6 +19,8 @@ $es_admin = ($_SESSION['type'] == 'admin');
 $mes_filtro = isset($_GET['mes']) && preg_match('/^\d{4}-\d{2}$/', $_GET['mes']) ? $_GET['mes'] : $mes_actual;
 $es_mes_actual = ($mes_filtro === $mes_actual);
 
+$meses_es = ['01'=>'Enero','02'=>'Febrero','03'=>'Marzo','04'=>'Abril','05'=>'Mayo','06'=>'Junio','07'=>'Julio','08'=>'Agosto','09'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'];
+
 // Generar lista de últimos 12 meses para el selector
 $meses_disponibles = [];
 for ($i = 0; $i < 12; $i++) {
@@ -156,13 +158,9 @@ $productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 										<label style="margin:0;white-space:nowrap;">Ver mes:</label>
 										<select name="mes" class="form-control" onchange="this.form.submit()">
 											<?php foreach ($meses_disponibles as $m): ?>
-												<?php
-												$label = strftime('%B %Y', strtotime($m . '-01'));
-												// fallback si strftime no funciona bien
-												$label = date('F Y', strtotime($m . '-01'));
-												?>
+												<?php $label = $meses_es[date('m', strtotime($m . '-01'))] . ' ' . date('Y', strtotime($m . '-01')); ?>
 												<option value="<?= $m ?>" <?= $m === $mes_filtro ? 'selected' : '' ?>>
-													<?= ucfirst($label) ?>
+													<?= $label ?>
 												</option>
 											<?php endforeach; ?>
 										</select>
@@ -191,7 +189,7 @@ $productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 											<div class="text-center">
 												<i class="fas fa-calendar-alt fa-3x"></i>
 												<h3 class="mt-2"><?php echo $total_ventas_mes; ?></h3>
-												<p>Ventas de <?php echo date('F Y', strtotime($mes_filtro . '-01')); ?></p>
+												<p>Ventas de <?php echo $meses_es[date('m', strtotime($mes_filtro . '-01'))] . ' ' . date('Y', strtotime($mes_filtro . '-01')); ?></p>
 												<h4 class="text-success">S/ <?php echo number_format($monto_mes, 2); ?></h4>
 											</div>
 										</div>
