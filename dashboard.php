@@ -15,34 +15,45 @@ $mes_actual = date('Y-m');
 $usuario_id = $_SESSION['id_usr'];
 $es_admin = ($_SESSION['type'] == 'admin');
 
-// VENTAS DEL DÍA
-$query_ventas_dia = "SELECT COUNT(*) as total FROM ventas WHERE DATE(fecha) = '$hoy' AND estado != '2'";
-if (!$es_admin) {
-    $query_ventas_dia .= " AND usuario = '$usuario_id'";
-}
-$result_dia = Sdba::db()->query($query_ventas_dia)->row();
-$total_ventas_dia = $result_dia['total'];
+// Filtro de mes (GET o mes actual por defecto)
+$mes_filtro = isset($_GET['mes']) && preg_match('/^\d{4}-\d{2}$/', $_GET['mes']) ? $_GET['mes'] : $mes_actual;
+$es_mes_actual = ($mes_filtro === $mes_actual);
 
-// Monto del día
-$query_monto_dia = "SELECT SUM(total) as monto FROM ventas 
-WHERE DATE(fecha) = '$hoy' AND estado != '2'";
-if (!$es_admin) {
-    $query_monto_dia .= " AND usuario = '$usuario_id'";
+// Generar lista de últimos 12 meses para el selector
+$meses_disponibles = [];
+for ($i = 0; $i < 12; $i++) {
+    $meses_disponibles[] = date('Y-m', strtotime("-$i months"));
 }
-$result_monto_dia = Sdba::db()->query($query_monto_dia)->row();
-$monto_dia = $result_monto_dia['monto'] ?: 0;
 
-// VENTAS DEL MES
-$query_ventas_mes = "SELECT COUNT(*) as total FROM ventas WHERE DATE_FORMAT(fecha, '%Y-%m') = '$mes_actual' AND estado != '2'";
+// VENTAS DEL DÍA (solo si es el mes actual)
+$total_ventas_dia = 0;
+$monto_dia = 0;
+if ($es_mes_actual) {
+    $query_ventas_dia = "SELECT COUNT(*) as total FROM ventas WHERE DATE(fecha) = '$hoy' AND estado != '2'";
+    if (!$es_admin) {
+        $query_ventas_dia .= " AND usuario = '$usuario_id'";
+    }
+    $result_dia = Sdba::db()->query($query_ventas_dia)->row();
+    $total_ventas_dia = $result_dia['total'];
+
+    $query_monto_dia = "SELECT SUM(total) as monto FROM ventas WHERE DATE(fecha) = '$hoy' AND estado != '2'";
+    if (!$es_admin) {
+        $query_monto_dia .= " AND usuario = '$usuario_id'";
+    }
+    $result_monto_dia = Sdba::db()->query($query_monto_dia)->row();
+    $monto_dia = $result_monto_dia['monto'] ?: 0;
+}
+
+// VENTAS DEL MES FILTRADO
+$query_ventas_mes = "SELECT COUNT(*) as total FROM ventas WHERE DATE_FORMAT(fecha, '%Y-%m') = '$mes_filtro' AND estado != '2'";
 if (!$es_admin) {
     $query_ventas_mes .= " AND usuario = '$usuario_id'";
 }
 $result_mes = Sdba::db()->query($query_ventas_mes)->row();
 $total_ventas_mes = $result_mes['total'];
 
-// Monto del mes
-$query_monto_mes = "SELECT SUM(total) as monto FROM ventas 
-WHERE DATE_FORMAT(fecha, '%Y-%m') = '$mes_actual' AND estado != '2'";
+// Monto del mes filtrado
+$query_monto_mes = "SELECT SUM(total) as monto FROM ventas WHERE DATE_FORMAT(fecha, '%Y-%m') = '$mes_filtro' AND estado != '2'";
 if (!$es_admin) {
     $query_monto_mes .= " AND usuario = '$usuario_id'";
 }
@@ -54,13 +65,13 @@ $query_productos = "SELECT productos.nom_prod, SUM(detalle_ventas.cantidad) as t
 FROM detalle_ventas 
 LEFT JOIN ventas ON detalle_ventas.venta = ventas.id_venta 
 LEFT JOIN productos ON detalle_ventas.producto = productos.id_producto 
-WHERE DATE_FORMAT(ventas.fecha, '%Y-%m') = '$mes_actual' 
+WHERE DATE_FORMAT(ventas.fecha, '%Y-%m') = '$mes_filtro'
 AND ventas.estado != '2' ";
 if (!$es_admin) {
     $query_productos .= "AND ventas.usuario = '$usuario_id' ";
 }
-$query_productos .= "GROUP BY detalle_ventas.producto 
-ORDER BY monto_total DESC 
+$query_productos .= "GROUP BY detalle_ventas.producto
+ORDER BY monto_total DESC
 LIMIT 20";
 
 $productos_result = Sdba::db()->query($query_productos)->result();
@@ -70,8 +81,8 @@ $query_clientes = "SELECT clientes.cliente as nombre_cliente, SUM(detalle_ventas
 FROM ventas 
 LEFT JOIN detalle_ventas ON ventas.id_venta = detalle_ventas.venta 
 LEFT JOIN clientes ON ventas.cliente = clientes.id_cliente 
-WHERE DATE_FORMAT(ventas.fecha, '%Y-%m') = '$mes_actual' 
-AND ventas.estado != '2' 
+WHERE DATE_FORMAT(ventas.fecha, '%Y-%m') = '$mes_filtro'
+AND ventas.estado != '2'
 AND ventas.cliente != '' ";
 if (!$es_admin) {
     $query_clientes .= "AND ventas.usuario = '$usuario_id' ";
@@ -138,6 +149,27 @@ $productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 					<div class="col-md-12">
 						<div class="kdashboard">
 							
+							<!-- Filtro de mes -->
+							<div class="row" style="margin-bottom:10px;">
+								<div class="col-md-4 col-sm-6">
+									<form method="GET" action="dashboard.php" style="display:flex;align-items:center;gap:8px;">
+										<label style="margin:0;white-space:nowrap;">Ver mes:</label>
+										<select name="mes" class="form-control" onchange="this.form.submit()">
+											<?php foreach ($meses_disponibles as $m): ?>
+												<?php
+												$label = strftime('%B %Y', strtotime($m . '-01'));
+												// fallback si strftime no funciona bien
+												$label = date('F Y', strtotime($m . '-01'));
+												?>
+												<option value="<?= $m ?>" <?= $m === $mes_filtro ? 'selected' : '' ?>>
+													<?= ucfirst($label) ?>
+												</option>
+											<?php endforeach; ?>
+										</select>
+									</form>
+								</div>
+							</div>
+
 							<!-- Tarjetas de Estadísticas -->
 							<div class="row">
 								<div class="col-md-3 col-sm-6">
@@ -145,9 +177,9 @@ $productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 										<div class="panel-body">
 											<div class="text-center">
 												<i class="fas fa-calendar-day fa-3x"></i>
-												<h3 class="mt-2"><?php echo $total_ventas_dia; ?></h3>
+												<h3 class="mt-2"><?php echo $es_mes_actual ? $total_ventas_dia : '-'; ?></h3>
 												<p>Ventas de Hoy</p>
-												<h4 class="text-success">S/ <?php echo number_format($monto_dia, 2); ?></h4>
+												<h4 class="text-success">S/ <?php echo $es_mes_actual ? number_format($monto_dia, 2) : '-'; ?></h4>
 											</div>
 										</div>
 									</div>
@@ -159,7 +191,7 @@ $productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 											<div class="text-center">
 												<i class="fas fa-calendar-alt fa-3x"></i>
 												<h3 class="mt-2"><?php echo $total_ventas_mes; ?></h3>
-												<p>Ventas del Mes</p>
+												<p>Ventas de <?php echo date('F Y', strtotime($mes_filtro . '-01')); ?></p>
 												<h4 class="text-success">S/ <?php echo number_format($monto_mes, 2); ?></h4>
 											</div>
 										</div>
