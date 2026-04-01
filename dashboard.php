@@ -61,7 +61,7 @@ if (!$es_admin) {
 }
 $query_productos .= "GROUP BY detalle_ventas.producto 
 ORDER BY monto_total DESC 
-LIMIT 5";
+LIMIT 20";
 
 $productos_result = Sdba::db()->query($query_productos)->result();
 
@@ -78,7 +78,7 @@ if (!$es_admin) {
 }
 $query_clientes .= "GROUP BY ventas.cliente 
 ORDER BY total_compras DESC 
-LIMIT 5";
+LIMIT 20";
 
 $clientes_result = Sdba::db()->query($query_clientes)->result();
 
@@ -199,7 +199,7 @@ $productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 								<div class="col-md-6">
 									<div class="panel panel-default">
 										<div class="panel-heading">
-											<h4><i class="fas fa-trophy"></i> Top 5 Productos del Mes</h4>
+											<h4><i class="fas fa-trophy"></i> Top Productos del Mes</h4>
 										</div>
 										<div class="panel-body">
 											<table class="table table-hover table-striped">
@@ -232,7 +232,7 @@ $productos_stock_bajo = Sdba::db()->query($query_stock)->result();
 								<div class="col-md-6">
 									<div class="panel panel-default">
 										<div class="panel-heading">
-											<h4><i class="fas fa-users"></i> Top 5 Clientes del Mes</h4>
+											<h4><i class="fas fa-users"></i> Top Clientes del Mes</h4>
 										</div>
 										<div class="panel-body">
 											<table class="table table-hover table-striped">
