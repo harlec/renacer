@@ -106,7 +106,7 @@ include('inc/control.php');
 			serverSide: true,
 			processing: true,
 			ajax: '/inc/get_ventas.php',
-			order: [[4, 'desc']],
+			order: [[1, 'desc']],
 			columns: [
 				{ data: null, orderable: false, render: function(data, type, row, meta) {
 					return meta.row + meta.settings._iDisplayStart + 1;
