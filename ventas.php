@@ -1,80 +1,5 @@
 <?php
 include('inc/control.php');
-include('inc/sdba/sdba.php');
-
-$tienda = $_SESSION['tienda'];
- // include main file
-$ventas = Sdba::table('ventas');
-$ventas->where('usuario',$_SESSION['id_usr'])->and_where('estado !=','2'); // creating table object
-if ($_SESSION['type'] =='admin') {
-	$ventas->reset();
-	$ventas->where('estado !=','2');
-}
-$ventas_list = $ventas->get(); 
-
-$datos = '';
-$i = 1;
-$total_dventa = 0;
-foreach ($ventas_list as $value) {
-
-	
-
-	$ocultar='';
-	$comprobante = '';
-	$id = $value['id_venta'];
-	/*obtenemos total ventas*/
-	$deta_ventas = Sdba::table('detalle_ventas'); // creating table object
-	$deta_ventas->where('venta', $id);
-	$total_dventa = $deta_ventas->sum('total');
-
-	$ventas1 = Sdba::table('comprobantes'); // creating table object
-	$ventas1->where('venta', $id);
-	$ventas1->order_by('id_comprobante','desc');
-	$ventas_list1 = $ventas1->get_one();
-	
-	if ($value['estado']=='1') {
-		$ocultar = 'ocultar';
-		$comprobante = '<a title="Ver comprobante" target="_BLANK" href="'.$ventas_list1['url'].'">'.$ventas_list1['tipo'].''.$ventas_list1['numero'].'</a>';
-	}
-	if ($value['tipo']=='1') {
-		$tipo = 'Contado';
-	}
-	else{
-		$tipo = 'Credito';
-	}
-	switch ($value['forma']) {
-		case '1':
-			$forma = 'Efectivo';
-			break;
-		case '2':
-			$forma = 'Tar. Debito';
-			break;
-		case '3':
-			$forma = 'Tar. Crédito';
-			break;
-	}
-
-	// Botón de editar - solo para ventas sin comprobante (estado = 0)
-	$boton_editar = '';
-	if ($value['estado'] == '0') {
-		$boton_editar = '<a title="Editar venta" class="btn btn-warning btn-sm" href="editar_venta.php?id='.$value['id_venta'].'"><i class="fas fa-edit"></i></a>';
-	}
-
-	$datos .='<tr> 
-    			<th scope="row">'.$i.'</th> 
-    			<td>v-'.$value['id_venta'].'</td>
-    			<td>'.$tipo.'</td>
-    			<td>'.$forma.'</td>
-    			<td>'.$value['fecha'].'</td> 
-    			<td>'.$total_dventa.'</td> 
-    			<td>'.$comprobante.'</td> 
-    			<td><a title="Ver venta" class="btn btn-primary" title="ver" href="ver_venta.php?id='.$value['id_venta'].'"><i class="fas fa-eye"></i></a>'.$boton_editar.'<button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td> 
-    		  </tr>';
-    $i++;
-}
-
-    			//<td><a title="Ver venta" class="btn btn-primary" title="ver" href="ver_venta.php?id='.$value['id_venta'].'"><i class="fas fa-eye"></i></a><a class="btn btn-success '.$ocultar.'" href="factura.php?id='.$value['id_venta'].'" title="factura electrónica"><i class="fas fa-file-invoice-dollar"></i></a><a class="btn btn-danger '.$ocultar.'" href="boleta.php?id='.$value['id_venta'].'" title="boleta electrónica"><i class="fab fa-bitcoin"></i></a><button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td> 
-
 ?>
 
 
@@ -151,9 +76,7 @@ foreach ($ventas_list as $value) {
 
 											    		</tr> 
 											    	</thead> 
-											    	<tbody> 
-											    		<?php echo $datos; ?>
-											    	</tbody> 
+											    	<tbody></tbody> 
 											    </table>
 											</div>
 										</div>
@@ -176,61 +99,44 @@ foreach ($ventas_list as $value) {
 	<script src="assets/js/sweetalert2.all.min.js"></script>
 	<script src="//cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/10.5.0/sweetalert2.min.js" integrity="sha512-V9JHp52ZkrbVVjJqNz/XXYMUOyUfzaGKEGrcD2Ual7n39+UR1yJK0numAHZqkhhGTAH/Klj0KUe4btAZXccw9w==" crossorigin="anonymous"></script>
-	<script >
-	// A $( document ).ready() block.
-	$(document ).ready(function() {
-		$.extend( true, $.fn.dataTable.defaults, {
-		    "language": {
-		        "decimal": ",",
-		        "thousands": ".",
-		        "info": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
-		        "infoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
-		        "infoPostFix": "",
-		        "infoFiltered": "(filtrado de un total de _MAX_ registros)",
-		        "loadingRecords": "Cargando...",
-		        "lengthMenu": "Mostrar _MENU_ registros",
-		        "paginate": {
-		            "first": "Primero",
-		            "last": "Último",
-		            "next": "Siguiente",
-		            "previous": "Anterior"
-		        },
-		        "processing": "Procesando...",
-		        "search": "Buscar:",
-		        "searchPlaceholder": "Término de búsqueda",
-		        "zeroRecords": "No se encontraron resultados",
-		        "emptyTable": "Ningún dato disponible en esta tabla",
-		        "aria": {
-		            "sortAscending":  ": Activar para ordenar la columna de manera ascendente",
-		            "sortDescending": ": Activar para ordenar la columna de manera descendente"
-		        },
-		        //only works for built-in buttons, not for custom buttons
-		        "buttons": {
-		            "create": "Nuevo",
-		            "edit": "Cambiar",
-		            "remove": "Borrar",
-		            "copy": "Copiar",
-		            "csv": "fichero CSV",
-		            "excel": "tabla Excel",
-		            "pdf": "documento PDF",
-		            "print": "Imprimir",
-		            "colvis": "Visibilidad columnas",
-		            "collection": "Colección",
-		            "upload": "Seleccione fichero...."
-		        },
-		        "select": {
-		            "rows": {
-		                _: '%d filas seleccionadas',
-		                0: 'clic fila para seleccionar',
-		                1: 'una fila seleccionada'
-		            }
-		        }
-		    }           
-		} ); 
-		$('#datos').DataTable();
+		<script>
+	$(document).ready(function() {
 
-		$('body').on('click',"#borrar", function() {
-	    	Swal.fire({
+		$('#datos').DataTable({
+			serverSide: true,
+			processing: true,
+			ajax: '/inc/get_ventas.php',
+			order: [[4, 'desc']],
+			columns: [
+				{ data: null, orderable: false, render: function(data, type, row, meta) {
+					return meta.row + meta.settings._iDisplayStart + 1;
+				}},
+				{ data: 0 },
+				{ data: 1 },
+				{ data: 2 },
+				{ data: 3 },
+				{ data: 4 },
+				{ data: 5, orderable: false },
+				{ data: 6, orderable: false }
+			],
+		    language: {
+		        info: "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+		        infoEmpty: "Mostrando 0 registros",
+		        infoFiltered: "(filtrado de _MAX_ registros)",
+		        loadingRecords: "Cargando...",
+		        lengthMenu: "Mostrar _MENU_ registros",
+		        processing: "Procesando...",
+		        search: "Buscar:",
+		        searchPlaceholder: "Término de búsqueda",
+		        zeroRecords: "No se encontraron resultados",
+		        emptyTable: "Ningún dato disponible",
+		        paginate: { first: "Primero", last: "Último", next: "Siguiente", previous: "Anterior" }
+		    }
+		});
+
+		$('body').on('click', ".btn-borrar", function() {
+			var id = $(this).val();
+			Swal.fire({
 			  title: 'Seguro de borrar?',
 			  text: "Tu no puedes revertir esto!",
 			  icon: 'warning',
@@ -240,36 +146,21 @@ foreach ($ventas_list as $value) {
 			  confirmButtonText: 'Si, borrar!'
 			}).then((result) => {
 			  if (result.isConfirmed) {
-			  	var id = $(this).val();
-				var str1 = 'id=' + id;
-			  	$.ajax({	
-			    	type:'GET',
+				$.ajax({
+					type: 'GET',
 					dataType: 'json',
-				  	url: '/inc/borrar_venta.php',
-				  	data: str1,
-				  	success: function(data1) {
-				   	 	console.log('borrado');
-				   	 	document.location.href = "ventas.php"; 	
-				  	}
+					url: '/inc/borrar_venta.php',
+					data: 'id=' + id,
+					success: function(data1) {
+						$('#datos').DataTable().ajax.reload();
+					}
 				});
-			    Swal.fire(
-			      'Borrado!',
-			      'El registro fue borrado correctamente.',
-			      'success'
-			    )
+			    Swal.fire('Borrado!', 'El registro fue borrado correctamente.', 'success');
 			  }
-			})
- 
+			});
 		});
 
-
-
-		
-
-		
-	    console.log( "ready!" );
 	});
-		
 	</script>
 </body>
 </html>
