@@ -32,8 +32,6 @@ $order_dir = strtoupper($_GET['order'][0]['dir'] ?? 'DESC') === 'ASC' ? 'ASC' : 
 
 $col_map = [
     1 => 'v.id_venta',
-    2 => 'v.tipo',
-    3 => 'v.forma',
     4 => 'v.fecha',
     5 => 'monto',
 ];
@@ -59,7 +57,7 @@ $filtered = $r ? $r->fetch_assoc()['c'] : 0;
 // Query principal
 $sql = "
     SELECT
-        v.id_venta, v.tipo, v.forma, v.fecha, v.estado,
+        v.id_venta, v.fecha, v.estado,
         COALESCE(SUM(dv.total), 0) AS monto,
         MAX(c.tipo)   AS comp_tipo,
         MAX(c.numero) AS comp_numero,
@@ -84,17 +82,8 @@ $data = [];
 
 while ($row = $result->fetch_assoc()) {
 
-    switch ($row['tipo']) {
-        case '1': $tipo = 'Contado'; break;
-        case '2': $tipo = 'Crédito'; break;
-        default:  $tipo = '-';
-    }
-    switch ($row['forma']) {
-        case '1': $forma = 'Efectivo';     break;
-        case '2': $forma = 'Tar. Débito';  break;
-        case '3': $forma = 'Tar. Crédito'; break;
-        default:  $forma = '-';
-    }
+    $tipo  = '-';
+    $forma = '-';
 
     $comprobante = '';
     if ($row['estado'] == '1' && !empty($row['comp_url'])) {
