@@ -1,15 +1,21 @@
 <?php
 ob_start();
 ini_set('display_errors', '0');
+error_reporting(0);
 session_start();
 ob_clean();
 header('Content-Type: application/json');
+
+if (!isset($_SESSION['id_usr'])) {
+    echo json_encode(['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => 'Sin sesion']);
+    exit;
+}
 
 $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
 $conn->set_charset('utf8');
 
 if ($conn->connect_error) {
-    echo json_encode(['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => 'DB Error']);
+    echo json_encode(['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => 'DB: ' . $conn->connect_error]);
     exit;
 }
 
@@ -43,12 +49,12 @@ $where_search = !empty($search_safe)
     : "";
 
 // Total sin filtro
-$r = $conn->query("SELECT COUNT(*) as c FROM ventas v WHERE v.estado != '2' $where_user");
-$total = $r->fetch_assoc()['c'];
+$r     = $conn->query("SELECT COUNT(*) as c FROM ventas v WHERE v.estado != '2' $where_user");
+$total = $r ? $r->fetch_assoc()['c'] : 0;
 
 // Total con búsqueda
-$r = $conn->query("SELECT COUNT(*) as c FROM ventas v WHERE v.estado != '2' $where_user $where_search");
-$filtered = $r->fetch_assoc()['c'];
+$r        = $conn->query("SELECT COUNT(*) as c FROM ventas v WHERE v.estado != '2' $where_user $where_search");
+$filtered = $r ? $r->fetch_assoc()['c'] : 0;
 
 // Query principal
 $sql = "
@@ -68,7 +74,13 @@ $sql = "
 ";
 
 $result = $conn->query($sql);
-$data   = [];
+
+if (!$result) {
+    echo json_encode(['draw' => $draw, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => 'Query: ' . $conn->error]);
+    exit;
+}
+
+$data = [];
 
 while ($row = $result->fetch_assoc()) {
 
