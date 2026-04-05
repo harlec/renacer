@@ -37,8 +37,9 @@ $col_map = [
 ];
 $order_by = $col_map[$order_col] ?? 'v.id_venta';
 
-// Sanitizar búsqueda
-$search_safe = $conn->real_escape_string($search);
+// Sanitizar búsqueda — quitar prefijo "v-" si lo escriben
+$search_clean = preg_replace('/^v-/i', '', $search);
+$search_safe  = $conn->real_escape_string($search_clean);
 
 // Filtros base
 $where_user   = $es_admin ? "" : "AND v.usuario = $id_usuario";
