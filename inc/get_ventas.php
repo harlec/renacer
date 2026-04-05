@@ -30,12 +30,19 @@ $search    = trim($_GET['search']['value'] ?? '');
 $order_col = intval($_GET['order'][0]['column'] ?? 1);
 $order_dir = strtoupper($_GET['order'][0]['dir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
 
-$col_map = [
-    1 => 'v.id_venta',
-    4 => 'v.fecha',
-    5 => 'monto',
-];
-$order_by = $col_map[$order_col] ?? 'v.id_venta';
+// Orden: con búsqueda usa relevancia, sin búsqueda usa id desc
+if (!empty($search_safe)) {
+    $order_by = "CASE WHEN v.id_venta = '{$search_safe}' THEN 0
+                      WHEN v.id_venta LIKE '{$search_safe}%' THEN 1
+                      ELSE 2 END ASC, v.id_venta ASC";
+} else {
+    $col_map = [
+        1 => 'v.id_venta',
+        4 => 'v.fecha',
+        5 => 'monto',
+    ];
+    $order_by = ($col_map[$order_col] ?? 'v.id_venta') . ' ' . $order_dir;
+}
 
 // Sanitizar búsqueda — quitar prefijo "v-" si lo escriben
 $search_clean = preg_replace('/^v-/i', '', $search);
@@ -68,7 +75,7 @@ $sql = "
     LEFT JOIN comprobantes   c  ON c.venta  = v.id_venta
     WHERE v.estado != '2' $where_user $where_search
     GROUP BY v.id_venta
-    ORDER BY $order_by $order_dir
+    ORDER BY $order_by
     LIMIT $length OFFSET $start
 ";
 
