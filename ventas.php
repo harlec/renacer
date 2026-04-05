@@ -1,5 +1,10 @@
 <?php
 include('inc/control.php');
+$conn_tmp = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
+$where_u = ($_SESSION['type'] == 'admin') ? "" : "AND usuario = " . intval($_SESSION['id_usr']);
+$r_tmp = $conn_tmp->query("SELECT COUNT(*) as c FROM ventas WHERE estado != '2' $where_u");
+$total_count = $r_tmp ? intval($r_tmp->fetch_assoc()['c']) : 0;
+$conn_tmp->close();
 ?>
 
 
@@ -102,11 +107,15 @@ include('inc/control.php');
 		<script>
 	$(document).ready(function() {
 
+		var pageLength = 25;
+		var lastPageStart = Math.max(0, Math.floor((<?= $total_count ?> - 1) / pageLength) * pageLength);
 		$('#datos').DataTable({
 			serverSide: true,
 			processing: true,
 			ajax: '/inc/get_ventas.php',
-			order: [[1, 'desc']],
+			displayStart: lastPageStart,
+			order: [[1, 'asc']],
+			pageLength: pageLength,
 			columns: [
 				{ data: null, orderable: false, render: function(data, type, row, meta) {
 					return meta.row + meta.settings._iDisplayStart + 1;

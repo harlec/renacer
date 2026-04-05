@@ -28,7 +28,7 @@ $start     = intval($_GET['start'] ?? 0);
 $length    = intval($_GET['length'] ?? 25);
 $search    = trim($_GET['search']['value'] ?? '');
 $order_col = intval($_GET['order'][0]['column'] ?? 1);
-$order_dir = strtoupper($_GET['order'][0]['dir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+$order_dir = strtoupper($_GET['order'][0]['dir'] ?? 'ASC') === 'ASC' ? 'ASC' : 'DESC';
 
 $col_map = [
     1 => 'v.id_venta',
