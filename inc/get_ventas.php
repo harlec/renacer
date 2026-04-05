@@ -30,17 +30,15 @@ $search    = trim($_GET['search']['value'] ?? '');
 $order_col = intval($_GET['order'][0]['column'] ?? 1);
 $order_dir = strtoupper($_GET['order'][0]['dir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
 
-// Orden: con búsqueda usa relevancia, sin búsqueda usa id desc
+// Orden: con búsqueda ASC (exacto primero), sin búsqueda el seleccionado
+$col_map = [
+    1 => 'v.id_venta',
+    4 => 'v.fecha',
+    5 => 'monto',
+];
 if (!empty($search_safe)) {
-    $order_by = "CASE WHEN v.id_venta = '{$search_safe}' THEN 0
-                      WHEN v.id_venta LIKE '{$search_safe}%' THEN 1
-                      ELSE 2 END ASC, v.id_venta ASC";
+    $order_by = 'v.id_venta ASC';
 } else {
-    $col_map = [
-        1 => 'v.id_venta',
-        4 => 'v.fecha',
-        5 => 'monto',
-    ];
     $order_by = ($col_map[$order_col] ?? 'v.id_venta') . ' ' . $order_dir;
 }
 
