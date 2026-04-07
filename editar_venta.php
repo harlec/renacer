@@ -45,6 +45,20 @@ $detalle_venta->where('venta', $id_venta);
 $detalle_venta->left_join('producto','productos','id_producto');
 $detalle_actual = $detalle_venta->get();
 
+// Obtener precio_vp y cantidad_vp para cálculo correcto de totales
+$variante_precios = [];
+if (!empty($detalle_actual)) {
+    $id_vps = array_unique(array_column($detalle_actual, 'id_vp'));
+    $conn_vp = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
+    $conn_vp->set_charset('utf8');
+    $ids_str = implode(',', array_map('intval', $id_vps));
+    $vp_result = $conn_vp->query("SELECT id_vp, precio_vp, cantidad_vp FROM variante_p WHERE id_vp IN ($ids_str)");
+    while ($vp_row = $vp_result->fetch_assoc()) {
+        $variante_precios[$vp_row['id_vp']] = $vp_row;
+    }
+    $conn_vp->close();
+}
+
 // Obtener cliente actual
 $cliente_actual = Sdba::table('clientes');
 $cliente_actual->where('id_cliente', $venta_data['cliente']);
@@ -72,7 +86,7 @@ foreach ($variantes_p_l as $value) {
                 <td style="text-transform:uppercase;" class="nom_prod">'.$value['codigo_producto'].' '.$value['nom_prod'].' '.$marcan.'</td>
                 <td style="text-transform:uppercase;" class="unidad"><input type="hidden" class="id_vp" value="'.$value['id_vp'].'">'.'<input type="hidden" class="cantidad_vp" value="'.$value['cantidad_vp'].'">'.$value['variante'].'('.$value['cantidad_vp'].')</td>
                 <td class="stock">'.$stocktt.'</td>
-                <td><input type="hidden" class="precio_venta" value="'.$precio_final.'">'.$value['precio_vp'].'</td>
+                <td><input type="hidden" class="precio_venta" value="'.$precio_final.'"><input type="hidden" class="precio_vp_orig" value="'.$value['precio_vp'].'">'.$value['precio_vp'].'</td>
                 <td><button id="agregar" value="'.$value['id_producto'].'" class="btn btn-lg btn-success"> + </button></td>
               </tr>';
     $i++;
@@ -178,10 +192,12 @@ foreach ($el as $value) {
 
                                                     <h4>Productos en la Venta</h4>
                                                     <div id="productos_venta">
-                                                        <?php 
+                                                        <?php
                                                         $total_venta = 0;
-                                                        foreach ($detalle_actual as $det): 
+                                                        foreach ($detalle_actual as $det):
                                                             $total_venta += $det['total'];
+                                                            $precio_vp_orig = $variante_precios[$det['id_vp']]['precio_vp'] ?? 0;
+                                                            $cant_vp_orig = $variante_precios[$det['id_vp']]['cantidad_vp'] ?? 1;
                                                         ?>
                                                         <div class="producto-item" data-detalle-id="<?php echo $det['id_detalle']; ?>">
                                                             <div class="row">
@@ -204,6 +220,8 @@ foreach ($el as $value) {
                                                             <input type="hidden" class="producto-id" value="<?php echo $det['producto']; ?>">
                                                             <input type="hidden" class="id-vp" value="<?php echo $det['id_vp']; ?>">
                                                             <input type="hidden" class="cantidad-original" value="<?php echo $det['cantidad']; ?>">
+                                                            <input type="hidden" class="precio-paquete" value="<?php echo $precio_vp_orig; ?>">
+                                                            <input type="hidden" class="cant-vp" value="<?php echo $cant_vp_orig; ?>">
                                                             <hr>
                                                         </div>
                                                         <?php endforeach; ?>
@@ -287,11 +305,10 @@ foreach ($el as $value) {
         function recalcularTotales() {
             var total = 0;
             $('.producto-item').each(function() {
-                var cantidadVal = $(this).find('.cantidad-prod').val().replace(',', '.');
-                var precioVal = $(this).find('.precio-prod').val().replace(',', '.');
-                var cantidad = parseFloat(cantidadVal) || 0;
-                var precio = parseFloat(precioVal) || 0;
-                var subtotal = Math.round((cantidad * precio) * 100) / 100; // Redondear a 2 decimales
+                var cantidad = parseFloat($(this).find('.cantidad-prod').val().replace(',', '.')) || 0;
+                var precioVp = parseFloat($(this).find('.precio-paquete').val()) || 0;
+                var cantVp = parseFloat($(this).find('.cant-vp').val()) || 1;
+                var subtotal = Math.round((cantidad / cantVp) * precioVp * 100) / 100;
                 $(this).find('.total-prod').text(subtotal.toFixed(2));
                 total += subtotal;
             });
@@ -320,6 +337,7 @@ foreach ($el as $value) {
             var unidad = fila.find('.unidad').text();
             var stock = parseFloat(fila.find('.stock').text());
             var precio = parseFloat(fila.find('.precio_venta').val());
+            var precioVpOrig = parseFloat(fila.find('.precio_vp_orig').val()) || precio;
             var idProducto = $(this).val();
             var idVp = fila.find('.id_vp').val();
             var cantidad_vp = fila.find('.cantidad_vp').val();
@@ -366,6 +384,8 @@ foreach ($el as $value) {
                     <input type="hidden" class="producto-id" value="${idProducto}">
                     <input type="hidden" class="id-vp" value="${idVp}">
                     <input type="hidden" class="cantidad-original" value="0">
+                    <input type="hidden" class="precio-paquete" value="${precioVpOrig}">
+                    <input type="hidden" class="cant-vp" value="${cantidad_vp}">
                     <hr>
                 </div>
             `;
@@ -421,6 +441,8 @@ foreach ($el as $value) {
                         id_vp: $(this).find('.id-vp').val(),
                         cantidad: cantidad,
                         precio: precio,
+                        precio_vp: parseFloat($(this).find('.precio-paquete').val()) || 0,
+                        cantidad_vp: parseFloat($(this).find('.cant-vp').val()) || 1,
                         cantidad_original: parseFloat($(this).find('.cantidad-original').val()) || 0
                     });
                 }

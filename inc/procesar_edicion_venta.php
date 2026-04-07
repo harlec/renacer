@@ -93,7 +93,13 @@ if (isset($_POST) && !empty($_POST)) {
                     $id_producto = $producto['producto_id'];
                     $cantidad = floatval($producto['cantidad']);
                     $precio = floatval($producto['precio']);
-                    $total_producto = $cantidad * $precio;
+                    $precio_vp = floatval($producto['precio_vp'] ?? 0);
+                    $cantidad_vp = floatval($producto['cantidad_vp'] ?? 1);
+                    if ($precio_vp > 0 && $cantidad_vp > 0) {
+                        $total_producto = round(($cantidad / $cantidad_vp) * $precio_vp, 2);
+                    } else {
+                        $total_producto = round($cantidad * $precio, 2);
+                    }
                     $total_venta += $total_producto;
                     
                     if ($cantidad <= 0) continue;
