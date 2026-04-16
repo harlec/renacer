@@ -451,6 +451,14 @@ $('div.dataTables_filter input').on('keyup', function() {
 			var cantidad = $(this).closest('tr').find('.cantidad').val();
 			console.log(stock);
 			console.log(cantidad);
+
+			// Validar que no supere el stock disponible
+			if (parseFloat(cantidad) > parseFloat(stock)) {
+				$(this).val(stock);
+				cantidad = stock;
+				swal('Advertencia', 'La cantidad no puede superar el stock disponible (' + stock + ').', 'warning');
+			}
+
 			var anterior = $(this).closest('tr').find('.mon').val();
 			var precio = $(this).closest('tr').find('.pre').val();
 			
@@ -523,9 +531,22 @@ $('div.dataTables_filter input').on('keyup', function() {
 		$('body').on('click',"#guardar_venta", function(e){
           e.preventDefault();
 
-				
-				//var tipoVenta = $('input:radio[name=pregunta]:checked').val();
-				//DNI = $('#dni_ruc').val();
+				// Validar que ninguna cantidad supere el stock antes de guardar
+				var errorStock = false;
+				$('#items tr.child').each(function(){
+					var stocki = parseFloat($(this).find('.stocki').val()) || 0;
+					var cantidad = parseFloat($(this).find('.cantidad').val()) || 0;
+					if (cantidad > stocki) {
+						errorStock = true;
+						$(this).find('.cantidad').css('border', '2px solid red');
+					} else {
+						$(this).find('.cantidad').css('border', '');
+					}
+				});
+				if (errorStock) {
+					swal('Advertencia', 'Una o más cantidades superan el stock disponible. Corrígelas antes de guardar.', 'warning');
+					return;
+				}
 
 				var str2 = $('#venta').serialize();
 				alert(str2);

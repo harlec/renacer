@@ -46,6 +46,44 @@ if (isset($_POST) && !empty($_POST)) {
         } else {
             
             try {
+                // PRE-VALIDACIÓN: verificar stock suficiente ANTES de tocar nada
+                // Calculamos el stock efectivo = stock actual + lo que ya ocupa esta venta
+                $detalle_precheck = Sdba::table('detalle_ventas');
+                $detalle_precheck->where('venta', $id_venta);
+                $detalles_precheck = $detalle_precheck->get();
+
+                $stock_virtual = array(); // stock simulado por producto
+                foreach ($detalles_precheck as $detalle) {
+                    $pid = $detalle['producto'];
+                    if (!isset($stock_virtual[$pid])) {
+                        $sv = Sdba::table('stock');
+                        $sv->where('producto', $pid);
+                        $sv->order_by('id_stock', 'desc');
+                        $sl = $sv->get_one();
+                        $stock_virtual[$pid] = floatval($sl['stockt']);
+                    }
+                    // devolvemos virtualmente lo que esta venta ya consume
+                    $stock_virtual[$pid] += floatval($detalle['cantidad']);
+                }
+
+                foreach ($productos as $producto) {
+                    $pid = $producto['producto_id'];
+                    $cant = floatval($producto['cantidad']);
+                    if ($cant <= 0) continue;
+                    if (!isset($stock_virtual[$pid])) {
+                        $sv = Sdba::table('stock');
+                        $sv->where('producto', $pid);
+                        $sv->order_by('id_stock', 'desc');
+                        $sl = $sv->get_one();
+                        $stock_virtual[$pid] = floatval($sl['stockt']);
+                    }
+                    if ($stock_virtual[$pid] < $cant) {
+                        throw new Exception('Stock insuficiente para el producto ID: ' . $pid . '. Disponible: ' . $stock_virtual[$pid] . ', solicitado: ' . $cant . '. No se realizaron cambios.');
+                    }
+                    $stock_virtual[$pid] -= $cant; // descontar virtualmente para acumulados
+                }
+                // FIN PRE-VALIDACIÓN — a partir de aquí el stock es suficiente
+
                 // PASO 1: Obtener detalle actual y devolver stock
                 $detalle_actual = Sdba::table('detalle_ventas');
                 $detalle_actual->where('venta', $id_venta);
@@ -111,8 +149,9 @@ if (isset($_POST) && !empty($_POST)) {
                     $stockl = $stock->get_one();
                     $stock_disponible = floatval($stockl['stockt']);
                     
+                    // Stock ya fue validado en PRE-VALIDACIÓN, esta línea es solo por seguridad
                     if ($stock_disponible < $cantidad) {
-                        throw new Exception("Stock insuficiente para producto ID: $id_producto");
+                        throw new Exception("Stock insuficiente para producto ID: $id_producto (verificación final)");
                     }
                     
                     // Descontar stock
