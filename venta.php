@@ -403,6 +403,7 @@ $('div.dataTables_filter input').on('keyup', function() {
 		    var fv = $(this).closest('tr').find('.fv').text();
 		    var unidad = $(this).closest('tr').find('.unidad').text();
 		    var stock = $(this).closest('tr').find('.stock').text();
+		    var stock_units = parseFloat(stock) * parseInt(cantidad_vp);
 		    var cantidad = 1;
 		    var id_p = $(this).val();
 		    var monto = precio*cantidad_vp;
@@ -421,7 +422,7 @@ $('div.dataTables_filter input').on('keyup', function() {
 		    	total = monto*1 + total*1;
 		    	total1 = Number(total.toFixed(2));
 
-		    	$('#items tr:last').after('<tr class="child"><input type="hidden" class="id_vp" value="'+id_vp+'" name="id_vp[]" ><input type="hidden" class="stocki" value="'+stock+'" name="stock[]" ><input type="hidden" value="'+id_p+'" name="id_pro[]" ><td><input class="cantidad" type="number" max="'+stock+'" value="'+cantidad_vp+'" name="cantidad[]"></td><td style="text-transform:uppercase;">'+nombre+'</td><td style="text-transform:uppercase;">'+unidad+'</td><td><input type="number" class="pre" value="'+precio+'" name="precio[]"></td><td ><input class="mon" type="text" value="'+monto1+'" name="total_pre[]" ></td><td><button value="'+monto+'" class="borrar">x</button></td></tr>');
+		    	$('#items tr:last').after('<tr class="child"><input type="hidden" class="id_vp" value="'+id_vp+'" name="id_vp[]" ><input type="hidden" class="stocki" value="'+stock_units+'" name="stock[]" ><input type="hidden" value="'+id_p+'" name="id_pro[]" ><td><input class="cantidad" type="number" max="'+stock_units+'" value="'+cantidad_vp+'" name="cantidad[]"></td><td style="text-transform:uppercase;">'+nombre+'</td><td style="text-transform:uppercase;">'+unidad+'</td><td><input type="number" class="pre" value="'+precio+'" name="precio[]"></td><td ><input class="mon" type="text" value="'+monto1+'" name="total_pre[]" ></td><td><button value="'+monto+'" class="borrar">x</button></td></tr>');
 		    	$("#total").val(total);
 		    	$("#total1").val(total1);
 
