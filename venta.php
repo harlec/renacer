@@ -403,7 +403,7 @@ $('div.dataTables_filter input').on('keyup', function() {
 		    var fv = $(this).closest('tr').find('.fv').text();
 		    var unidad = $(this).closest('tr').find('.unidad').text();
 		    var stock = $(this).closest('tr').find('.stock').text();
-		    var stock_units = parseFloat(stock) * parseInt(cantidad_vp);
+		    var stock_units = parseFloat(stock) * parseFloat(cantidad_vp);
 		    var cantidad = 1;
 		    var id_p = $(this).val();
 		    var monto = precio*cantidad_vp;
