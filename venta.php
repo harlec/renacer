@@ -550,8 +550,8 @@ $('div.dataTables_filter input').on('keyup', function() {
 				}
 
 				var str2 = $('#venta').serialize();
-				alert(str2);
-				
+
+				var btn_guardar = this;
 				$.ajax({
 					cache: false,
 					type: "POST",
@@ -561,18 +561,20 @@ $('div.dataTables_filter input').on('keyup', function() {
 					success: function(response){
 
 						if(response.respuesta == false){
-							swal('Advertencia',response.mensaje,'warning');
-							
-
-
+							// Quitar resaltado previo
+							$('#items tr.child .cantidad').css('border', '');
+							// Resaltar la fila del producto con error
+							if (response.error_producto_id) {
+								$('#items tr.child').each(function(){
+									if ($(this).find('input[name="id_pro[]"]').val() == response.error_producto_id) {
+										$(this).find('.cantidad').css('border', '2px solid red');
+									}
+								});
+							}
+							swal('Sin stock', response.mensaje, 'warning');
 						}else{
-
-							swal('Perfecto', response.venta_id,'success');
-							//var id_venta = response.id_venta;
-							console.log(response.mesa);
-							//$('#mostrarmesa').load('inc/mobile/ver_mesa.php?mesa='+ response.mesa);
+							$(btn_guardar).hide();
 							document.location.href = "ver_venta.php?id="+response.venta_id;
-						
 						}
 					
 					},
@@ -580,11 +582,10 @@ $('div.dataTables_filter input').on('keyup', function() {
 						swal('Advertencia','Error General del Sistema','warning');
 					}
 				});
-				
-				$(this ).hide();
+
 				//return false;
 
-			
+
 		});
 
 		
