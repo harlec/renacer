@@ -18,8 +18,8 @@ foreach ($ventas_list as $value) {
 	$marca1 = $marca->get_one();
 	$marcan = $marca1['marca'];
 
-	$datos .='<tr> 
-    			<td style="text-transform:uppercase;" class="nom_prod">'.$value['nom_prod'].' '.$marcan.'</td>
+	$datos .='<tr>
+    			<td style="text-transform:uppercase;" class="nom_prod">'.$value['nom_prod'].' '.$marcan.'<input type="hidden" class="precio_venta" value="'.$value['precio_venta'].'"></td>
     			<td style="text-transform:uppercase;" class="unidad">'.$value['nombre'].'</td>
     			<td><button id="agregar" value="'.$value['id_producto'].'" class="btn btn-xs btn-success"> + </button></td>
     		  </tr>';
@@ -295,7 +295,7 @@ foreach ($proveedoresl as $key) {
 
 		$('#datos').on('click', '#agregar', function(){
 		    var nombre = $(this).closest('tr').find('.nom_prod').text();
-		    var precio = $(this).closest('tr').find('.precio_venta').text();
+		    var precio = $(this).closest('tr').find('.precio_venta').val();
 		    var unidad = $(this).closest('tr').find('.unidad').text();
 		    var cantidad = 1;
 		    var id_p = $(this).val();
@@ -393,8 +393,7 @@ foreach ($proveedoresl as $key) {
 				//DNI = $('#dni_ruc').val();
 
 				var str2 = $('#venta').serialize();
-				alert(str2);
-				
+
 				$.ajax({
 					cache: false,
 					type: "POST",
