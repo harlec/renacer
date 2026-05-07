@@ -33,7 +33,7 @@ $mensajeError = 'hasta aca bien';
 	//guardamos en tabla ventas
 			
 			$ventas = Sdba::table('productos');
-			$data = array('id_producto'=>'','cod_sunat'=> '','serie'=>'','nom_prod'=>$nombre,'codigo_producto'=>'','unidad_prod'=>$unidad,'categoria'=>$categoria,'precio_venta'=>$precio_v,'precio_compra'=>'','stockp'=>$stockn,'exonerada'=>'no','proveedor'=>'1','estado'=>'1');
+			$data = array('id_producto'=>'','cod_sunat'=> '','serie'=>'','nom_prod'=>$nombre,'codigo_producto'=>'','unidad_prod'=>$unidad,'categoria'=>$categoria,'precio_venta'=>$precio_v,'precio_compra'=>$_POST['precio_c'] ?? '','stockp'=>$stockn,'exonerada'=>'no','proveedor'=>'1','estado'=>'1');
 			$ventas->insert($data);
 			$venta_id = $ventas->insert_id();
 			$variantes = Sdba::table('variante_p');

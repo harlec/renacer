@@ -69,6 +69,10 @@ if (isset($_POST) && !empty($_POST)) {
 				$productos = Sdba::table('productos');
 				$productos->where('id_producto',$id_p[$i]);
 				$productos->update(array('stockp'=>$stocktot));
+				if (!\empty($precio[$i])) {
+					$productos->where('id_producto', $id_p[$i]);
+					$productos->update(array('precio_compra' => floatval($precio[$i])));
+				}
 			}
 
 	}

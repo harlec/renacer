@@ -128,6 +128,10 @@ foreach ($variantes_list as $vl) {
 															    </select>
 															</div> -->
 															<div class="form-group">
+															    <label>Precio Compra</label>
+															    <input type="number" step="0.01" class="form-control" name="precio_c" placeholder="Precio de compra">
+															</div>
+															<div class="form-group">
 															    <label for="exampleInputPassword1">Stock</label>
 															    <input type="text" class="form-control" name="stock" id="stock" placeholder="Stock">
 															</div>

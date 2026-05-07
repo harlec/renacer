@@ -50,7 +50,8 @@ foreach ($ventas_list as $value) {
     			<td>'.$unidadn.'</td>
     			<td>'.$value['nom_cat'].'</td>
     			<td>'.$stockt.'</td> 
-    			<td>'.$value['precio_venta'].'</td> 
+    			<td>'.$value['precio_venta'].'</td>
+    			<td>'.$value['precio_compra'].'</td>
     			<td><a class="" alt="ver" href="editar_producto.php?id='.$value['id_producto'].'"><img src="assets/img/edit.png"/></a><button class="btn-custom" id="borrar" value="'.$value['id_producto'].'" alt="boleta"><img src="assets/img/trash.png" /></button></td> 
     		  </tr>';
     $i++;
@@ -127,6 +128,7 @@ foreach ($ventas_list as $value) {
 											    			<th>Categoría</th>
 											    			<th>Stock</th>
 											    			<th>Precio</th> 
+											    			<th>P. Compra</th>
 											    			<th>Opciones</th> 
 											    		</tr> 
 											    	</thead> 
