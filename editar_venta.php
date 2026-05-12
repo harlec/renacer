@@ -74,6 +74,7 @@ $variantes_p_l = $variantes_p->get();
 $datos = '';
 $i = 1;
 foreach ($variantes_p_l as $value) {
+    if (empty($value['nom_prod'])) continue;
     $ventas = Sdba::table('marca');
     $ventas->where('id_marca',$value['marca']);
     $ventas_l = $ventas->get_one();
