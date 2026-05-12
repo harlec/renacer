@@ -44,9 +44,11 @@ if (isset($_POST) && !empty($_POST)) {
                 }
             }
 
-            // Guardar o reutilizar cliente
+            // Normalizar nombre: sin espacios extra, primera letra de cada palabra en mayúscula
+            $cliente = ucwords(strtolower(trim($cliente)));
             $cliente_safe = $conn->real_escape_string($cliente);
-            $rc = $conn->query("SELECT id_cliente FROM clientes WHERE cliente = '$cliente_safe' LIMIT 1");
+            // Buscar cliente ignorando mayúsculas/minúsculas
+            $rc = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$cliente_safe') LIMIT 1");
             $cl = $rc ? $rc->fetch_assoc() : null;
             if ($cl) {
                 $id_cliente = $cl['id_cliente'];

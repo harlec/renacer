@@ -261,11 +261,17 @@ foreach ($el as $value) {
 	// A $( document ).ready() block.
 	$(document ).ready(function() {
 
-		var availableTags = <?= json_encode($emplel); ?>;
 	    $( "#cliente" ).autocomplete({
-	      source: availableTags
+	      source: function(request, response) {
+	          $.ajax({
+	              url: '/inc/autocomplete-cliente.php',
+	              data: { term: request.term },
+	              dataType: 'json',
+	              success: function(data) { response(data); }
+	          });
+	      },
+	      minLength: 2
 	    });
-
 
 		$('#add').click(function() {
 				$('#variantes').find('tbody').append('<tr><td><input type="text" name="variante[]" ></td><td><input type="text" name="variante[]" ></td><td><input type="text" name="variante[]" ></td></tr>')
