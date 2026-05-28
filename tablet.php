@@ -44,7 +44,8 @@ foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
 
 foreach ($all_vp as $row) {
     if (empty($row['nom_prod'])) continue;
-    $cat_id  = (int)($row['id_categoria'] ?? 0);
+    // El join de productos trae la FK como 'categoria' (no 'id_categoria')
+    $cat_id  = (int)($row['categoria'] ?? $row['id_categoria'] ?? 0);
     $prod_id = (int)($row['id_producto']  ?? 0);
 
     foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
