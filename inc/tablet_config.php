@@ -17,7 +17,7 @@ $TABLET_TABS = [
         'icon'        => '🥚',
         'color_accent'=> '#f5a623',            // amarillo/naranja
         'color_bg'    => 'rgba(245,166,35,.12)',
-        'category_ids'=> [1, 2],               // <-- pon aquí los IDs de categorías de huevos
+        'category_ids'=> [22, 23],               // <-- pon aquí los IDs de categorías de huevos
     ],
 
     // ── PESTAÑA 2: EMBUTIDOS ───────────────────────────────
@@ -26,7 +26,7 @@ $TABLET_TABS = [
         'icon'        => '🥩',
         'color_accent'=> '#c0392b',            // rojo
         'color_bg'    => 'rgba(192,57,43,.12)',
-        'category_ids'=> [3, 4, 5],            // <-- pon aquí los IDs de categorías de embutidos
+        'category_ids'=> [10, 29],            // <-- pon aquí los IDs de categorías de embutidos
     ],
 
 ];
