@@ -16,6 +16,7 @@ $mensajeError = 'hasta aca bien';
 	$usuario = $_POST['usuario'];
 	$password = $_POST['password'];
 	$rol = $_POST['rol'];
+	$tablet_mode = isset($_POST['tablet_mode']) ? 1 : 0;
 	//$tienda = $_POST['tienda'];
 
 	$pepper = 'c1isvFdxMDdmjOlvxpecFw';
@@ -36,7 +37,7 @@ $mensajeError = 'hasta aca bien';
 		//guardamos en tabla ventas
 			
 			$ventas = Sdba::table('usuarios');
-			$data = array('id_usuario'=>'','nombres'=> $nombre,'usuario'=>$usuario,'clave'=>$pwd_peppered,'tienda'=>'1','rol'=>$rol,'estado'=>'1');
+			$data = array('id_usuario'=>'','nombres'=> $nombre,'usuario'=>$usuario,'clave'=>$pwd_peppered,'tienda'=>'1','rol'=>$rol,'estado'=>'1','tablet_mode'=>$tablet_mode);
 			$ventas->insert($data);
 			$venta_id = $ventas->insert_id();
 			if ($venta_id) {

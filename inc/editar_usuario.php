@@ -14,6 +14,7 @@ $mensajeError = 'hasta aca bien';
 	$password = $_POST['password'];
 	$rol = $_POST['rol'];
 	$tienda = $_POST['tienda'];
+	$tablet_mode = isset($_POST['tablet_mode']) ? 1 : 0;
 
 	$pepper = 'c1isvFdxMDdmjOlvxpecFw';
 	$pwd = $password;
@@ -22,11 +23,11 @@ $mensajeError = 'hasta aca bien';
 	
 	$respuestaOk = true;
 	if (empty($password)) {
-		$data = array('nombres'=> $nombre,'usuario'=>$usuario,'tienda'=>$tienda,'rol'=>$rol);
+		$data = array('nombres'=> $nombre,'usuario'=>$usuario,'tienda'=>$tienda,'rol'=>$rol,'tablet_mode'=>$tablet_mode);
 	}
 	else{
 		
-		$data = array('nombres'=> $nombre,'usuario'=>$usuario,'clave'=>$pwd_peppered,'tienda'=>$tienda,'rol'=>$rol);
+		$data = array('nombres'=> $nombre,'usuario'=>$usuario,'clave'=>$pwd_peppered,'tienda'=>$tienda,'rol'=>$rol,'tablet_mode'=>$tablet_mode);
 	}
 	//guardamos en tabla ventas
 		

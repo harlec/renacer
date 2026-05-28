@@ -17,6 +17,7 @@ switch ($ul['rol']) {
 		$operador = 'selected';
 		break;
 }
+$tablet_checked = (!empty($ul['tablet_mode']) && $ul['tablet_mode']==1) ? 'checked' : '';
 ?>
 
 <!DOCTYPE html>
@@ -100,6 +101,12 @@ switch ($ul['rol']) {
 															    	<option <?php echo $admin; ?> value="admin">administrador</option>
 															    	<option <?php echo $operador; ?> value="operador">vendedor</option>
 															    </select>
+															</div>
+															<div class="form-group">
+															    <label>
+															    	<input type="checkbox" name="tablet_mode" id="tablet_mode" value="1" <?php echo $tablet_checked; ?>>
+															    	&nbsp; Activar modo Tablet (redirige a POS tablet al iniciar sesión)
+															    </label>
 															</div>
 															
 											    		</div>

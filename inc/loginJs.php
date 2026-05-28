@@ -32,22 +32,21 @@ if (isset($_POST) && !empty($_POST)) {
 			$_SESSION['type']    = $user_list['rol'];
 			$_SESSION['tienda']  = $user_list['tienda'];
 
-			// if ($user_list['type_usr']=='mozo') {
-			// 	$_SESSION['type'] = 'mozo';
-			// }
-			// elseif ($user_list['type_usr']=='cajero') {
-			// 	$_SESSION['type'] = 'cajero';
-			// }
+			// Redirigir a tablet si el usuario tiene ese modo activo
+			$tablet_mode = isset($user_list['tablet_mode']) ? (int)$user_list['tablet_mode'] : 0;
+			$redirect = ($tablet_mode === 1) ? 'tablet.php' : 'dashboard.php';
 		}
 		else{
 			$respuestaOk = false;
 			$mensajeError = 'No puede ingresar';
+			$redirect = '';
 		}
 
 }	
 
 		$salidaJson = array('respuesta' => $respuestaOk,
-							'mensaje' => $mensajeError);
+							'mensaje' => $mensajeError,
+							'redirect' => $redirect);
 
 		echo json_encode($salidaJson);
 

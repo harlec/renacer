@@ -16,6 +16,7 @@ foreach ($ventas_list as $value) {
     			<td>'.$value['nombres'].'</td>
     			<td>'.$value['usuario'].'</td> 
     			<td>'.$value['rol'].'</td> 
+    			<td>'.(!empty($value['tablet_mode'])&&$value['tablet_mode']==1?'<span style="color:#27ae60;font-weight:bold">&#x2713; Tablet</span>':'').'</td>
     			<td><button class="btn-custom" id="borrar" value="'.$value['id_usuario'].'" alt="borrar"><img src="assets/img/trash.png" /></button><a href="editar_usuario.php?id='.$value['id_usuario'].'"><img src="assets/img/edit.png"></a></td> 
     		  </tr>';
     $i++;
@@ -90,6 +91,7 @@ foreach ($ventas_list as $value) {
 											    			<th>Nombre</th>
 											    			<th>Usuarios</th> 
 											    			<th>Rol</th>
+											    			<th>Modo Tablet</th>
 											    			<th>Opciones</th> 
 											    		</tr> 
 											    	</thead> 

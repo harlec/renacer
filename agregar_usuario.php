@@ -87,6 +87,12 @@ if ($_SESSION['type']=='operador') {
 															    	<option value="operador">vendedor</option>
 															    </select>
 															</div>
+															<div class="form-group">
+															    <label>
+															    	<input type="checkbox" name="tablet_mode" id="tablet_mode" value="1">
+															    	&nbsp; Activar modo Tablet (redirige a POS tablet al iniciar sesión)
+															    </label>
+															</div>
 															<!-- <div class="form-group">
 															    <label for="exampleInputPassword1">Tienda</label>
 															    <select name="tienda" class="form-control">
