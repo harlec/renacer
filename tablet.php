@@ -10,54 +10,61 @@ if (empty($_SESSION['ingress'])) {
 require_once 'inc/sdba/sdba.php';
 require_once 'inc/tablet_config.php';
 
-// ── Obtener todos los variantes-producto con joins ──────────
+// ── Obtener todos los variantes-producto (solo joins válidos) ──
+// categorias está en productos.id_categoria, no en variante_p,
+// así que filtramos por id_categoria/id_producto en PHP.
 $vp_raw = Sdba::table('variante_p');
 $vp_raw->left_join('variante_vp', 'variantes', 'id_variante');
 $vp_raw->left_join('producto_vp', 'productos',  'id_producto');
-$vp_raw->left_join('categoria',   'categorias', 'id_categoria');
-$vp_raw->left_join('unidad_prod', 'unidades',   'id_unidad');
 $all_vp = $vp_raw->get();
 
-// ── Agrupar por pestaña → categoría → productos ─────────────
+// ── Agrupar por pestaña → grupo → productos ──────────────────
+// Cada pestaña tiene 'groups', y cada grupo puede filtrar por
+// category_ids (id_categoria) y/o product_ids (id_producto).
 $tabs_data = [];
 foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
-    $tabs_data[$tab_key] = [
-        'config'     => $tab_cfg,
-        'categories' => [],   // id_categoria => ['name'=>..., 'items'=>[...]]
-    ];
-    foreach ($tab_cfg['category_ids'] as $cat_id) {
-        $tabs_data[$tab_key]['categories'][$cat_id] = [
-            'name'  => '',
+    $groups = [];
+    foreach ($tab_cfg['groups'] as $gi => $grp) {
+        $groups[$gi] = [
+            'name'  => $grp['label'],
             'items' => [],
         ];
     }
+    $tabs_data[$tab_key] = [
+        'config' => [
+            'label'        => $tab_cfg['label'],
+            'icon'         => $tab_cfg['icon'],
+            'color_accent' => $tab_cfg['color_accent'],
+            'color_bg'     => $tab_cfg['color_bg'],
+            'by_weight'    => !empty($tab_cfg['by_weight']),
+        ],
+        'groups' => $groups,
+    ];
 }
 
 foreach ($all_vp as $row) {
     if (empty($row['nom_prod'])) continue;
-    $cat_id = (int)$row['id_categoria'];
+    $cat_id  = (int)($row['id_categoria'] ?? 0);
+    $prod_id = (int)($row['id_producto']  ?? 0);
 
-    foreach ($tabs_data as $tab_key => &$tab) {
-        if (in_array($cat_id, $tab['config']['category_ids'])) {
-            $tab['categories'][$cat_id]['name'] = $row['nom_cat'] ?? ('Cat '.$cat_id);
-
-            // Detectar si la unidad es por peso
-            $unit_name  = $row['nombre'] ?? '';
-            $by_weight  = in_array($unit_name, TABLET_UNIT_BY_WEIGHT);
-
-            $tab['categories'][$cat_id]['items'][] = [
-                'id'        => (int)$row['id_vp'],
-                'prod_name' => $row['nom_prod'],
-                'variant'   => $row['variante'],
-                'qty_per'   => (float)$row['cantidad_vp'],
-                'price'     => (float)$row['precio_vp'],
-                'unit'      => $unit_name,
-                'by_weight' => $by_weight,
-            ];
-            break;
+    foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
+        $by_weight = !empty($tab_cfg['by_weight']);
+        foreach ($tab_cfg['groups'] as $gi => $grp) {
+            $cat_match  = !empty($grp['category_ids']) && in_array($cat_id,  $grp['category_ids']);
+            $prod_match = !empty($grp['product_ids'])  && in_array($prod_id, $grp['product_ids']);
+            if ($cat_match || $prod_match) {
+                $tabs_data[$tab_key]['groups'][$gi]['items'][] = [
+                    'id'        => (int)$row['id_vp'],
+                    'prod_name' => $row['nom_prod'],
+                    'variant'   => $row['variante'],
+                    'qty_per'   => (float)$row['cantidad_vp'],
+                    'price'     => (float)$row['precio_vp'],
+                    'by_weight' => $by_weight,
+                ];
+                break 2; // un producto va a un solo grupo
+            }
         }
     }
-    unset($tab);
 }
 
 // Convertir a JSON para JS
@@ -760,40 +767,38 @@ function switchTab(key){
 function buildCatStrip(tabKey){
   const strip = document.getElementById('cat-strip');
   strip.innerHTML = '';
-  const cats = TABS_DATA[tabKey].categories;
-  const ids   = Object.keys(cats);
+  const groups = TABS_DATA[tabKey].groups;
+  const idxs   = Object.keys(groups);
 
-  if(!ids.length){
+  if(!idxs.length){
     renderProducts([]);
     return;
   }
 
-  ids.forEach((catId,i)=>{
-    const cat = cats[catId];
+  idxs.forEach((gi,i)=>{
+    const grp = groups[gi];
     const pill = document.createElement('button');
     pill.className = 'cat-pill' + (i===0?' active':'');
-    pill.dataset.catid = catId;
-    pill.textContent = cat.name || ('Cat '+catId);
-    pill.onclick = ()=>selectCat(tabKey, catId);
+    pill.dataset.gi = gi;
+    pill.textContent = grp.name;
+    pill.onclick = ()=>selectGroup(tabKey, gi);
     strip.appendChild(pill);
   });
 
-  // Seleccionar primera categoría
-  selectCat(tabKey, ids[0]);
+  selectGroup(tabKey, idxs[0]);
 }
 
 // ── Seleccionar categoría ──────────────────────────────────
-function selectCat(tabKey, catId){
-  currentCatId = catId;
+function selectGroup(tabKey, gi){
   selectedProduct = null;
   numBuf = '0';
   updateNumDisplay();
 
   document.querySelectorAll('.cat-pill').forEach(p=>{
-    p.classList.toggle('active', p.dataset.catid==catId);
+    p.classList.toggle('active', p.dataset.gi==gi);
   });
 
-  const items = TABS_DATA[tabKey].categories[catId]?.items || [];
+  const items = TABS_DATA[tabKey].groups[gi]?.items || [];
   renderProducts(items);
 }
 
