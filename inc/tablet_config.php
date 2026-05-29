@@ -33,9 +33,9 @@ $TABLET_TABS = [
                 'product_ids'  => [],      // dejar [] si usas category_ids
             ],
             [
-                'label'        => 'Caja',
+                'label'        => 'Botellas',
                 'category_ids' => [23],    // <-- ID categoría "Caja"
-                'product_ids'  => [],
+                'product_ids'  => [845,846,847,848,871],
             ],
             // Agrega más grupos si necesitas más tipos de huevos:
             // [
