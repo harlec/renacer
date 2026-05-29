@@ -34,7 +34,7 @@ $TABLET_TABS = [
             ],
             [
                 'label'        => 'Botellas',
-                'category_ids' => [23],    // <-- ID categoría "Caja"
+                'category_ids' => [0],    // <-- ID categoría "Caja"
                 'product_ids'  => [845,846,847,848,871],
             ],
             // Agrega más grupos si necesitas más tipos de huevos:
