@@ -81,7 +81,7 @@ $variantes_p->left_join('variante_vp','variantes','id_variante');
 $variantes_plist = $variantes_p->get();
 $variantes_pl = '';
 foreach ($variantes_plist as $value) {
-	$variantes_pl .='<tr><td><input type="hidden" name="id_vp[]" value="'.$value['id_vp'].'"><input type="hidden" name="variante[]" value="'.$value['variante_vp'].'"><input type="text" value="'.$value['variante'].'"></td><td><input type="text" name="cantidadv[]" value="'.$value['cantidad_vp'].'"></td><td><input type="text" name="preciov[]" value="'.$value['precio_vp'].'"></td><td><button value="'.$value['id_vp'].'" class="borrar">x</button></td></tr>';
+	$variantes_pl .='<tr><td><input type="hidden" name="id_vp[]" value="'.$value['id_vp'].'"><input type="hidden" name="variante[]" value="'.$value['variante_vp'].'"><input type="text" value="'.$value['variante'].'"></td><td><input type="text" name="cantidadv[]" value="'.$value['cantidad_vp'].'"></td><td><input type="text" name="preciov[]" value="'.$value['precio_vp'].'"></td><td><input type="number" step="0.01" name="preciocv[]" class="preciocv-input" value="'.($value['precioc_vp'] ?? 0).'"></td><td><button value="'.$value['id_vp'].'" class="borrar">x</button></td></tr>';
 }
 ?>
 
@@ -184,6 +184,7 @@ foreach ($variantes_plist as $value) {
 									    						<td width="40%"><select style="width: 50%" id="vari"><?= $variantes_l; ?><</select></td>
 									    						<td><input name="conatidad" id="cantidad" placeholder="cantidad" type="text"></td>
 									    						<td><input name´="precio" id="precio" placeholder="precio" type="text"></td>
+									    						<td><input id="precioc" placeholder="precio compra" type="number" step="0.01"></td>
 									    						<td><input type="button" class="btn  btn-success" id="add"value="+" /></td>
 									    					</tr>
 											    			</table>
@@ -193,6 +194,7 @@ foreach ($variantes_plist as $value) {
 											    						<th>Variante</th>
 											    						<th>Cantidad</th>
 											    						<th>Precio</th>
+											    						<th>Precio Compra</th>
 											    					</tr>
 											    				</thead>
 											    				<tbody>
@@ -287,10 +289,12 @@ foreach ($variantes_plist as $value) {
 				var variante_text =  $("#vari option:selected").text();
 				var cantidad = $('#cantidad').val();
 				var precio = $('#precio').val();
+				var precioc = $('#precioc').val();
 				//alert(variante_text);
-				$('#variantes').find('tbody').append('<tr><td><input type="hidden" name="id_vp[]" value=""><input type="hidden" name="variante[]" value="'+variante+'"><input type="text" value="'+variante_text+'"></td><td><input type="text" name="cantidadv[]" value="'+cantidad+'"></td><td><input type="text" name="preciov[]" value="'+precio+'"></td><td><button value="" class="borrar">x</button></td></tr>');
+				$('#variantes').find('tbody').append('<tr><td><input type="hidden" name="id_vp[]" value=""><input type="hidden" name="variante[]" value="'+variante+'"><input type="text" value="'+variante_text+'"></td><td><input type="text" name="cantidadv[]" value="'+cantidad+'"></td><td><input type="text" name="preciov[]" value="'+precio+'"></td><td><input type="number" step="0.01" name="preciocv[]" class="preciocv-input" value="'+precioc+'"></td><td><button value="" class="borrar">x</button></td></tr>');
 				$('#cantidad').val('');
 				$('#precio').val('');
+				$('#precioc').val('');
 		    });
 
 
@@ -321,6 +325,23 @@ foreach ($variantes_plist as $value) {
 			   /* total = total - resta*1;
 			    $("#total").val(total);*/
 			});
+
+		    // Auto-calculate purchase price for other variants based on unit price ratio
+		    $("#variantes").on('change', '.preciocv-input', function() {
+			    var preciocVal = parseFloat($(this).val()) || 0;
+			    var $row = $(this).closest('tr');
+			    var cantidadVal = parseFloat($row.find('input[name="cantidadv[]"]').val()) || 0;
+			    if (preciocVal > 0 && cantidadVal > 0) {
+				    var unitPrice = preciocVal / cantidadVal;
+				    $('#variantes tbody tr').each(function() {
+					    if ($(this).is($row)) return;
+					    var otherCantidad = parseFloat($(this).find('input[name="cantidadv[]"]').val()) || 0;
+					    if (otherCantidad > 0) {
+						    $(this).find('.preciocv-input').val((unitPrice * otherCantidad).toFixed(2));
+					    }
+				    });
+			    }
+		    });
 
 		$('body').on('click',"#guardar_venta", function(e){
             e.preventDefault();

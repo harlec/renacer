@@ -27,6 +27,7 @@ $mensajeError = 'hasta aca bien';
 	$variante = $_POST['variante'];
 	$cantidadv = $_POST['cantidadv'];
 	$preciov = $_POST['preciov'];
+	$preciocv = $_POST['preciocv'] ?? [];
 	$fecha = date("Y-m-d");
 
 	$respuestaOk = true;
@@ -40,7 +41,7 @@ $mensajeError = 'hasta aca bien';
 			//insertamos las variantes
 			$variantes = Sdba::table('variante_p');
 				for ($i=0; $i < count($variante ) ; $i++) { 
-					$data2 = array('id_vp'=>$id_vp[$i],'producto_vp'=>$id,'variante_vp'=>$variante[$i],'cantidad_vp'=>$cantidadv[$i],'precio_vp'=>$preciov[$i],'state_vp'=>'1');
+					$data2 = array('id_vp'=>$id_vp[$i],'producto_vp'=>$id,'variante_vp'=>$variante[$i],'cantidad_vp'=>$cantidadv[$i],'precio_vp'=>$preciov[$i],'precioc_vp'=>$preciocv[$i] ?? 0,'state_vp'=>'1');
 					$variantes->set($data2);
 				}
 				$respuestaOk = true;
