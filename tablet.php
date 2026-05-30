@@ -569,18 +569,20 @@ body{
     inset:0;
     background:#fff;
     color:#000;
-    font-family:'Courier New',monospace;
-    font-size:13px;
-    padding:10mm 8mm;
+    font-family:Helvetica,Sans-Serif;
+    font-size:9px;
+    padding:0.4cm;
   }
-  .pa-hdr{text-align:center;margin-bottom:8px}
-  .pa-hdr h2{font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:2px}
-  .pa-hdr p{font-size:11px;color:#444}
-  .pa-div{border:none;border-top:1px dashed #888;margin:8px 0}
-  .pa-tbl{width:100%;border-collapse:collapse;font-size:12px}
-  .pa-tbl td{padding:3px 2px}
-  .pa-tot{display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:8px}
-  .pa-foot{text-align:center;font-size:11px;color:#777;margin-top:10px}
+  #print-area img.logo-ticket{ width:230px; display:block; margin:0 auto; }
+  #print-area .pa-vers{ font-size:8px; text-align:center; margin:2px 0; }
+  #print-area .pa-vers2{ font-size:8px; text-align:right; margin:-8px 0 4px; }
+  #print-area h5{ text-align:center; font-size:11px; font-weight:bold; margin:4px 0; }
+  #print-area h6{ font-size:9px; margin:2px 0; }
+  .pa-div{ border:none; border-top:1px solid #000; margin:6px 0; }
+  .pa-tbl{ width:100%; border-collapse:collapse; font-size:9px; }
+  .pa-tbl thead th{ font-size:9px; font-weight:bold; }
+  .pa-tbl tbody td{ font-size:9px; }
+  .pa-foot{ text-align:center; font-size:9px; color:#444; margin-top:8px; }
 }
 </style>
 </head>
@@ -678,18 +680,22 @@ body{
 <div class="modal-ov" id="modal-ticket">
   <div class="ticket-card">
     <div class="tc-hdr">
-      <h2 id="tc-store"><?= htmlspecialchars($store_name) ?></h2>
-      <p id="tc-addr"><?= htmlspecialchars(TABLET_STORE_ADDRESS) ?></p>
-      <p id="tc-date"></p>
+      <img src="assets/img/logo_avasa.png" style="width:180px;display:block;margin:0 auto 4px">
+      <p style="font-size:10px;color:#444;margin:0">&ldquo;Y aunque tu principio haya sido pequeño,<br>Tu postrer estado será muy grande&rdquo; Job 8:7</p>
+      <h2 style="margin:6px 0 2px">NOTA VENTA</h2>
+      <p id="tc-date" style="margin:0"></p>
     </div>
     <hr class="tc-div">
     <table class="tc-tbl" id="tc-tbl"></table>
     <hr class="tc-div">
     <div class="tc-tot">
-      <span>TOTAL</span>
-      <span id="tc-total">S/0.00</span>
+      <span>TOTAL: S/</span>
+      <span id="tc-total">0.00</span>
     </div>
-    <div class="tc-foot">¡Gracias por su compra!</div>
+    <div style="font-size:10px;margin-top:6px"><b>IMPORTE EN LETRAS: </b><span id="tc-letras"></span></div>
+    <div style="font-size:10px;margin-top:4px"><b>VENDEDOR: </b><?= $user_name ?></div>
+    <div style="font-size:10px;margin-top:4px"><b>PERSONAL ENTREGA: </b>__________________________</div>
+    <div class="tc-foot">DIOS TE BENDIGA<br>GRACIAS POR TU PREFERENCIA<br><span style="font-size:9px">Todo reclamo deberá realizarse dentro de los 13 días posteriores.</span></div>
     <div class="tc-actions">
       <button class="btn-imprimir" onclick="printTicket()">🖨️ Imprimir</button>
       <button class="btn-nueva" onclick="closeTicket();clearCart()">✓ Nueva venta</button>
@@ -946,65 +952,94 @@ function openTicket(){
 function fillTicketModal(){
   const now = new Date();
   document.getElementById('tc-date').textContent =
-    now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    'FECHA: '+now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
   let rows='', grand=0;
   cart.forEach(ci=>{
     grand+=ci.total;
     rows+=`<tr>
-      <td class="tc-n">${escHtml(ci.name)}</td>
-      <td class="tc-q">${ci.qty}</td>
-      <td class="tc-p">S/${ci.total.toFixed(2)}</td>
+      <td class="tc-n" style="font-weight:bold;font-size:11px">${escHtml(ci.name)}</td>
+      <td class="tc-p" style="text-align:right;font-weight:bold">S/${ci.total.toFixed(2)}</td>
     </tr>`;
   });
+  // Cabecera
+  rows = `<tr><th style="text-align:left;font-size:10px">[CANT.][UNID] DESCRIPCIÓN</th><th style="text-align:right;font-size:10px">TOTAL</th></tr>` + rows;
   document.getElementById('tc-tbl').innerHTML = rows;
-  document.getElementById('tc-total').textContent = 'S/'+grand.toFixed(2);
+  document.getElementById('tc-total').textContent = grand.toFixed(2);
+  document.getElementById('tc-letras').textContent = numeroALetras(grand);
 }
 
 function closeTicket(){
   document.getElementById('modal-ticket').classList.remove('show');
 }
 
+// ── Número a letras (español) ──────────────────────────────
+function numeroALetras(num){
+  const UNIDADES=['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'];
+  const DECENAS=['','DIEZ','VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'];
+  const ESPECIALES=['','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS','DIECISIETE','DIECIOCHO','DIECINUEVE'];
+  const CENTENAS=['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
+  function grupo(n){
+    let s='';
+    const c=Math.floor(n/100), d=Math.floor((n%100)/10), u=n%10;
+    if(c>0) s+=(c===1&&d===0&&u===0?'CIEN':CENTENAS[c])+' ';
+    if(d===1&&u>0) s+=ESPECIALES[u]+' ';
+    else{ if(d>0) s+=DECENAS[d]+' '; if(u>0) s+=UNIDADES[u]+' '; }
+    return s.trim();
+  }
+  const entero=Math.floor(num);
+  const cents=Math.round((num-entero)*100);
+  let s='';
+  const miles=Math.floor(entero/1000), resto=entero%1000;
+  if(miles>0) s+=(miles===1?'MIL':grupo(miles)+' MIL')+' ';
+  if(resto>0) s+=grupo(resto);
+  if(!s) s='CERO';
+  return s.trim()+' CON '+String(cents).padStart(2,'0')+'/100 SOLES';
+}
+
 // ── Imprimir ───────────────────────────────────────────────
 function printTicket(){
-  // Preparar área de impresión
-  const now    = new Date();
-  const fecha  = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  const store  = <?= json_encode($store_name) ?>;
-  const addr   = <?= json_encode(TABLET_STORE_ADDRESS) ?>;
-  const phone  = <?= json_encode(TABLET_STORE_PHONE) ?>;
+  const now   = new Date();
+  const fecha = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const vendedor = <?= json_encode($user_name) ?>;
+  const addr     = <?= json_encode(TABLET_STORE_ADDRESS) ?>;
+  const phone    = <?= json_encode(TABLET_STORE_PHONE) ?>;
 
   let rows='', grand=0;
   cart.forEach(ci=>{
     grand+=ci.total;
     rows+=`<tr>
-      <td class="pa-n">${escHtml(ci.name)}</td>
-      <td class="pa-q" style="text-align:center">${ci.qty}</td>
-      <td class="pa-p" style="text-align:right">S/${ci.total.toFixed(2)}</td>
+      <td style="font-weight:bold;font-size:9px">${escHtml(ci.name)}</td>
+      <td style="text-align:right;font-weight:bold">${ci.total.toFixed(2)}</td>
     </tr>`;
   });
 
   document.getElementById('print-area').innerHTML = `
-    <div class="pa-hdr">
-      <h2>${escHtml(store)}</h2>
-      ${addr?`<p>${escHtml(addr)}</p>`:''}
-      ${phone?`<p>Tel: ${escHtml(phone)}</p>`:''}
-      <p>${escHtml(fecha)}</p>
-    </div>
+    <img class="logo-ticket" src="assets/img/logo_avasa.png">
+    <p class="pa-vers">&ldquo;Y aunque tu principio haya sido pequeño, Tu postrer estado será muy grande&rdquo;</p>
+    <p class="pa-vers2">Job 8: 7</p>
+    <h5>NOTA VENTA</h5>
+    <h6>FECHA: ${escHtml(fecha)}</h6>
+    ${addr?`<h6>${escHtml(addr)}</h6>`:''}
+    ${phone?`<h6>Tel: ${escHtml(phone)}</h6>`:''}
     <div class="pa-div"></div>
     <table class="pa-tbl">
-      <thead>
-        <tr>
-          <td><strong>Producto</strong></td>
-          <td style="text-align:center"><strong>Cant.</strong></td>
-          <td style="text-align:right"><strong>Total</strong></td>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th style="text-align:left">[CANT.][UNID] DESCRIPCIÓN</th>
+        <th style="text-align:right">TOTAL</th>
+      </tr></thead>
       <tbody>${rows}</tbody>
+      <tbody>
+        <tr>
+          <td style="text-align:right"><h5 style="margin:2px 0">TOTAL: S/</h5></td>
+          <td style="text-align:right;font-size:11px;padding-left:4px"><h5 style="margin:2px 0">${grand.toFixed(2)}</h5></td>
+        </tr>
+        <tr><td colspan="2"><b>IMPORTE EN LETRAS: </b>${numeroALetras(grand)}</td></tr>
+        <tr><td colspan="2"><b>VENDEDOR: </b>${escHtml(vendedor)}</td></tr>
+        <tr><td colspan="2"><b>PERSONAL ENTREGA: </b>__________________________</td></tr>
+      </tbody>
     </table>
-    <div class="pa-div"></div>
-    <div class="pa-tot"><span>TOTAL</span><span>S/${grand.toFixed(2)}</span></div>
-    <div class="pa-foot">¡Gracias por su compra!</div>
+    <div class="pa-foot">DIOS TE BENDIGA<br>GRACIAS POR TU PREFERENCIA<br>Todo reclamo deberá realizarse dentro de los 13 días posteriores a la emisión.</div>
   `;
 
   document.getElementById('print-area').style.display = 'block';
