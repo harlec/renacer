@@ -306,40 +306,26 @@ foreach ($ventas_list as $value) {
 			});
 		});
 		$( "#ruc" ).on('change paste keyup', function() {
-			//console.log(this.value.length);
 			if(this.value.length==11){
-				var output = document.getElementById("output");
-                  var data = new FormData();
                   var ruc = $(this).val();
-                  data.append("ruc", ruc);
-                  data.append("token", "c837b2e5-681b-43ca-ab39-9a115548a8c2-655574bd-c5b8-4270-a324-0f66b09195f1");
 
                   var xhr = new XMLHttpRequest();
-                  
-                  xhr.open("POST", "https://api.migo.pe/api/v1/ruc");
+                  xhr.open("GET", "https://apisunat.harlec.com.pe/api/v1/ruc/" + ruc);
                   xhr.setRequestHeader("Accept", "application/json");
-                  
-                  xhr.send(data);
-                  /*console.log(xhr);
-                  console.log('hola');
-                  console.log(xhr.response);*/
+                  xhr.setRequestHeader("Authorization", "Bearer 0f9d806a79e9380c946795a33ed530f95fd5cf1142625dd94d557711f7a59bdd");
+                  xhr.send();
 
                   xhr.onload = function () {
 				    if (xhr.readyState === xhr.DONE) {
 				        if (xhr.status === 200) {
-
-				        	var hugo = JSON.parse(xhr.response); 
-				        	//console.log(hugo.ruc);
-				            //console.log(xhr.response);
-				            //$('#ruc').val(hugo.ruc);
-				            $('#denominacion').val(hugo.nombre_o_razon_social);
-				            $('#direccion').val(hugo.direccion);
-				            //console.log(xhr.responseText);
+				        	var data = JSON.parse(xhr.response);
+				            $('#denominacion').val(data.razon_social);
+				            $('#direccion').val(data.direccion);
 				        }
 				    }
 				};
 			}
-  
+
 		});
 	});
 		
