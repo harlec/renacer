@@ -8,10 +8,15 @@
  *
  * Cada pestaña tiene 'groups' (pills/filtros que aparecen arriba del grid).
  * Cada grupo puede filtrar con:
- *   'category_ids' => incluye TODOS los productos de esas categorías
- *   'product_ids'  => incluye TODAS las variantes de esos productos (id_producto)
- *   'variant_ids'  => incluye solo esas variantes exactas (id_vp) — el más preciso
- * Puedes combinar los tres en el mismo grupo, o usar solo uno.
+ *   'category_ids' => todas las variantes de productos en esas categorías
+ *   'product_ids'  => todas las presentaciones de esos productos (id_producto)
+ *   'variant_ids'  => id_variante de la tabla variantes (5kg, saco, etc.)
+ *
+ * Combinaciones:
+ *   solo product_ids              → todas las presentaciones de esos productos
+ *   solo variant_ids              → esa presentación en cualquier producto
+ *   product_ids + variant_ids     → INTERSECCIÓN: solo esas presentaciones de esos productos
+ *                                   Ej: arroces [373,378] en presentación 5kg y saco [15,19]
  *
  * 'by_weight' => true   → el numpad acepta decimales (ventas por kg)
  * 'by_weight' => false  → solo enteros (ventas por unidad)
