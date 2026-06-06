@@ -37,12 +37,16 @@ $TABLET_TABS = [
                 'category_ids' => [0],    // <-- ID categoría "Caja"
                 'product_ids'  => [845,846,847,848,871],
             ],
-            // Agrega más grupos si necesitas más tipos de huevos:
-            // [
-            //     'label'        => 'Paquete',
-            //     'category_ids' => [],
-            //     'product_ids'  => [5, 8, 12],  // solo estos productos específicos
-            // ],
+            [
+                'label'        => 'Arroz',
+                'category_ids' => [],
+                'product_ids'  => [373, 378, 371, 370, 376, 377, 374, 380, 379],
+            ],
+            [
+                'label'        => 'Aceites',
+                'category_ids' => [],
+                'product_ids'  => [82, 84, 85, 86],
+            ],
         ],
     ],
 
