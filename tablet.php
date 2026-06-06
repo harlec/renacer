@@ -897,17 +897,19 @@ function renderProducts(items){
 function selectProduct(item, btn){
   selectedProduct = item;
 
-  // Pre-llenar con la cantidad de la variante para edición rápida
-  const defaultQty = item.qty_per > 0 ? item.qty_per : 1;
-  numBuf = String(defaultQty);
+  // precio por unidad base: igual que venta.php → precio_vp / cantidad_vp
+  selectedProduct.unit_price = item.qty_per > 0
+    ? +(item.price / item.qty_per).toFixed(4)
+    : item.price;
+
+  // pre-llenar con qty_per para edición rápida (ej: 0.5 para ½kg)
+  numBuf = String(item.qty_per > 0 ? item.qty_per : 1);
 
   document.querySelectorAll('.prod-btn').forEach(b=>b.classList.remove('selected'));
   btn.classList.add('selected');
 
-  // Detectar decimales por el qty_per además del flag by_weight
-  const isDecimal = item.by_weight || !Number.isInteger(defaultQty);
-  document.getElementById('nd-lbl').textContent  = isDecimal ? 'Peso (kg)' : 'Cantidad';
-  document.getElementById('nd-unit').textContent = isDecimal ? 'kg' : 'unid.';
+  document.getElementById('nd-lbl').textContent  = item.by_weight ? 'Peso (kg)' : 'Cantidad';
+  document.getElementById('nd-unit').textContent = item.by_weight ? 'kg' : 'unid.';
   updateNumDisplay();
 }
 
@@ -929,7 +931,8 @@ function updateNumDisplay(){
   const val = parseFloat(numBuf)||0;
   document.getElementById('nd-val').textContent = numBuf;
   if(selectedProduct){
-    const sub = (val*selectedProduct.price).toFixed(2);
+    // subtotal = cantidad_ingresada × (precio_vp / cantidad_vp)  — igual que venta.php
+    const sub = (val * selectedProduct.unit_price).toFixed(2);
     document.getElementById('nd-sub').textContent = 'S/'+sub;
   } else {
     document.getElementById('nd-sub').textContent = 'S/0.00';
@@ -952,8 +955,8 @@ function addToCart(){
     prod_id : selectedProduct.prod_id,
     name    : label,
     qty     : qty,
-    price   : selectedProduct.price,
-    total   : +(qty * selectedProduct.price).toFixed(2),
+    price   : selectedProduct.unit_price,
+    total   : +(qty * selectedProduct.unit_price).toFixed(2),
     unit    : selectedProduct.by_weight ? selectedProduct.unit : 'unid.',
   });
 
