@@ -1097,24 +1097,16 @@ function printTicket(){
   })
   .then(r=>{
     if(!r.ok) throw new Error('Error generando PDF');
-    return r.blob();
+    return r.json();
   })
-  .then(blob=>{
-    const blobUrl = URL.createObjectURL(blob);
-    const w = window.open('', '_blank');
-    w.document.write(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title></title>
-<style>*{margin:0;padding:0}html,body{width:100%;height:100%}embed{width:100%;height:100%;display:block}</style>
-<script>
-window.onload=function(){
-  setTimeout(function(){ window.print(); },800);
-};
-<\/script>
-</head><body>
-<embed src="${blobUrl}" type="application/pdf">
-</body></html>`);
-    w.document.close();
-    setTimeout(()=>URL.revokeObjectURL(blobUrl), 120000);
+  .then(data=>{
+    if(!data.url) throw new Error('Sin URL de ticket');
+    // Abrir RawBT con la URL del PDF — RawBT lo descarga e imprime por Bluetooth
+    const a = document.createElement('a');
+    a.href = 'rawbt:' + data.url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   })
   .catch(()=>toast('Error al generar el ticket','err'));
 }
