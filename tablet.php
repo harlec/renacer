@@ -56,6 +56,7 @@ foreach ($all_vp as $row) {
             if ($cat_match || $prod_match) {
                 $tabs_data[$tab_key]['groups'][$gi]['items'][] = [
                     'id'        => (int)$row['id_vp'],
+                    'prod_id'   => (int)$row['id_producto'],
                     'prod_name' => $row['nom_prod'],
                     'variant'   => $row['variante'],
                     'qty_per'   => (float)$row['cantidad_vp'],
@@ -73,6 +74,7 @@ $js_data = json_encode($tabs_data, JSON_UNESCAPED_UNICODE);
 
 $store_name = TABLET_STORE_NAME;
 $user_name  = htmlspecialchars($_SESSION['nombres'] ?? $_SESSION['usuario']);
+$user_id    = (int)($_SESSION['id_usr'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -482,6 +484,23 @@ body{
 }
 .total-amount small{font-size:14px;color:var(--muted);margin-right:3px}
 .action-row{display:flex;gap:6px}
+.btn-save{
+  flex:1;
+  padding:13px 6px;
+  background:#7d3c98;
+  border:none;
+  border-radius:var(--r);
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:#fff;
+  cursor:pointer;
+  transition:all .15s;
+}
+.btn-save:active{transform:scale(.98);background:#6c3483}
+.btn-save:disabled{background:#444;color:#666;cursor:not-allowed}
 .btn-pay{
   flex:1;
   padding:13px 6px;
@@ -685,6 +704,7 @@ body{
           <span class="total-amount"><small>S/</small><span id="total-val">0.00</span></span>
         </div>
         <div class="action-row">
+          <button class="btn-save" id="btn-save" onclick="saveAndPrint()" disabled>💾 Guardar</button>
           <button class="btn-pay" id="btn-pay" onclick="openTicket()" disabled>🧾 Cobrar</button>
           <button class="btn-print-cart" id="btn-print" onclick="printTicket()" disabled title="Imprimir ticket">🖨️</button>
         </div>
@@ -727,7 +747,10 @@ body{
 <!-- ── JAVASCRIPT ─────────────────────────────────────────── -->
 <script>
 // ── Datos del servidor ─────────────────────────────────────
-const TABS_DATA = <?= $js_data ?>;
+const TABS_DATA   = <?= $js_data ?>;
+const USER_ID     = <?= $user_id ?>;
+// Mapa usuario → id_cliente fijo
+const USER_CLIENT = {10: 1, 11: 4580};
 
 // ── Estado ─────────────────────────────────────────────────
 let currentTab      = null;
@@ -905,12 +928,14 @@ function addToCart(){
     : `${selectedProduct.prod_name} – ${selectedProduct.variant} ×${qty}`;
 
   cart.push({
-    uid   : Date.now(),
-    name  : label,
-    qty   : qty,
-    price : selectedProduct.price,
-    total : +(qty * selectedProduct.price).toFixed(2),
-    unit  : selectedProduct.by_weight ? selectedProduct.unit : 'unid.',
+    uid     : Date.now(),
+    vp_id   : selectedProduct.id,
+    prod_id : selectedProduct.prod_id,
+    name    : label,
+    qty     : qty,
+    price   : selectedProduct.price,
+    total   : +(qty * selectedProduct.price).toFixed(2),
+    unit    : selectedProduct.by_weight ? selectedProduct.unit : 'unid.',
   });
 
   numBuf = '0';
@@ -944,6 +969,7 @@ function renderCart(){
 function setTotalButtons(grand){
   document.getElementById('total-val').textContent = grand.toFixed(2);
   const hasItems = grand>0;
+  document.getElementById('btn-save').disabled  = !hasItems;
   document.getElementById('btn-pay').disabled   = !hasItems;
   document.getElementById('btn-print').disabled = !hasItems;
 }
@@ -1074,6 +1100,54 @@ function toast(msg, type='ok'){
   el.classList.add('show');
   clearTimeout(_toastTO);
   _toastTO = setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// ── Guardar venta y imprimir ───────────────────────────────
+function saveAndPrint(){
+  if(!cart.length){ toast('El pedido está vacío','err'); return; }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando…';
+
+  const now   = new Date();
+  const fecha = now.toISOString().slice(0,10); // YYYY-MM-DD
+
+  const id_cliente = USER_CLIENT[USER_ID] ?? null;
+
+  const body = new URLSearchParams();
+  body.append('fecha',   fecha);
+  body.append('total1',  cart.reduce((s,i)=>s+i.total,0).toFixed(2));
+  if(id_cliente) body.append('id_cliente', id_cliente);
+
+  cart.forEach(ci=>{
+    body.append('id_pro[]',     ci.prod_id);
+    body.append('id_vp[]',      ci.vp_id);
+    body.append('cantidad[]',   ci.qty);
+    body.append('precio[]',     ci.price.toFixed(2));
+    body.append('total_pre[]',  ci.total.toFixed(2));
+  });
+
+  fetch('/inc/registrar_venta_tablet.php', {
+    method:'POST',
+    body: body,
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if(data.respuesta){
+      printTicket();
+      cart=[];
+      renderCart();
+      toast('Venta guardada ✓');
+    } else {
+      toast(data.mensaje||'Error al guardar','err');
+    }
+  })
+  .catch(()=>toast('Error de conexión','err'))
+  .finally(()=>{
+    btn.textContent = '💾 Guardar';
+    btn.disabled = !cart.length;
+  });
 }
 
 // ── Util ───────────────────────────────────────────────────
