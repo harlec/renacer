@@ -896,13 +896,18 @@ function renderProducts(items){
 // ── Seleccionar producto ───────────────────────────────────
 function selectProduct(item, btn){
   selectedProduct = item;
-  numBuf = '0';
+
+  // Pre-llenar con la cantidad de la variante para edición rápida
+  const defaultQty = item.qty_per > 0 ? item.qty_per : 1;
+  numBuf = String(defaultQty);
 
   document.querySelectorAll('.prod-btn').forEach(b=>b.classList.remove('selected'));
   btn.classList.add('selected');
 
-  document.getElementById('nd-lbl').textContent  = item.by_weight ? 'Peso (kg)' : 'Cantidad';
-  document.getElementById('nd-unit').textContent = item.by_weight ? 'kg' : (item.unit||'unid.');
+  // Detectar decimales por el qty_per además del flag by_weight
+  const isDecimal = item.by_weight || !Number.isInteger(defaultQty);
+  document.getElementById('nd-lbl').textContent  = isDecimal ? 'Peso (kg)' : 'Cantidad';
+  document.getElementById('nd-unit').textContent = isDecimal ? 'kg' : 'unid.';
   updateNumDisplay();
 }
 
