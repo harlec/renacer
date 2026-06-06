@@ -392,6 +392,7 @@ body{
   border-color:var(--green);
   color:#fff;
   font-size:16px;
+  grid-column:1/-1;
 }
 .nk-add:active{background:#1e8449}
 .nk-add:disabled,.nk-add[disabled]{background:#444;border-color:#444;color:#666;cursor:not-allowed}
@@ -684,6 +685,7 @@ body{
         <button class="nk" onclick="nk('2')">2</button>
         <button class="nk" onclick="nk('3')">3</button>
         <button class="nk nk-del" onclick="nk('del')">⌫</button>
+        <button class="nk" onclick="nk('0')">0</button>
         <button class="nk nk-dot" onclick="nk('.')">.</button>
         <button class="nk nk-add" id="btn-add" onclick="addToCart()">➕ Agregar</button>
       </div>
