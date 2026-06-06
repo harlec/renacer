@@ -51,9 +51,11 @@ foreach ($all_vp as $row) {
     foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
         $by_weight = !empty($tab_cfg['by_weight']);
         foreach ($tab_cfg['groups'] as $gi => $grp) {
+            $vp_id      = (int)$row['id_vp'];
             $cat_match  = !empty($grp['category_ids']) && in_array($cat_id,  $grp['category_ids']);
             $prod_match = !empty($grp['product_ids'])  && in_array($prod_id, $grp['product_ids']);
-            if ($cat_match || $prod_match) {
+            $vp_match   = !empty($grp['variant_ids'])  && in_array($vp_id,   $grp['variant_ids']);
+            if ($cat_match || $prod_match || $vp_match) {
                 $tabs_data[$tab_key]['groups'][$gi]['items'][] = [
                     'id'        => (int)$row['id_vp'],
                     'prod_id'   => (int)$row['id_producto'],

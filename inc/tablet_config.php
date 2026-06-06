@@ -9,8 +9,9 @@
  * Cada pestaña tiene 'groups' (pills/filtros que aparecen arriba del grid).
  * Cada grupo puede filtrar con:
  *   'category_ids' => incluye TODOS los productos de esas categorías
- *   'product_ids'  => incluye solo esos productos específicos (id_producto)
- * Puedes combinar ambos en el mismo grupo, o usar solo uno de los dos.
+ *   'product_ids'  => incluye TODAS las variantes de esos productos (id_producto)
+ *   'variant_ids'  => incluye solo esas variantes exactas (id_vp) — el más preciso
+ * Puedes combinar los tres en el mismo grupo, o usar solo uno.
  *
  * 'by_weight' => true   → el numpad acepta decimales (ventas por kg)
  * 'by_weight' => false  → solo enteros (ventas por unidad)
@@ -41,11 +42,13 @@ $TABLET_TABS = [
                 'label'        => 'Arroz',
                 'category_ids' => [],
                 'product_ids'  => [373, 378, 371, 370, 376, 377, 374, 380, 379],
+                'variant_ids'  => [15,19,35,36,37,56],
             ],
             [
                 'label'        => 'Aceites',
                 'category_ids' => [],
                 'product_ids'  => [82, 84, 85, 86],
+                'variant_ids'  => [7],
             ],
         ],
     ],
