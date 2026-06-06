@@ -1043,11 +1043,12 @@ function numeroALetras(num){
 
 // ── Imprimir ───────────────────────────────────────────────
 function printTicket(){
-  const now   = new Date();
-  const fecha = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const now      = new Date();
+  const fecha    = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const vendedor = <?= json_encode($user_name) ?>;
   const addr     = <?= json_encode(TABLET_STORE_ADDRESS) ?>;
   const phone    = <?= json_encode(TABLET_STORE_PHONE) ?>;
+  const logoUrl  = window.location.origin + '/assets/img/logo_avasa.png';
 
   let rows='', grand=0;
   cart.forEach(ci=>{
@@ -1058,37 +1059,60 @@ function printTicket(){
     </tr>`;
   });
 
-  document.getElementById('print-area').innerHTML = `
-    <img class="logo-ticket" src="assets/img/logo_avasa.png">
-    <p class="pa-vers">&ldquo;Y aunque tu principio haya sido pequeño, Tu postrer estado será muy grande&rdquo;</p>
-    <p class="pa-vers2">Job 8: 7</p>
-    <h5>NOTA VENTA</h5>
-    <h6>FECHA: ${escHtml(fecha)}</h6>
-    ${addr?`<h6>${escHtml(addr)}</h6>`:''}
-    ${phone?`<h6>Tel: ${escHtml(phone)}</h6>`:''}
-    <div class="pa-div"></div>
-    <table class="pa-tbl">
-      <thead><tr>
-        <th style="text-align:left">[CANT.][UNID] DESCRIPCIÓN</th>
-        <th style="text-align:right">TOTAL</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-      <tbody>
-        <tr>
-          <td style="text-align:right"><h5 style="margin:2px 0">TOTAL: S/</h5></td>
-          <td style="text-align:right;font-size:11px;padding-left:4px"><h5 style="margin:2px 0">${grand.toFixed(2)}</h5></td>
-        </tr>
-        <tr><td colspan="2"><b>IMPORTE EN LETRAS: </b>${numeroALetras(grand)}</td></tr>
-        <tr><td colspan="2"><b>VENDEDOR: </b>${escHtml(vendedor)}</td></tr>
-        <tr><td colspan="2"><b>PERSONAL ENTREGA: </b>__________________________</td></tr>
-      </tbody>
-    </table>
-    <div class="pa-foot">DIOS TE BENDIGA<br>GRACIAS POR TU PREFERENCIA<br>Todo reclamo deberá realizarse dentro de los 13 días posteriores a la emisión.</div>
-  `;
+  const html = `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title></title>
+<style>
+  @page { margin:0.4cm; size:80mm auto; }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{ font-family:Helvetica,Sans-Serif; font-size:9px; }
+  img.logo{ width:230px; display:block; margin:0 auto; }
+  h5{ text-align:center; font-size:11px; font-weight:bold; margin:4px 0; }
+  h6{ font-size:9px; margin:2px 0; }
+  .vers{ font-size:8px; text-align:center; margin:2px 0; }
+  .vers2{ font-size:8px; text-align:right; margin:-8px 0 4px; }
+  hr{ border:none; border-top:1px solid #000; margin:6px 0; }
+  table{ width:100%; border-collapse:collapse; }
+  thead th{ font-size:9px; font-weight:bold; }
+  tbody td{ font-size:9px; }
+  .foot{ text-align:center; font-size:9px; color:#444; margin-top:8px; }
+</style>
+</head><body>
+<img class="logo" src="${logoUrl}">
+<p class="vers">&ldquo;Y aunque tu principio haya sido pequeño,<br>Tu postrer estado será muy grande&rdquo;</p>
+<p class="vers2">Job 8: 7</p>
+<h5>NOTA VENTA</h5>
+<h6>FECHA: ${escHtml(fecha)}</h6>
+${addr?`<h6>${escHtml(addr)}</h6>`:''}
+${phone?`<h6>Tel: ${escHtml(phone)}</h6>`:''}
+<hr>
+<table>
+  <thead><tr>
+    <th style="text-align:left">[CANT.][UNID] DESCRIPCIÓN</th>
+    <th style="text-align:right">TOTAL</th>
+  </tr></thead>
+  <tbody>
+    ${rows}
+    <tr>
+      <td style="text-align:right"><h5 style="margin:2px 0">TOTAL: S/</h5></td>
+      <td style="text-align:right;font-size:11px;padding-left:4px"><h5 style="margin:2px 0">${grand.toFixed(2)}</h5></td>
+    </tr>
+    <tr><td colspan="2"><b>IMPORTE EN LETRAS: </b>${numeroALetras(grand)}</td></tr>
+    <tr><td colspan="2"><b>VENDEDOR: </b>${escHtml(vendedor)}</td></tr>
+    <tr><td colspan="2"><b>PERSONAL ENTREGA: </b>__________________________</td></tr>
+  </tbody>
+</table>
+<p class="foot">DIOS TE BENDIGA<br>GRACIAS POR TU PREFERENCIA<br>
+Todo reclamo deberá realizarse dentro de los 13 días posteriores a la emisión.</p>
+</body></html>`;
 
-  document.getElementById('print-area').style.display = 'block';
-  window.print();
-  document.getElementById('print-area').style.display = 'none';
+  const w = window.open('', '_blank', 'width=400,height=600');
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>{ w.print(); w.close(); }, 400);
 }
 
 // ── Toast ──────────────────────────────────────────────────
