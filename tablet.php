@@ -1043,76 +1043,51 @@ function numeroALetras(num){
 
 // ── Imprimir ───────────────────────────────────────────────
 function printTicket(){
+  if(!cart.length) return;
+
   const now      = new Date();
   const fecha    = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const vendedor = <?= json_encode($user_name) ?>;
   const addr     = <?= json_encode(TABLET_STORE_ADDRESS) ?>;
   const phone    = <?= json_encode(TABLET_STORE_PHONE) ?>;
-  const logoUrl  = window.location.origin + '/assets/img/logo_avasa.png';
+  const grand    = cart.reduce((s,i)=>s+i.total, 0);
 
-  let rows='', grand=0;
-  cart.forEach(ci=>{
-    grand+=ci.total;
-    rows+=`<tr>
-      <td style="font-weight:bold;font-size:9px">${escHtml(ci.name)}</td>
-      <td style="text-align:right;font-weight:bold">${ci.total.toFixed(2)}</td>
-    </tr>`;
-  });
+  const payload = {
+    items    : cart.map(ci=>({name: ci.name, total: ci.total})),
+    grand    : grand,
+    vendedor : vendedor,
+    fecha    : fecha,
+    addr     : addr,
+    phone    : phone,
+  };
 
-  const html = `<!DOCTYPE html>
-<html><head>
-<meta charset="UTF-8">
-<title></title>
-<style>
-  @page { margin:0.4cm; size:80mm auto; }
-  *{ margin:0; padding:0; box-sizing:border-box; }
-  body{ font-family:Helvetica,Sans-Serif; font-size:9px; }
-  img.logo{ width:230px; display:block; margin:0 auto; }
-  h5{ text-align:center; font-size:11px; font-weight:bold; margin:4px 0; }
-  h6{ font-size:9px; margin:2px 0; }
-  .vers{ font-size:8px; text-align:center; margin:2px 0; }
-  .vers2{ font-size:8px; text-align:right; margin:-8px 0 4px; }
-  hr{ border:none; border-top:1px solid #000; margin:6px 0; }
-  table{ width:100%; border-collapse:collapse; }
-  thead th{ font-size:9px; font-weight:bold; }
-  tbody td{ font-size:9px; }
-  .foot{ text-align:center; font-size:9px; color:#444; margin-top:8px; }
-</style>
+  fetch('/inc/ticket_pdf_tablet.php', {
+    method  : 'POST',
+    headers : {'Content-Type':'application/json'},
+    body    : JSON.stringify(payload),
+  })
+  .then(r=>{
+    if(!r.ok) throw new Error('Error generando PDF');
+    return r.blob();
+  })
+  .then(blob=>{
+    const blobUrl = URL.createObjectURL(blob);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title></title>
+<style>*{margin:0;padding:0}html,body{width:100%;height:100%}embed{width:100%;height:100%;display:block}</style>
+<script>
+window.onload=function(){
+  setTimeout(function(){ window.print(); },800);
+};
+<\/script>
 </head><body>
-<img class="logo" src="${logoUrl}">
-<p class="vers">&ldquo;Y aunque tu principio haya sido pequeño,<br>Tu postrer estado será muy grande&rdquo;</p>
-<p class="vers2">Job 8: 7</p>
-<h5>NOTA VENTA</h5>
-<h6>FECHA: ${escHtml(fecha)}</h6>
-${addr?`<h6>${escHtml(addr)}</h6>`:''}
-${phone?`<h6>Tel: ${escHtml(phone)}</h6>`:''}
-<hr>
-<table>
-  <thead><tr>
-    <th style="text-align:left">[CANT.][UNID] DESCRIPCIÓN</th>
-    <th style="text-align:right">TOTAL</th>
-  </tr></thead>
-  <tbody>
-    ${rows}
-    <tr>
-      <td style="text-align:right"><h5 style="margin:2px 0">TOTAL: S/</h5></td>
-      <td style="text-align:right;font-size:11px;padding-left:4px"><h5 style="margin:2px 0">${grand.toFixed(2)}</h5></td>
-    </tr>
-    <tr><td colspan="2"><b>IMPORTE EN LETRAS: </b>${numeroALetras(grand)}</td></tr>
-    <tr><td colspan="2"><b>VENDEDOR: </b>${escHtml(vendedor)}</td></tr>
-    <tr><td colspan="2"><b>PERSONAL ENTREGA: </b>__________________________</td></tr>
-  </tbody>
-</table>
-<p class="foot">DIOS TE BENDIGA<br>GRACIAS POR TU PREFERENCIA<br>
-Todo reclamo deberá realizarse dentro de los 13 días posteriores a la emisión.</p>
-</body></html>`;
-
-  const w = window.open('', '_blank', 'width=400,height=600');
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(()=>{ w.print(); w.close(); }, 400);
+<embed src="${blobUrl}" type="application/pdf">
+</body></html>`);
+    w.document.close();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 120000);
+  })
+  .catch(()=>toast('Error al generar el ticket','err'));
 }
 
 // ── Toast ──────────────────────────────────────────────────
