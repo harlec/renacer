@@ -52,24 +52,58 @@ $TABLET_TABS = [
         'icon'         => '🥩',
         'color_accent' => '#c0392b',
         'color_bg'     => 'rgba(192,57,43,.12)',
-        'by_weight'    => true,    // por kg
+        'by_weight'    => false,
         'groups' => [
             [
-                'label'        => 'Jamones',
-                'category_ids' => [10],    // <-- ID categoría de jamones/embutidos
-                'product_ids'  => [],
+                'label'        => 'Quesos',
+                'category_ids' => [],
+                'product_ids'  => [910, 909, 951, 936, 925, 928, 937],
             ],
             [
-                'label'        => 'Salchichas',
-                'category_ids' => [29],    // <-- otra categoría
-                'product_ids'  => [],
+                'label'        => 'Salchicha',
+                'category_ids' => [],
+                'product_ids'  => [248, 911, 912, 152, 153, 154, 156, 158, 238, 239, 240, 913],
             ],
-            // Ejemplo: grupo con productos específicos mezclados
-            // [
-            //     'label'        => 'Especiales',
-            //     'category_ids' => [],
-            //     'product_ids'  => [3, 7, 15],
-            // ],
+            [
+                'label'        => 'Jamones',
+                'category_ids' => [],
+                'product_ids'  => [242, 249, 144, 145, 146, 147, 159, 1052, 150, 151, 233, 234, 157, 237, 243, 235, 241],
+            ],
+            [
+                'label'        => 'Varios',
+                'category_ids' => [],
+                'product_ids'  => [208, 502, 503, 309, 214, 215, 1057, 216, 202, 200, 196, 198, 199, 195],
+            ],
+            [
+                'label'        => 'Galletas',
+                'category_ids' => [],
+                'product_ids'  => [176, 177, 180, 181, 182, 183, 184, 185, 186, 187, 188, 914],
+            ],
+            [
+                'label'        => 'Salsas',
+                'category_ids' => [],
+                'product_ids'  => [134, 135, 136, 137, 138, 139, 218, 219, 220, 222, 223, 224, 225, 226, 229, 232, 927, 231],
+            ],
+            [
+                'label'        => 'Postres',
+                'category_ids' => [],
+                'product_ids'  => [1020, 496, 497, 498, 499, 500, 501, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514],
+            ],
+            [
+                'label'        => 'Mantequilla',
+                'category_ids' => [],
+                'product_ids'  => [160, 250, 252, 253, 256, 257, 260, 262],
+            ],
+            [
+                'label'        => 'Cocoas',
+                'category_ids' => [],
+                'product_ids'  => [482, 483, 484, 485],
+            ],
+            [
+                'label'        => 'Café',
+                'category_ids' => [],
+                'product_ids'  => [450, 451, 459, 959, 452, 960, 464],
+            ],
         ],
     ],
 
