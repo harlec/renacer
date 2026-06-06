@@ -748,9 +748,9 @@ body{
 <script>
 // ── Datos del servidor ─────────────────────────────────────
 const TABS_DATA   = <?= $js_data ?>;
-const USER_ID     = <?= $user_id ?>;
-// Mapa usuario → id_cliente fijo
-const USER_CLIENT = {10: 1, 11: 4580};
+const USER_ID          = <?= $user_id ?>;
+const USER_CLIENT      = {10: 1, 11: 4580};      // usuario → id_cliente
+const USER_CLIENT_NAME = {10: 'Cliente General', 11: 'Cliente Huevos'}; // usuario → nombre para el ticket
 
 // ── Estado ─────────────────────────────────────────────────
 let currentTab      = null;
@@ -1052,11 +1052,14 @@ function printTicket(){
   const phone    = <?= json_encode(TABLET_STORE_PHONE) ?>;
   const grand    = cart.reduce((s,i)=>s+i.total, 0);
 
+  const clienteNombre = USER_CLIENT_NAME[USER_ID] ?? '';
+
   const payload = {
     items    : cart.map(ci=>({name: ci.name, total: ci.total})),
     grand    : grand,
     vendedor : vendedor,
     fecha    : fecha,
+    cliente  : clienteNombre,
     addr     : addr,
     phone    : phone,
   };
