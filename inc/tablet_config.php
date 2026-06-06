@@ -35,7 +35,7 @@ $TABLET_TABS = [
             [
                 'label'        => 'Botellas',
                 'category_ids' => [0],    // <-- ID categoría "Caja"
-                'product_ids'  => [845,846,847,848,871],
+                'product_ids'  => [845,846,847,848],
             ],
             [
                 'label'        => 'Arroz',
