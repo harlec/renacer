@@ -1,0 +1,22 @@
+{
+  "name": "Distribuidora Renacer POS",
+  "short_name": "Renacer POS",
+  "description": "Punto de venta Distribuidora Renacer",
+  "start_url": "/tablet.php",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1a1a1a",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/assets/img/logo_avasa.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/img/logo_avasa.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
