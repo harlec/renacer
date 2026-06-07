@@ -30,7 +30,7 @@ if ($_SESSION['type'] !== 'admin') { header("Location: dashboard.php"); exit; }
 .section-lbl { font-size:11px; font-weight:700; text-transform:uppercase;
     color:#999; letter-spacing:1px; margin:12px 0 5px; }
 .badge-all  { background:#27ae60; color:#fff; }
-.badge-spec { background:#e67e22 !important; color:#fff !important; }
+.badge-spec { background:transparent !important; color:#fff !important; }
 
 /* Forzar estilos claros en los paneles de grupos */
 #tab-panel-area .panel-default { background:#fff; }
