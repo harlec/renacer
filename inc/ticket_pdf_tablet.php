@@ -104,22 +104,7 @@ $dompdf->set_paper(array(0, 0, 200, 2000));
 $dompdf->render();
 $pdf = $dompdf->output();
 
-// ── Guardar en /temp/ y devolver URL para RawBT ────────────
-$temp_dir = realpath(__DIR__ . '/../temp');
-
-// Limpiar tickets anteriores de esta sesión
-$sess_id = session_id();
-foreach (glob("$temp_dir/ticket_{$sess_id}_*.pdf") as $old) {
-    @unlink($old);
-}
-
-$filename  = "ticket_{$sess_id}_" . time() . ".pdf";
-$filepath  = "$temp_dir/$filename";
-file_put_contents($filepath, $pdf);
-
-$protocol  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$host      = $_SERVER['HTTP_HOST'];
-$ticket_url = "$protocol://$host/temp/$filename";
-
-header('Content-Type: application/json');
-echo json_encode(['url' => $ticket_url]);
+// ── Devolver PDF como binario para que JS lo envíe a RawBT ─
+header('Content-Type: application/pdf');
+header('Content-Length: ' . strlen($pdf));
+echo $pdf;

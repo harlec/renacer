@@ -6,37 +6,64 @@ if (empty($_SESSION['ingress'])) {
     exit;
 }
 
-// ── Configuración del POS ───────────────────────────────────
+// ── Configuración del POS desde base de datos ───────────────
 require_once 'inc/sdba/sdba.php';
-require_once 'inc/tablet_config.php';
+require_once 'inc/tablet_config.php'; // solo para constantes TABLET_STORE_*
 
-// ── Obtener todos los variantes-producto (solo joins válidos) ──
-// categorias está en productos.id_categoria, no en variante_p,
-// así que filtramos por id_categoria/id_producto en PHP.
+$conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
+$conn->set_charset('utf8');
+
+// Cargar tabs y grupos desde la BD
+$db_tabs = [];
+$rt = $conn->query("SELECT * FROM tablet_tabs ORDER BY sort_order,id");
+while ($tab = $rt->fetch_assoc()) {
+    $tid = $tab['id'];
+    $groups_db = [];
+    $rg = $conn->query("SELECT * FROM tablet_groups WHERE tab_id=$tid ORDER BY sort_order,id");
+    while ($g = $rg->fetch_assoc()) {
+        $gid = $g['id'];
+        $cats = []; $prods_all = []; $prods_specific = [];
+        $rc = $conn->query("SELECT category_id FROM tablet_group_categories WHERE group_id=$gid");
+        while ($c = $rc->fetch_assoc()) $cats[] = (int)$c['category_id'];
+        $rp = $conn->query("SELECT id, product_id, all_variants FROM tablet_group_products WHERE group_id=$gid");
+        while ($p = $rp->fetch_assoc()) {
+            if ($p['all_variants']) {
+                $prods_all[] = (int)$p['product_id'];
+            } else {
+                $vts = [];
+                $rv = $conn->query("SELECT variant_type_id FROM tablet_group_product_variants WHERE group_product_id=".(int)$p['id']);
+                while ($v = $rv->fetch_assoc()) $vts[] = (int)$v['variant_type_id'];
+                $prods_specific[(int)$p['product_id']] = $vts;
+            }
+        }
+        $groups_db[] = ['id'=>$gid,'label'=>$g['label'],'cats'=>$cats,'prods_all'=>$prods_all,'prods_specific'=>$prods_specific];
+    }
+    $db_tabs[] = ['tab'=>$tab,'groups'=>$groups_db];
+}
+$conn->close();
+
+// Obtener todas las variantes-producto con joins
 $vp_raw = Sdba::table('variante_p');
 $vp_raw->left_join('variante_vp', 'variantes', 'id_variante');
 $vp_raw->left_join('producto_vp', 'productos',  'id_producto');
 $all_vp = $vp_raw->get();
 
-// ── Agrupar por pestaña → grupo → productos ──────────────────
-// Cada pestaña tiene 'groups', y cada grupo puede filtrar por
-// category_ids (id_categoria) y/o product_ids (id_producto).
+// Construir tabs_data para JS
 $tabs_data = [];
-foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
+foreach ($db_tabs as $ti => $tab_entry) {
+    $tab = $tab_entry['tab'];
+    $tab_key = 'tab_' . $tab['id'];
     $groups = [];
-    foreach ($tab_cfg['groups'] as $gi => $grp) {
-        $groups[$gi] = [
-            'name'  => $grp['label'],
-            'items' => [],
-        ];
+    foreach ($tab_entry['groups'] as $gi => $g) {
+        $groups[$gi] = ['name' => $g['label'], 'items' => []];
     }
     $tabs_data[$tab_key] = [
         'config' => [
-            'label'        => $tab_cfg['label'],
-            'icon'         => $tab_cfg['icon'],
-            'color_accent' => $tab_cfg['color_accent'],
-            'color_bg'     => $tab_cfg['color_bg'],
-            'by_weight'    => !empty($tab_cfg['by_weight']),
+            'label'        => $tab['label'],
+            'icon'         => $tab['icon'],
+            'color_accent' => $tab['color_accent'],
+            'color_bg'     => $tab['color_bg'],
+            'by_weight'    => (bool)$tab['by_weight'],
         ],
         'groups' => $groups,
     ];
@@ -44,38 +71,40 @@ foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
 
 foreach ($all_vp as $row) {
     if (empty($row['nom_prod'])) continue;
-    // El join de productos trae la FK como 'categoria' (no 'id_categoria')
     $cat_id  = (int)($row['categoria'] ?? $row['id_categoria'] ?? 0);
-    $prod_id = (int)($row['id_producto']  ?? 0);
+    $prod_id = (int)($row['id_producto'] ?? 0);
+    $var_id  = (int)($row['id_variante'] ?? $row['variante_vp'] ?? 0);
 
-    foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
-        $by_weight = !empty($tab_cfg['by_weight']);
-        foreach ($tab_cfg['groups'] as $gi => $grp) {
-            $var_id = (int)($row['id_variante'] ?? $row['variante_vp'] ?? 0);
+    foreach ($db_tabs as $tab_entry) {
+        $tab     = $tab_entry['tab'];
+        $tab_key = 'tab_' . $tab['id'];
+        $by_weight = (bool)$tab['by_weight'];
 
-            $cat_match  = !empty($grp['category_ids']) && in_array($cat_id,  $grp['category_ids']);
-            $prod_match = !empty($grp['product_ids'])  && in_array($prod_id, $grp['product_ids']);
-            $var_match  = !empty($grp['variant_ids'])  && in_array($var_id,  $grp['variant_ids']);
+        foreach ($tab_entry['groups'] as $gi => $g) {
+            $match = false;
 
-            $has_prod = !empty($grp['product_ids']);
-            $has_var  = !empty($grp['variant_ids']);
+            // Categoría
+            if (in_array($cat_id, $g['cats'])) { $match = true; }
 
-            $match = $cat_match
-                  || ($has_prod && !$has_var && $prod_match)
-                  || (!$has_prod && $has_var  && $var_match)
-                  || ($has_prod && $has_var   && $prod_match && $var_match);
+            // Producto sin filtro de variante (todas sus variantes)
+            if (!$match && in_array($prod_id, $g['prods_all'])) { $match = true; }
+
+            // Producto con variantes específicas
+            if (!$match && isset($g['prods_specific'][$prod_id])) {
+                if (in_array($var_id, $g['prods_specific'][$prod_id])) { $match = true; }
+            }
 
             if ($match) {
                 $tabs_data[$tab_key]['groups'][$gi]['items'][] = [
                     'id'        => (int)$row['id_vp'],
-                    'prod_id'   => (int)$row['id_producto'],
+                    'prod_id'   => $prod_id,
                     'prod_name' => $row['nom_prod'],
                     'variant'   => $row['variante'],
                     'qty_per'   => (float)$row['cantidad_vp'],
                     'price'     => (float)$row['precio_vp'],
                     'by_weight' => $by_weight,
                 ];
-                break 2; // un producto va a un solo grupo
+                break 2;
             }
         }
     }
@@ -1097,16 +1126,18 @@ function printTicket(){
   })
   .then(r=>{
     if(!r.ok) throw new Error('Error generando PDF');
-    return r.json();
+    return r.blob();
   })
-  .then(data=>{
-    if(!data.url) throw new Error('Sin URL de ticket');
-    // Abrir RawBT con la URL del PDF — RawBT lo descarga e imprime por Bluetooth
-    const a = document.createElement('a');
-    a.href = 'rawbt:' + data.url;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  .then(blob=>{
+    const blobUrl = URL.createObjectURL(blob);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title></title>
+<style>*{margin:0;padding:0}html,body{width:100%;height:100%}embed{width:100%;height:100%;display:block}</style>
+<script>window.onload=function(){ setTimeout(function(){ window.print(); },800); };<\/script>
+</head><body><embed src="${blobUrl}" type="application/pdf"></body></html>`);
+    w.document.close();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 120000);
   })
   .catch(()=>toast('Error al generar el ticket','err'));
 }
