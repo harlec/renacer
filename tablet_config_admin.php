@@ -211,8 +211,12 @@ function loadConfig() {
 }
 
 function renderIcon(icon) {
-    if (!icon) return '';
-    return icon.startsWith('fa') ? `<i class="${icon}"></i>` : icon;
+    if (!icon) return '📦';
+    // FA class → glyphicon fallback ya que CDN no carga
+    if (icon === 'fas fa-egg')      return '🥚';
+    if (icon === 'fas fa-utensils') return '🍴';
+    if (icon.startsWith('fa'))      return '📦';
+    return icon;
 }
 function renderTabList() {
     let html = '';
@@ -229,7 +233,7 @@ function selectTab(tabId) {
     const tab = config.find(t => t.id == tabId);
     if (!tab) return;
     renderTabList();
-    $('#groups-title').html(`<b>${renderIcon(tab.icon)} ${tab.label}</b>
+    $('#groups-title').html(`<b style="font-size:16px">${renderIcon(tab.icon)} ${tab.label}</b>
         <button class="btn btn-xs btn-success pull-right" onclick="openNewGroup()">
             <span class="glyphicon glyphicon-plus"></span> Nuevo grupo
         </button>`);
@@ -242,23 +246,27 @@ function renderGroups(tab) {
         $('#tab-panel-area').html('<p class="text-muted text-center" style="padding-top:40px">Sin grupos aún.</p>');
         return;
     }
+    const accent = tab.color_accent || '#555';
     let html = '<div class="panel-group" id="accordion">';
     tab.groups.forEach((g, idx) => {
         html += `
-        <div class="panel panel-default">
-            <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#gc-${g.id}">
+        <div class="panel panel-default" style="border-color:${accent}30">
+            <div class="panel-heading" data-toggle="collapse" data-target="#gc-${g.id}"
+                 style="cursor:pointer;background:${accent};border-color:${accent}">
                 <div style="display:flex;align-items:center;gap:6px">
-                    <span style="flex:1;font-weight:700">${g.label}</span>
-                    <button class="btn btn-xs btn-default" onclick="event.stopPropagation();openRenameGroup(${g.id},'${esc(g.label)}')">
-                        <span class="glyphicon glyphicon-pencil"></span>
+                    <span style="flex:1;font-weight:700;color:#fff;font-size:14px">${g.label}</span>
+                    <button class="btn btn-xs" style="background:rgba(255,255,255,.25);color:#fff;border:none"
+                        onclick="event.stopPropagation();openRenameGroup(${g.id},'${esc(g.label)}')">
+                        ✏️
                     </button>
-                    <button class="btn btn-xs btn-danger" onclick="event.stopPropagation();deleteGroup(${g.id})">
-                        <span class="glyphicon glyphicon-trash"></span>
+                    <button class="btn btn-xs" style="background:rgba(255,0,0,.35);color:#fff;border:none"
+                        onclick="event.stopPropagation();deleteGroup(${g.id})">
+                        🗑️
                     </button>
                 </div>
             </div>
             <div id="gc-${g.id}" class="panel-collapse collapse ${idx===0?'in':''}">
-                <div class="panel-body">${renderGroupBody(g)}</div>
+                <div class="panel-body" style="background:#fff">${renderGroupBody(g)}</div>
             </div>
         </div>`;
     });

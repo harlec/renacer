@@ -828,9 +828,8 @@ function buildTabs(){
     btn.dataset.tab = key;
     btn.dataset.accent = cfg.color_accent;
     btn.dataset.accentbg = cfg.color_bg;
-    const iconHtml = cfg.icon && cfg.icon.startsWith('fa')
-      ? `<i class="${cfg.icon}"></i>`
-      : (cfg.icon || '');
+    const iconMap = {'fas fa-egg':'🥚','fas fa-utensils':'🍴','fas fa-box':'📦'};
+    const iconHtml = iconMap[cfg.icon] || cfg.icon || '';
     btn.innerHTML = `<span class="tab-icon">${iconHtml}</span>${cfg.label}`;
     btn.onclick = ()=>switchTab(key);
     row.appendChild(btn);
