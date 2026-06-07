@@ -11,6 +11,7 @@ if ($_SESSION['type'] !== 'admin') { header("Location: dashboard.php"); exit; }
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <style>
 .tab-pill {
     display:inline-block; padding:8px 18px; border-radius:20px; cursor:pointer;
@@ -186,12 +187,16 @@ function loadConfig() {
      });
 }
 
+function renderIcon(icon) {
+    if (!icon) return '';
+    return icon.startsWith('fa') ? `<i class="${icon}"></i>` : icon;
+}
 function renderTabList() {
     let html = '';
     config.forEach(t => {
         const active = t.id === activeTabId ? 'active' : '';
         html += `<div class="tab-pill ${active}" style="background:${t.color_accent}"
-                      onclick="selectTab(${t.id})">${t.icon} ${t.label}</div>`;
+                      onclick="selectTab(${t.id})">${renderIcon(t.icon)} ${t.label}</div>`;
     });
     $('#tabs-list').html(html || '<p class="text-muted">Sin pestañas</p>');
 }
@@ -201,7 +206,7 @@ function selectTab(tabId) {
     const tab = config.find(t => t.id == tabId);
     if (!tab) return;
     renderTabList();
-    $('#groups-title').html(`<b>${tab.icon} ${tab.label}</b>
+    $('#groups-title').html(`<b>${renderIcon(tab.icon)} ${tab.label}</b>
         <button class="btn btn-xs btn-success pull-right" onclick="openNewGroup()">
             <span class="glyphicon glyphicon-plus"></span> Nuevo grupo
         </button>`);

@@ -9,7 +9,11 @@ if (empty($_SESSION['ingress']) || $_SESSION['type'] !== 'admin') {
 }
 
 $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
-$conn->set_charset('utf8');
+$conn->set_charset('utf8mb4');
+
+// Actualizar íconos existentes a Font Awesome si tienen emojis
+$conn->query("UPDATE tablet_tabs SET icon='fas fa-egg'      WHERE icon='🥚' OR tab_key='huevos'");
+$conn->query("UPDATE tablet_tabs SET icon='fas fa-utensils' WHERE icon='🥩' OR tab_key='embutidos'");
 
 $conn->query("
 CREATE TABLE IF NOT EXISTS tablet_tabs (
@@ -71,7 +75,9 @@ foreach ($TABLET_TABS as $tab_key => $tab_cfg) {
     if ($r && $r->num_rows > 0) continue;
 
     $label    = $conn->real_escape_string($tab_cfg['label']);
-    $icon     = $conn->real_escape_string($tab_cfg['icon']);
+    $iconMap  = ['🥚'=>'fas fa-egg','🥩'=>'fas fa-utensils','🍞'=>'fas fa-bread-slice','☕'=>'fas fa-coffee'];
+    $rawIcon  = $tab_cfg['icon'] ?? '';
+    $icon     = $conn->real_escape_string($iconMap[$rawIcon] ?? 'fas fa-box');
     $accent   = $conn->real_escape_string($tab_cfg['color_accent']);
     $bg       = $conn->real_escape_string($tab_cfg['color_bg']);
     $bw       = $tab_cfg['by_weight'] ? 1 : 0;

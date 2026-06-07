@@ -73,9 +73,10 @@ case 'get_product_variants':
     $r = $conn->query("SELECT DISTINCT v.id_variante, v.variante, vp.cantidad_vp
         FROM variante_p vp
         JOIN variantes v ON v.id_variante=vp.variante_vp
-        WHERE vp.id_producto=$pid ORDER BY vp.cantidad_vp");
+        WHERE vp.producto_vp=$pid ORDER BY vp.cantidad_vp");
     $rows = [];
-    while ($row = $r->fetch_assoc()) $rows[] = $row;
+    if ($r) while ($row = $r->fetch_assoc()) $rows[] = $row;
+    ob_clean();
     echo json_encode(['ok'=>true,'variants'=>$rows]);
     break;
 

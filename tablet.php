@@ -130,6 +130,7 @@ $user_id    = (int)($_SESSION['id_usr'] ?? 0);
 <style>
 /* ── Fuentes ──────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
 
 /* ── Variables ────────────────────────────────────────────── */
 :root {
@@ -827,7 +828,10 @@ function buildTabs(){
     btn.dataset.tab = key;
     btn.dataset.accent = cfg.color_accent;
     btn.dataset.accentbg = cfg.color_bg;
-    btn.innerHTML = `<span class="tab-icon">${cfg.icon}</span>${cfg.label}`;
+    const iconHtml = cfg.icon && cfg.icon.startsWith('fa')
+      ? `<i class="${cfg.icon}"></i>`
+      : (cfg.icon || '');
+    btn.innerHTML = `<span class="tab-icon">${iconHtml}</span>${cfg.label}`;
     btn.onclick = ()=>switchTab(key);
     row.appendChild(btn);
   });
