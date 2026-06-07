@@ -31,6 +31,24 @@ if ($_SESSION['type'] !== 'admin') { header("Location: dashboard.php"); exit; }
     color:#999; letter-spacing:1px; margin:12px 0 5px; }
 .badge-all  { background:#27ae60; color:#fff; }
 .badge-spec { background:#e67e22; color:#fff; }
+
+/* Forzar estilos claros en los paneles de grupos */
+#tab-panel-area .panel-default { background:#fff; }
+#tab-panel-area .panel-default > .panel-heading {
+    background:#f0f0f0 !important;
+    color:#333 !important;
+    border-color:#ddd !important;
+}
+#tab-panel-area .panel-default > .panel-heading:hover {
+    background:#e8e8e8 !important;
+}
+#tab-panel-area .panel-body {
+    background:#fff !important;
+    color:#333 !important;
+}
+#tab-panel-area .prod-name { color:#333 !important; }
+#tab-panel-area .text-muted { color:#888 !important; }
+#tab-panel-area .section-lbl { color:#999 !important; }
 </style>
 </head>
 <body class="mobile dashboard">
