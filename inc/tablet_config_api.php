@@ -1,11 +1,17 @@
 <?php
+ob_start();
+ini_set('display_errors', '0');
+error_reporting(0);
 session_start();
 if (empty($_SESSION['ingress']) || $_SESSION['type'] !== 'admin') {
-    http_response_code(403); echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit;
+    ob_clean(); http_response_code(403); echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit;
 }
 header('Content-Type: application/json');
 
 $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
+if ($conn->connect_error) {
+    ob_clean(); echo json_encode(['ok'=>false,'msg'=>'DB: '.$conn->connect_error]); exit;
+}
 $conn->set_charset('utf8');
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
@@ -16,28 +22,27 @@ switch ($action) {
 case 'get_config':
     $tabs = [];
     $rt = $conn->query("SELECT * FROM tablet_tabs ORDER BY sort_order,id");
+    if (!$rt) { ob_clean(); echo json_encode(['ok'=>false,'msg'=>'tabla tablet_tabs: '.$conn->error]); exit; }
     while ($tab = $rt->fetch_assoc()) {
-        $tab_id = $tab['id'];
+        $tab_id = (int)$tab['id'];
         $groups = [];
         $rg = $conn->query("SELECT * FROM tablet_groups WHERE tab_id=$tab_id ORDER BY sort_order,id");
         while ($g = $rg->fetch_assoc()) {
-            $gid = $g['id'];
-            // Categorías
+            $gid = (int)$g['id'];
             $cats = [];
             $rc = $conn->query("SELECT gc.category_id, c.nom_cat FROM tablet_group_categories gc
                 LEFT JOIN categorias c ON c.id_categoria=gc.category_id WHERE gc.group_id=$gid");
-            while ($c = $rc->fetch_assoc()) $cats[] = $c;
-            // Productos
+            if ($rc) while ($c = $rc->fetch_assoc()) $cats[] = $c;
             $prods = [];
             $rp = $conn->query("SELECT gp.id as gp_id, gp.product_id, gp.all_variants, p.nom_prod
                 FROM tablet_group_products gp
                 LEFT JOIN productos p ON p.id_producto=gp.product_id WHERE gp.group_id=$gid");
-            while ($p = $rp->fetch_assoc()) {
+            if ($rp) while ($p = $rp->fetch_assoc()) {
                 $variants = [];
                 if (!$p['all_variants']) {
                     $rv = $conn->query("SELECT gpv.variant_type_id, v.variante FROM tablet_group_product_variants gpv
-                        LEFT JOIN variantes v ON v.id_variante=gpv.variant_type_id WHERE gpv.group_product_id=".$p['gp_id']);
-                    while ($v = $rv->fetch_assoc()) $variants[] = $v;
+                        LEFT JOIN variantes v ON v.id_variante=gpv.variant_type_id WHERE gpv.group_product_id=".(int)$p['gp_id']);
+                    if ($rv) while ($v = $rv->fetch_assoc()) $variants[] = $v;
                 }
                 $p['variants'] = $variants;
                 $prods[] = $p;
@@ -49,6 +54,7 @@ case 'get_config':
         $tab['groups'] = $groups;
         $tabs[] = $tab;
     }
+    ob_clean();
     echo json_encode(['ok'=>true,'tabs'=>$tabs]);
     break;
 
@@ -153,6 +159,7 @@ case 'remove_product':
     break;
 
 default:
-    echo json_encode(['ok'=>false,'msg'=>'Acción no reconocida']);
+    ob_clean();
+    echo json_encode(['ok'=>false,'msg'=>'Accion no reconocida: '.$action]);
 }
 $conn->close();

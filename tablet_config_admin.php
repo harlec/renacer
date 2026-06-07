@@ -176,12 +176,14 @@ let config = [], activeTabId = null, activeGroupId = null, selProduct = null;
 function loadConfig() {
     $.get(API + '?action=get_config')
      .done(function(d) {
-        if (!d.ok) { showAlert('No se pudo cargar la configuración. ¿Ejecutaste la migración?', 'danger'); return; }
+        if (!d.ok) { showAlert('Error: ' + (d.msg || 'Verifica que ejecutaste la migración'), 'danger'); return; }
         config = d.tabs;
         renderTabList();
         if (config.length) selectTab(config[0].id);
      })
-     .fail(function() { showAlert('Error de conexión con el servidor.', 'danger'); });
+     .fail(function(xhr) {
+        showAlert('Error del servidor (' + xhr.status + '): ' + xhr.responseText.substring(0,200), 'danger');
+     });
 }
 
 function renderTabList() {
