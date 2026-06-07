@@ -109,13 +109,18 @@ if ($_SESSION['type'] !== 'admin') { header("Location: dashboard.php"); exit; }
                     <div class="alert alert-info" style="padding:8px 12px;margin-bottom:8px">
                         Producto: <b id="sel-prod-name"></b>
                     </div>
-                    <div class="checkbox" style="margin:0 0 6px">
-                        <label>
-                            <input type="checkbox" id="chk-all-variants" checked onchange="toggleVariants()">
-                            <b>Todas las presentaciones</b>
+                    <p class="text-muted" style="font-size:12px;margin-bottom:4px">
+                        Presentaciones disponibles — marca las que quieres incluir:
+                    </p>
+                    <div style="margin-bottom:6px">
+                        <label style="font-size:12px;cursor:pointer">
+                            <input type="checkbox" id="chk-all-variants" checked onchange="toggleAllVariants()">
+                            <b>Seleccionar todas</b>
                         </label>
                     </div>
-                    <div id="variants-list" style="display:none;padding-left:15px;max-height:150px;overflow-y:auto"></div>
+                    <div id="variants-list" style="padding-left:10px;max-height:160px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:8px">
+                        <p class="text-muted" style="font-size:12px;margin:0">Cargando presentaciones...</p>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -349,24 +354,36 @@ function selectProduct(pid, name) {
     $('#sel-prod-name').text(name);
     $('#selected-product-area').show();
     $('#chk-all-variants').prop('checked', true);
-    $('#variants-list').hide().html('');
+    $('#variants-list').html('<p class="text-muted" style="font-size:12px;margin:0">Cargando...</p>');
     $('#btn-add-prod').prop('disabled', false);
-    $.get(API + '?action=get_product_variants&product_id=' + pid, d => {
-        if (!d.variants.length) return;
+
+    $.get(API + '?action=get_product_variants&product_id=' + pid)
+     .done(d => {
+        if (!d.ok || !d.variants || !d.variants.length) {
+            $('#variants-list').html('<p class="text-muted" style="font-size:12px;margin:0">Sin presentaciones registradas</p>');
+            return;
+        }
         const html = d.variants.map(v =>
             `<div class="checkbox" style="margin:2px 0">
-                <label><input type="checkbox" class="vt-check" value="${v.id_variante}">
-                ${v.variante} <small class="text-muted">(${v.cantidad_vp})</small></label>
+                <label><input type="checkbox" class="vt-check" value="${v.id_variante}" checked>
+                <b>${v.variante}</b> <small class="text-muted">${v.cantidad_vp} unid.</small></label>
             </div>`).join('');
         $('#variants-list').html(html);
-    });
+     })
+     .fail(() => {
+        $('#variants-list').html('<p class="text-danger" style="font-size:12px;margin:0">Error cargando presentaciones</p>');
+     });
 }
-function toggleVariants() {
-    $('#variants-list').toggle(!$('#chk-all-variants').is(':checked'));
+function toggleAllVariants() {
+    const checked = $('#chk-all-variants').is(':checked');
+    $('.vt-check').prop('checked', checked);
 }
 function confirmAddProduct() {
     if (!selProduct) return;
-    const allV = $('#chk-all-variants').is(':checked') ? 1 : 0;
+    const total   = $('.vt-check').length;
+    const checked = $('.vt-check:checked').length;
+    // Si todas marcadas o no hay variantes → all_variants=1
+    const allV   = (total === 0 || total === checked) ? 1 : 0;
     const varIds = [];
     if (!allV) {
         $('.vt-check:checked').each(function() { varIds.push($(this).val()); });
@@ -375,7 +392,9 @@ function confirmAddProduct() {
     $.post(API + '?action=add_product', {
         group_id: activeGroupId, product_id: selProduct.id,
         all_variants: allV, variant_ids: JSON.stringify(varIds)
-    }, d => { if (d.ok) { $('#modalProduct').modal('hide'); loadConfig(); } });
+    }, d => { if (d.ok) { $('#modalProduct').modal('hide'); loadConfig(); }
+              else { alert('Error: ' + (d.msg || 'no guardado')); }
+    });
 }
 function removeProduct(gpId) {
     $.post(API + '?action=remove_product', {gp_id:gpId}, d => { if (d.ok) loadConfig(); });
