@@ -35,7 +35,7 @@ if ($_SESSION['type'] !== 'admin') { header("Location: dashboard.php"); exit; }
 /* Forzar estilos claros en los paneles de grupos */
 #tab-panel-area .panel-default { background:#fff; }
 #tab-panel-area .panel-default > .panel-heading {
-    background:transparent !important;
+    background:transparent;
     color:#333 !important;
     border-color:#ddd !important;
 }
