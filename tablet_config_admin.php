@@ -93,7 +93,7 @@ if ($_SESSION['type'] !== 'admin') { header("Location: dashboard.php"); exit; }
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Agregar Producto al Grupo</h4>
+                <h4 class="modal-title" id="modal-prod-title">Agregar Producto al Grupo</h4>
             </div>
             <div class="modal-body">
                 <div class="input-group" style="margin-bottom:10px">
@@ -260,8 +260,13 @@ function renderGroupBody(g) {
                 ? `<span class="badge badge-all">Todas</span>`
                 : `<span class="badge badge-spec">${p.variants.map(v=>v.variante).join(', ')}</span>`;
             return `<div class="prod-row">
-                <span class="prod-name">${p.nom_prod || 'Prod #'+p.product_id}</span>
+                <span class="text-muted" style="font-size:11px;min-width:36px">#${p.product_id}</span>
+                <span class="prod-name" style="margin-left:6px">${p.nom_prod || 'Prod #'+p.product_id}</span>
                 <span style="margin:0 8px">${badge}</span>
+                <button class="btn btn-xs btn-default" style="margin-right:3px"
+                    onclick="openEditProduct(${p.gp_id},${g.id},${p.product_id},'${esc(p.nom_prod)}',${p.all_variants},[${p.variants.map(v=>v.variant_type_id).join(',')}])">
+                    <span class="glyphicon glyphicon-pencil"></span>
+                </button>
                 <button class="btn btn-xs btn-danger" onclick="removeProduct(${p.gp_id})">
                     <span class="glyphicon glyphicon-remove"></span>
                 </button>
@@ -327,15 +332,48 @@ function removeCategory(gid, cid) {
 }
 
 // ── Productos ──────────────────────────────────────────────
+let editingGpId = null;
+
 function openAddProduct(gid) {
-    activeGroupId = gid; selProduct = null;
-    $('#prod-search').val('');
+    activeGroupId = gid; selProduct = null; editingGpId = null;
+    $('#modal-prod-title').text('Agregar Producto al Grupo');
+    $('#btn-add-prod').text('Agregar').prop('disabled', true);
+    $('#prod-search').val('').closest('.input-group').show();
     $('#search-results').hide().html('');
     $('#selected-product-area').hide();
     $('#chk-all-variants').prop('checked', true);
-    $('#variants-list').hide().html('');
-    $('#btn-add-prod').prop('disabled', true);
+    $('#variants-list').html('');
     $('#modalProduct').modal('show');
+}
+
+function openEditProduct(gpId, gid, pid, name, allVariants, currentVarIds) {
+    editingGpId = gpId; activeGroupId = gid; selProduct = {id:pid, name:name};
+    $('#modal-prod-title').text('Editar Presentaciones');
+    $('#btn-add-prod').text('Guardar cambios').prop('disabled', false);
+    $('#prod-search').closest('.input-group').hide();
+    $('#search-results').hide().html('');
+    $('#sel-prod-name').text('#' + pid + ' ' + name);
+    $('#selected-product-area').show();
+    $('#variants-list').html('<p class="text-muted" style="font-size:12px;margin:0">Cargando...</p>');
+    $('#modalProduct').modal('show');
+
+    $.get(API + '?action=get_product_variants&product_id=' + pid)
+     .done(d => {
+        if (!d.ok || !d.variants || !d.variants.length) {
+            $('#variants-list').html('<p class="text-muted" style="font-size:12px;margin:0">Sin presentaciones registradas</p>');
+            $('#chk-all-variants').prop('checked', true);
+            return;
+        }
+        const html = d.variants.map(v => {
+            const chk = allVariants || currentVarIds.includes(parseInt(v.id_variante));
+            return `<div class="checkbox" style="margin:2px 0">
+                <label><input type="checkbox" class="vt-check" value="${v.id_variante}" ${chk?'checked':''}>
+                <b>${v.variante}</b> <small class="text-muted">${v.cantidad_vp} unid.</small></label>
+            </div>`;
+        }).join('');
+        $('#variants-list').html(html);
+        $('#chk-all-variants').prop('checked', allVariants == 1);
+     });
 }
 function searchProducts() {
     const q = $('#prod-search').val().trim();
@@ -343,7 +381,9 @@ function searchProducts() {
     $.get(API + '?action=search_products&q=' + encodeURIComponent(q), d => {
         const html = d.products.map(p =>
             `<a class="list-group-item" style="cursor:pointer;padding:7px 12px;font-size:13px"
-                onclick="selectProduct(${p.id_producto},'${esc(p.nom_prod)}')">${p.nom_prod}</a>`
+                onclick="selectProduct(${p.id_producto},'${esc(p.nom_prod)}')">
+                <span class="text-muted" style="font-size:11px;margin-right:6px">#${p.id_producto}</span>${p.nom_prod}
+            </a>`
         ).join('');
         $('#search-results').html(html || '<div style="padding:8px;color:#888">Sin resultados</div>').show();
     });
@@ -382,19 +422,34 @@ function confirmAddProduct() {
     if (!selProduct) return;
     const total   = $('.vt-check').length;
     const checked = $('.vt-check:checked').length;
-    // Si todas marcadas o no hay variantes → all_variants=1
-    const allV   = (total === 0 || total === checked) ? 1 : 0;
-    const varIds = [];
+    const allV    = (total === 0 || total === checked) ? 1 : 0;
+    const varIds  = [];
     if (!allV) {
         $('.vt-check:checked').each(function() { varIds.push($(this).val()); });
         if (!varIds.length) { alert('Selecciona al menos una presentación'); return; }
     }
-    $.post(API + '?action=add_product', {
-        group_id: activeGroupId, product_id: selProduct.id,
-        all_variants: allV, variant_ids: JSON.stringify(varIds)
-    }, d => { if (d.ok) { $('#modalProduct').modal('hide'); loadConfig(); }
-              else { alert('Error: ' + (d.msg || 'no guardado')); }
-    });
+
+    if (editingGpId) {
+        // Editar: eliminar y re-insertar
+        $.post(API + '?action=remove_product', {gp_id: editingGpId}, d => {
+            if (!d.ok) { alert('Error al actualizar'); return; }
+            $.post(API + '?action=add_product', {
+                group_id: activeGroupId, product_id: selProduct.id,
+                all_variants: allV, variant_ids: JSON.stringify(varIds)
+            }, d2 => {
+                if (d2.ok) { $('#modalProduct').modal('hide'); loadConfig(); }
+                else alert('Error: ' + (d2.msg || 'no guardado'));
+            });
+        });
+    } else {
+        $.post(API + '?action=add_product', {
+            group_id: activeGroupId, product_id: selProduct.id,
+            all_variants: allV, variant_ids: JSON.stringify(varIds)
+        }, d => {
+            if (d.ok) { $('#modalProduct').modal('hide'); loadConfig(); }
+            else alert('Error: ' + (d.msg || 'no guardado'));
+        });
+    }
 }
 function removeProduct(gpId) {
     $.post(API + '?action=remove_product', {gp_id:gpId}, d => { if (d.ok) loadConfig(); });
