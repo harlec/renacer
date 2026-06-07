@@ -1,6 +1,6 @@
 <?php
 include('inc/control.php');
-if ($_SESSION['type'] !== 'admin') header("Location: dashboard.php");
+if ($_SESSION['type'] !== 'admin') { header("Location: dashboard.php"); exit; }
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -8,7 +8,7 @@ if ($_SESSION['type'] !== 'admin') header("Location: dashboard.php");
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Configuración Tablet – Renacer</title>
-<link rel="stylesheet" href="assets/css/bootstrap.min.css">
+<link rel="stylesheet" href="/assets/css/bootstrap.min.css">
 <style>
 body { background:#f4f6f9; }
 .page-header { margin-top:10px; }
@@ -38,7 +38,7 @@ body { background:#f4f6f9; }
 </style>
 </head>
 <body>
-<?php include('inc/control.php'); menu(''); ?>
+<?php menu('8'); ?>
 
 <div class="container-fluid" style="max-width:1100px;margin-top:70px">
   <div class="page-header">
@@ -151,6 +151,7 @@ body { background:#f4f6f9; }
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 <script>
 const API = '/inc/tablet_config_api.php';
 let config      = [];

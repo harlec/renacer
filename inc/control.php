@@ -12,7 +12,7 @@ else{
 }
 
 function menu($i){
-	$uno = ''; $dos = ''; $tres = ''; $cuatro = ''; $cinco = '';
+	$uno = ''; $dos = ''; $tres = ''; $cuatro = ''; $cinco = ''; $seis = ''; $siete = ''; $ocho = '';
 	switch ($i) {
 		case '1':
 			$uno = 'active';
@@ -35,6 +35,9 @@ function menu($i){
 		case '7':
 			$siete = 'active';
 			break;
+		case '8':
+			$ocho = 'active';
+			break;
 	}
 	if ($_SESSION['type']=='admin') {
 		echo '<div id="navbar" class="navbar-collapse collapse">
@@ -46,10 +49,10 @@ function menu($i){
 	            <li class="'.$cuatro.' text-center" ><a title="Ventas" href="venta.php"><img class="isvg" src="assets/img/ventas.png"><br><span>Ventas</span></a></li>
 	            <li class="'.$seis.' text-center" ><a title="Compras" href="compra.php"><img class="isvg" src="assets/img/compras.png"><br><span>Compras</span></a></li>
 	            <li class="'.$cinco.' text-center" ><a title="reportes" href="reportes.php"><img class="isvg" src="assets/img/reports.png"><br><span>Reportes</span></a></li>
-	            <li class="dropdown text-center">
-	              <a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Configuración"><img class="isvg" src="assets/img/config_tablet.svg"><br><span>Config.</span></a>
+	            <li class="'.$ocho.' dropdown text-center">
+	              <a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Configuración"><img class="isvg" src="/assets/img/config_tablet.svg"><br><span>Config.</span></a>
 	              <ul class="dropdown-menu">
-	                <li><a href="tablet_config_admin.php"><img src="assets/img/config_tablet.svg" style="width:16px;margin-right:6px;vertical-align:middle;"> Configuración Tablet</a></li>
+	                <li><a href="/tablet_config_admin.php"><img src="/assets/img/config_tablet.svg" style="width:16px;margin-right:6px;vertical-align:middle;"> Configuración Tablet</a></li>
 	              </ul>
 	            </li>
 	          </ul>
