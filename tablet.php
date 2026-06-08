@@ -1122,6 +1122,8 @@ function printTicket(){
     phone    : phone,
   };
 
+  toast('Generando ticket...');
+
   fetch('/inc/ticket_pdf_tablet.php', {
     method  : 'POST',
     headers : {'Content-Type':'application/json'},
@@ -1131,18 +1133,19 @@ function printTicket(){
     if(!r.ok) throw new Error('Error generando PDF');
     return r.blob();
   })
-  .then(blob=>{
-    const blobUrl = URL.createObjectURL(blob);
-    const w = window.open('', '_blank');
-    w.document.write(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title></title>
-<style>*{margin:0;padding:0}html,body{width:100%;height:100%}embed{width:100%;height:100%;display:block}</style>
-<script>window.onload=function(){ setTimeout(function(){ window.print(); },800); };<\/script>
-</head><body><embed src="${blobUrl}" type="application/pdf"></body></html>`);
-    w.document.close();
-    setTimeout(()=>URL.revokeObjectURL(blobUrl), 120000);
+  .then(pdfBlob=>{
+    // Enviar PDF a RawBT (localhost:19100) — imprime por Bluetooth a la POS80-BX
+    return fetch('http://localhost:19100', {
+      method : 'POST',
+      mode   : 'no-cors',
+      body   : pdfBlob,
+    });
   })
-  .catch(()=>toast('Error al generar el ticket','err'));
+  .then(()=>toast('Imprimiendo... ✓'))
+  .catch(err=>{
+    console.error(err);
+    toast('Error al imprimir — verifica que RawBT esté abierto','err');
+  });
 }
 
 // ── Toast ──────────────────────────────────────────────────
