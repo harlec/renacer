@@ -108,16 +108,6 @@ $out .= iconv('UTF-8','CP850//TRANSLIT','Reclamos dentro de 13 dias.') . $LF;
 $out .= $LF . $LF . $LF;
 $out .= $cut;
 
-// ── Guardar en /temp/ ──────────────────────────────────────
-$temp_dir = realpath(__DIR__ . '/../temp');
-$sess_id  = session_id();
-foreach (glob("$temp_dir/ticket_{$sess_id}_*.bin") ?: [] as $old) @unlink($old);
-
-$filename = "ticket_{$sess_id}_" . time() . ".bin";
-file_put_contents("$temp_dir/$filename", $out);
-
-$protocol   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$ticket_url = "$protocol://{$_SERVER['HTTP_HOST']}/temp/$filename";
-
+// ── Devolver como base64 para rawbt:data URI ───────────────
 ob_clean();
-echo json_encode(['ok' => true, 'url' => $ticket_url]);
+echo json_encode(['ok' => true, 'b64' => base64_encode($out)]);
