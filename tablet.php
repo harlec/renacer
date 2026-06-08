@@ -1126,56 +1126,81 @@ function printTicket(){
   const grand = cart.reduce((s,i)=>s+i.total, 0);
   const clienteNombre = USER_CLIENT_NAME[USER_ID] ?? '';
 
-  // Ancho real de la impresora en chars (modo texto RawBT)
-  const W = 48;
-  const SEP = '-'.repeat(W);
-  // Quitar chars no-ASCII que Chrome codifica en la URL
-  const ascii = (s) => String(s).replace(/[^\x20-\x7E]/g, '');
-  // Línea izquierda rellena a W chars
-  const ln  = (s) => ascii(s).substring(0, W).padEnd(W);
-  // Línea con texto izquierda + texto derecha alineado a W chars total
-  const lr  = (l, r) => { const rs = ascii(r); return ascii(l).substring(0, W - rs.length).padEnd(W - rs.length) + rs; };
-  // Texto centrado en W chars
-  const ctr = (s) => { const c = ascii(s).substring(0, W); const sp = W - c.length; return ' '.repeat(Math.floor(sp/2)) + c + ' '.repeat(Math.ceil(sp/2)); };
+  // Comandos ESC/POS codificados como %XX
+  // Chrome preserva %XX en opaque paths; RawBT los decodifica igual que %20→espacio
+  const I  = '%1B%40';        // Init impresora
+  const CA = '%1B%61%01';     // Centro
+  const LA = '%1B%61%00';     // Izquierda
+  const BO = '%1B%45%01';     // Negrita ON
+  const BF = '%1B%45%00';     // Negrita OFF
+  const DO = '%1D%21%11';     // Doble ancho + alto
+  const DF = '%1D%21%00';     // Tamaño normal
+  const LF = '%0A';           // Salto de línea
+  const CT = '%1D%56%42%03';  // Corte parcial de papel
 
-  let t = '';
-  t += ln('DISTRIBUIDORA RENACER');
-  t += ln('"Y aunque tu principio haya sido');
-  t += ln('pequeno, tu postrer estado sera muy grande"');
-  t += ln('Job 8:7');
-  t += SEP;
-  t += ctr('NOTA VENTA');
-  t += SEP;
-  t += ln('FECHA: ' + fecha);
-  if(clienteNombre) t += ln('CLIENTE: ' + clienteNombre);
-  t += SEP;
-  t += lr('[CANT.] DESCRIPCION', 'TOTAL');
+  const W   = 32;
+  const SEP = '-'.repeat(W) + LF;
+
+  // Quita acentos y chars no-ASCII (chrome los codificaría)
+  const asc  = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'')
+                       .replace(/[–—]/g,'-').replace(/×/g,'x').replace(/[^\x20-\x7E]/g,'');
+  const pad  = (s, n) => asc(s).substring(0, n).padEnd(n);
+  const rpad = (s, n) => asc(s).substring(0, n).padStart(n);
+
+  let t = I;
+
+  // ── Header grande centrado ──
+  t += CA + DO + BO;
+  t += 'DISTRIBUIDORA RENACER' + LF;
+  t += BF + DF;
+  t += '"Y aunque tu principio haya sido' + LF;
+  t += 'pequeno, tu postrer estado sera' + LF;
+  t += 'muy grande" Job 8:7' + LF + LF;
+  t += BO + 'NOTA VENTA' + BF + LF + LF;
+
+  // ── Datos ──
+  t += LA;
+  t += 'FECHA: '   + asc(fecha)          + LF;
+  if(clienteNombre) t += 'CLIENTE: ' + asc(clienteNombre) + LF;
   t += SEP;
 
+  // ── Cabecera tabla ──
+  t += BO + pad('DESCRIPCION', W - 9) + rpad('TOTAL', 9) + BF + LF;
+  t += SEP;
+
+  // ── Items ──
   cart.forEach(ci => {
     const tot  = 'S/' + ci.total.toFixed(2);
-    // Convertir guion largo/× a ASCII
-    const name = ascii(ci.name.replace(/\s*[–—]\s*/g,' ').replace(/×/g,'x')).trim();
+    const name = asc(ci.name.replace(/\s*[–—]\s*/g,' ').replace(/×/g,'x')).trim();
     if(name.length + tot.length + 1 <= W){
-      t += lr(name, tot);
+      t += pad(name, W - tot.length) + tot + LF;
     } else {
-      t += ln(name);
-      t += lr('', tot);
+      t += asc(name).substring(0, W) + LF;
+      t += rpad(tot, W) + LF;
     }
   });
 
   t += SEP;
-  t += lr('TOTAL:', 'S/' + grand.toFixed(2));
+
+  // ── Total grande centrado ──
+  t += CA + DO + BO + 'TOTAL: S/' + grand.toFixed(2) + BF + DF + LF;
+  t += LA + SEP;
+
+  t += 'IMPORTE EN LETRAS:' + LF;
+  t += asc(numeroALetras(grand)).substring(0, W) + LF;
+  t += 'VENDEDOR: '        + asc(vendedor)         + LF;
+  t += 'PERSONAL ENTREGA: _____________'            + LF;
   t += SEP;
-  t += ln('IMPORTE EN LETRAS:');
-  t += ln(numeroALetras(grand));
-  t += ln('VENDEDOR: ' + vendedor);
-  t += ln('PERSONAL ENTREGA: _____________________');
-  t += SEP;
-  t += ctr('DIOS TE BENDIGA');
-  t += ctr('GRACIAS POR TU PREFERENCIA');
-  t += ctr('Reclamos dentro de 13 dias.');
-  t += '        ';  // avance de papel
+
+  // ── Pie centrado ──
+  t += CA;
+  t += 'DIOS TE BENDIGA'            + LF;
+  t += 'GRACIAS POR TU PREFERENCIA' + LF;
+  t += 'Reclamos dentro de 13 dias.' + LF;
+  t += LF + LF + LF;
+
+  // ── Corte de papel ──
+  t += CT;
 
   showPrintButton(null, t);
 }
