@@ -1172,12 +1172,8 @@ function printTicket(){
   cart.forEach(ci => {
     const tot  = 'S/' + ci.total.toFixed(2);
     const name = asc(ci.name.replace(/\s*[–—]\s*/g,' ').replace(/×/g,'x')).trim();
-    if(name.length + tot.length + 1 <= W){
-      t += pad(name, W - tot.length) + tot + LF;
-    } else {
-      t += asc(name).substring(0, W) + LF;
-      t += rpad(tot, W) + LF;
-    }
+    // pad() trunca el nombre para que el precio siempre quepa en la misma línea
+    t += pad(name, W - tot.length) + tot + LF;
   });
 
   t += SEP;
