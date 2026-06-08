@@ -181,7 +181,7 @@ foreach ($variantes_plist as $value) {
 											    			<h4>Variantes de precios</h4> 
 											    			<table class="table">
 											    			<tr>
-									    						<td width="40%"><select style="width: 50%" id="vari"><?= $variantes_l; ?><</select></td>
+									    						<td width="40%"><select style="width: 100%" id="vari"><?= $variantes_l; ?><</select></td>
 									    						<td><input name="conatidad" id="cantidad" placeholder="cantidad" type="text"></td>
 									    						<td><input name´="precio" id="precio" placeholder="precio" type="text"></td>
 									    						<td><input id="precioc" placeholder="precio compra" type="number" step="0.01"></td>
