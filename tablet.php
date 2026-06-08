@@ -792,6 +792,23 @@ body{
 
 <div class="toast" id="toast"></div>
 
+<!-- Overlay imprimir con RawBT -->
+<div id="rawbt-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+     z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <a id="rawbt-link" href="#" style="
+     display:block;background:#27ae60;color:#fff;font-family:'Barlow Condensed',sans-serif;
+     font-size:28px;font-weight:900;letter-spacing:1px;text-transform:uppercase;
+     padding:24px 48px;border-radius:16px;text-decoration:none;text-align:center;
+     box-shadow:0 4px 24px rgba(0,0,0,.4)">
+    🖨️ TOCA AQUÍ PARA IMPRIMIR
+  </a>
+  <button onclick="document.getElementById('rawbt-overlay').style.display='none'"
+    style="background:none;border:1px solid #666;color:#ccc;padding:8px 20px;
+           border-radius:8px;font-size:14px;cursor:pointer">
+    Cancelar
+  </button>
+</div>
+
 <!-- ── JAVASCRIPT ─────────────────────────────────────────── -->
 <script>
 // ── Datos del servidor ─────────────────────────────────────
@@ -1124,25 +1141,30 @@ function printTicket(){
 
   toast('Generando ticket...');
 
-  fetch('/inc/ticket_pdf_tablet.php', {
+  fetch('/inc/ticket_escpos.php', {
     method  : 'POST',
     headers : {'Content-Type':'application/json'},
     body    : JSON.stringify(payload),
   })
-  .then(r=>{
-    if(!r.ok) throw new Error('Error generando PDF');
-    return r.json();
-  })
+  .then(r=>r.json())
   .then(data=>{
-    if(!data.ok || !data.url) throw new Error('Sin URL de ticket');
-    // RawBT descarga el PDF desde la URL del servidor e imprime por Bluetooth
-    window.location.href = 'rawbt:' + data.url;
-    setTimeout(()=>toast('Enviado a RawBT ✓'), 800);
+    if(!data.ok || !data.url) throw new Error('Sin URL');
+    showPrintButton(data.url);
   })
   .catch(err=>{
     console.error(err);
     toast('Error al generar el ticket','err');
   });
+}
+
+// ── Botón imprimir con RawBT ───────────────────────────────
+function showPrintButton(url) {
+  const ov = document.getElementById('rawbt-overlay');
+  const lk = document.getElementById('rawbt-link');
+  lk.href = 'rawbt:' + url;
+  ov.style.display = 'flex';
+  // Auto-cerrar tras 15 segundos
+  setTimeout(()=>{ ov.style.display='none'; }, 15000);
 }
 
 // ── Toast ──────────────────────────────────────────────────
