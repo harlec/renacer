@@ -1129,16 +1129,6 @@ function printTicket(){
 
   const clienteNombre = USER_CLIENT_NAME[USER_ID] ?? '';
 
-  const payload = {
-    items    : cart.map(ci=>({name: ci.name, total: ci.total})),
-    grand    : grand,
-    vendedor : vendedor,
-    fecha    : fecha,
-    cliente  : clienteNombre,
-    addr     : addr,
-    phone    : phone,
-  };
-
   // Construir ticket en texto plano — rawbt: imprime lo que recibe directamente
   const W   = 32;
   const SEP = '-'.repeat(W);
@@ -1183,10 +1173,6 @@ function printTicket(){
   ticket += '\n\n\n\n';
 
   showPrintButton(null, ticket);
-  .catch(err=>{
-    console.error(err);
-    toast('Error al generar el ticket','err');
-  });
 }
 
 // ── Botón imprimir con RawBT ───────────────────────────────
