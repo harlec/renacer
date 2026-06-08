@@ -1138,7 +1138,7 @@ function printTicket(){
   const LF = '%0A';           // Salto de línea
   const CT = '%1D%56%42%03';  // Corte parcial de papel
 
-  const W   = 32;
+  const W   = 42;
   const SEP = '-'.repeat(W) + LF;
 
   // Quita acentos y chars no-ASCII (chrome los codificaría)
