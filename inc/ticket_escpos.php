@@ -95,9 +95,10 @@ $out .= $dbl_off . $bold_off;
 $out .= $left;
 
 $out .= $sep;
-$out .= iconv('UTF-8','CP850//TRANSLIT','LETRAS: ' . mb_substr($letras, 0, 60)) . $LF;
+$out .= iconv('UTF-8','CP850//TRANSLIT','IMPORTE EN LETRAS:') . $LF;
+$out .= iconv('UTF-8','CP850//TRANSLIT',mb_substr($letras, 0, 32)) . $LF;
 $out .= iconv('UTF-8','CP850//TRANSLIT','VENDEDOR: ' . $vendedor) . $LF;
-$out .= iconv('UTF-8','CP850//TRANSLIT','ENTREGA: ______________________') . $LF;
+$out .= iconv('UTF-8','CP850//TRANSLIT','PERSONAL ENTREGA: ____________') . $LF;
 $out .= $sep;
 
 // Pie
@@ -108,6 +109,10 @@ $out .= iconv('UTF-8','CP850//TRANSLIT','Reclamos dentro de 13 dias.') . $LF;
 $out .= $LF . $LF . $LF;
 $out .= $cut;
 
-// ── Devolver bytes ESC/POS como base64 ─────────────────────
+// ── Guardar en archivo temporal y devolver token ───────────
+$token = bin2hex(random_bytes(16));
+$file  = sys_get_temp_dir() . '/renacer_ticket_' . $token . '.bin';
+file_put_contents($file, $out);
+
 ob_clean();
-echo json_encode(['ok' => true, 'b64' => base64_encode($out)]);
+echo json_encode(['ok' => true, 'token' => $token]);

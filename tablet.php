@@ -1120,67 +1120,36 @@ function numeroALetras(num){
 function printTicket(){
   if(!cart.length) return;
 
-  const now      = new Date();
-  const fecha    = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const now    = new Date();
+  const fecha  = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const vendedor = <?= json_encode($user_name) ?>;
-  const addr     = <?= json_encode(TABLET_STORE_ADDRESS) ?>;
-  const phone    = <?= json_encode(TABLET_STORE_PHONE) ?>;
-  const grand    = cart.reduce((s,i)=>s+i.total, 0);
-
+  const grand  = cart.reduce((s,i)=>s+i.total, 0);
   const clienteNombre = USER_CLIENT_NAME[USER_ID] ?? '';
 
-  // Construir ticket en texto plano — rawbt: imprime lo que recibe directamente
-  const W   = 32;
-  const SEP = '-'.repeat(W);
-  const pad = (s, n) => String(s).substring(0, n).padEnd(n);
-  const rpad = (s, n) => String(s).substring(0, n).padStart(n);
+  const items = cart.map(ci => ({name: ci.name, total: ci.total}));
 
-  let ticket = '';
-  ticket += 'DISTRIBUIDORA RENACER\n';
-  ticket += 'Y aunque tu principio haya sido\n';
-  ticket += 'pequeno, tu postrer estado sera\n';
-  ticket += 'muy grande. Job 8:7\n';
-  ticket += SEP + '\n';
-  ticket += 'NOTA VENTA\n';
-  ticket += SEP + '\n';
-  ticket += 'FECHA: ' + fecha + '\n';
-  if (clienteNombre) ticket += 'CLIENTE: ' + clienteNombre + '\n';
-  ticket += SEP + '\n';
-  ticket += pad('DESCRIPCION', W - 9) + rpad('TOTAL', 9) + '\n';
-  ticket += SEP + '\n';
-
-  cart.forEach(ci => {
-    const tot  = 'S/' + ci.total.toFixed(2);
-    const name = ci.name.substring(0, W);
-    if (name.length + tot.length + 1 <= W) {
-      ticket += pad(name, W - tot.length) + tot + '\n';
+  fetch('/inc/ticket_escpos.php', {
+    method : 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body   : JSON.stringify({items, grand, vendedor, fecha, cliente: clienteNombre})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if(d.ok && d.token){
+      const url = location.origin + '/ticket_rawbt.php?token=' + d.token;
+      showPrintButton(url, null);
     } else {
-      ticket += name.substring(0, W) + '\n';
-      ticket += rpad(tot, W) + '\n';
+      toast('Error al generar ticket','err');
     }
-  });
-
-  ticket += SEP + '\n';
-  ticket += pad('TOTAL:', W - 10) + rpad('S/' + grand.toFixed(2), 10) + '\n';
-  ticket += SEP + '\n';
-  ticket += 'LETRAS: ' + numeroALetras(grand).substring(0, W - 8) + '\n';
-  ticket += 'VENDEDOR: ' + vendedor + '\n';
-  ticket += 'ENTREGA: ________________________\n';
-  ticket += SEP + '\n';
-  ticket += 'DIOS TE BENDIGA\n';
-  ticket += 'GRACIAS POR TU PREFERENCIA\n';
-  ticket += 'Reclamos dentro de 13 dias.\n';
-  ticket += '\n\n\n\n';
-
-  showPrintButton(null, ticket);
+  })
+  .catch(()=> toast('Error de conexión','err'));
 }
 
 // ── Botón imprimir con RawBT ───────────────────────────────
 function showPrintButton(url, text) {
   const ov = document.getElementById('rawbt-overlay');
   const lk = document.getElementById('rawbt-link');
-  // Si hay texto plano, usarlo directo; si hay URL, usar la URL
-  lk.href = text ? 'rawbt:' + text : 'rawbt:' + url;
+  lk.href = 'rawbt:' + url;
   ov.style.display = 'flex';
   setTimeout(()=>{ ov.style.display='none'; }, 20000);
 }
