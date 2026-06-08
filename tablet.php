@@ -1120,36 +1120,71 @@ function numeroALetras(num){
 function printTicket(){
   if(!cart.length) return;
 
-  const now    = new Date();
-  const fecha  = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const now   = new Date();
+  const fecha = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const vendedor = <?= json_encode($user_name) ?>;
-  const grand  = cart.reduce((s,i)=>s+i.total, 0);
+  const grand = cart.reduce((s,i)=>s+i.total, 0);
   const clienteNombre = USER_CLIENT_NAME[USER_ID] ?? '';
 
-  const items = cart.map(ci => ({name: ci.name, total: ci.total}));
+  // Ancho real de la impresora en chars (modo texto RawBT)
+  const W = 48;
+  const SEP = '-'.repeat(W);
+  // Quitar chars no-ASCII que Chrome codifica en la URL
+  const ascii = (s) => String(s).replace(/[^\x20-\x7E]/g, '');
+  // Línea izquierda rellena a W chars
+  const ln  = (s) => ascii(s).substring(0, W).padEnd(W);
+  // Línea con texto izquierda + texto derecha alineado a W chars total
+  const lr  = (l, r) => { const rs = ascii(r); return ascii(l).substring(0, W - rs.length).padEnd(W - rs.length) + rs; };
+  // Texto centrado en W chars
+  const ctr = (s) => { const c = ascii(s).substring(0, W); const sp = W - c.length; return ' '.repeat(Math.floor(sp/2)) + c + ' '.repeat(Math.ceil(sp/2)); };
 
-  fetch('/inc/ticket_escpos.php', {
-    method : 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body   : JSON.stringify({items, grand, vendedor, fecha, cliente: clienteNombre})
-  })
-  .then(r => r.json())
-  .then(d => {
-    if(d.ok && d.token){
-      const url = location.origin + '/ticket_rawbt.php?token=' + d.token;
-      showPrintButton(url, null);
+  let t = '';
+  t += ln('DISTRIBUIDORA RENACER');
+  t += ln('"Y aunque tu principio haya sido');
+  t += ln('pequeno, tu postrer estado sera muy grande"');
+  t += ln('Job 8:7');
+  t += SEP;
+  t += ctr('NOTA VENTA');
+  t += SEP;
+  t += ln('FECHA: ' + fecha);
+  if(clienteNombre) t += ln('CLIENTE: ' + clienteNombre);
+  t += SEP;
+  t += lr('[CANT.] DESCRIPCION', 'TOTAL');
+  t += SEP;
+
+  cart.forEach(ci => {
+    const tot  = 'S/' + ci.total.toFixed(2);
+    // Convertir guion largo/× a ASCII
+    const name = ascii(ci.name.replace(/\s*[–—]\s*/g,' ').replace(/×/g,'x')).trim();
+    if(name.length + tot.length + 1 <= W){
+      t += lr(name, tot);
     } else {
-      toast('Error al generar ticket','err');
+      t += ln(name);
+      t += lr('', tot);
     }
-  })
-  .catch(()=> toast('Error de conexión','err'));
+  });
+
+  t += SEP;
+  t += lr('TOTAL:', 'S/' + grand.toFixed(2));
+  t += SEP;
+  t += ln('IMPORTE EN LETRAS:');
+  t += ln(numeroALetras(grand));
+  t += ln('VENDEDOR: ' + vendedor);
+  t += ln('PERSONAL ENTREGA: _____________________');
+  t += SEP;
+  t += ctr('DIOS TE BENDIGA');
+  t += ctr('GRACIAS POR TU PREFERENCIA');
+  t += ctr('Reclamos dentro de 13 dias.');
+  t += '        ';  // avance de papel
+
+  showPrintButton(null, t);
 }
 
 // ── Botón imprimir con RawBT ───────────────────────────────
 function showPrintButton(url, text) {
   const ov = document.getElementById('rawbt-overlay');
   const lk = document.getElementById('rawbt-link');
-  lk.href = 'rawbt:' + url;
+  lk.href = text ? 'rawbt:' + text : 'rawbt:' + url;
   ov.style.display = 'flex';
   setTimeout(()=>{ ov.style.display='none'; }, 20000);
 }
