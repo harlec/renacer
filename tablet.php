@@ -1148,9 +1148,8 @@ function printTicket(){
   })
   .then(r=>r.json())
   .then(data=>{
-    if(!data.ok || !data.b64) throw new Error('Sin datos');
-    // rawbt:data URI — RawBT decodifica el base64 e imprime directo, sin descargas
-    showPrintButton('data:application/octet-stream;base64,' + data.b64);
+    if(!data.ok || !data.url) throw new Error('Sin URL');
+    showPrintButton(data.url);
   })
   .catch(err=>{
     console.error(err);
