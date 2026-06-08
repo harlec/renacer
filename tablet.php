@@ -1131,20 +1131,17 @@ function printTicket(){
   })
   .then(r=>{
     if(!r.ok) throw new Error('Error generando PDF');
-    return r.blob();
+    return r.json();
   })
-  .then(pdfBlob=>{
-    // Enviar PDF a RawBT (localhost:19100) — imprime por Bluetooth a la POS80-BX
-    return fetch('http://localhost:19100', {
-      method : 'POST',
-      mode   : 'no-cors',
-      body   : pdfBlob,
-    });
+  .then(data=>{
+    if(!data.ok || !data.url) throw new Error('Sin URL de ticket');
+    // RawBT descarga el PDF desde la URL del servidor e imprime por Bluetooth
+    window.location.href = 'rawbt:' + data.url;
+    setTimeout(()=>toast('Enviado a RawBT ✓'), 800);
   })
-  .then(()=>toast('Imprimiendo... ✓'))
   .catch(err=>{
     console.error(err);
-    toast('Error al imprimir — verifica que RawBT esté abierto','err');
+    toast('Error al generar el ticket','err');
   });
 }
 
