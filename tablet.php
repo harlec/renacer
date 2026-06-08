@@ -1128,7 +1128,7 @@ function printTicket(){
 
   // Comandos ESC/POS codificados como %XX
   // Chrome preserva %XX en opaque paths; RawBT los decodifica igual que %20→espacio
-  const I  = '%1B%40%1B%4D%00'; // Init + Font A (fuente grande)
+  const I  = '%1B%40';          // Init impresora
   const CA = '%1B%61%01';     // Centro
   const LA = '%1B%61%00';     // Izquierda
   const BO = '%1B%45%01';     // Negrita ON
