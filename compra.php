@@ -295,18 +295,75 @@ foreach ($proveedoresl as $key) {
 
 		$('#datos').on('click', '#agregar', function(){
 		    var nombre = $(this).closest('tr').find('.nom_prod').text();
-		    var precio = $(this).closest('tr').find('.precio_venta').val();
+		    var precioDefecto = $(this).closest('tr').find('.precio_venta').val();
 		    var unidad = $(this).closest('tr').find('.unidad').text();
 		    var cantidad = 1;
 		    var id_p = $(this).val();
-		    var monto = precio;
-		    total = monto*1 + total*1;
 
-			    $('#items tr:last').after('<tr class="child"><input type="hidden" value="'+id_p+'" name="id_pro[]" ><input type="hidden" value="'+unidad+'" name="unidad[]"><td><input class="cantidad" type="number" value="'+cantidad+'" name="cantidad[]"></td><td style="text-transform:uppercase;">'+unidad+'</td><td>'+nombre+'</td><td><input type="number" class="pre" value="'+precio+'" name="precio[]"></td><td ><input class="mon" type="text" value="'+monto+'" name="total_pre[]" ></td><td><button value="'+monto+'" class="borrar">x</button></td></tr>');
-		    $("#total").val(total);
-
-
+		    $.ajax({
+		        type: 'GET',
+		        dataType: 'json',
+		        url: '/inc/get_variantes_producto.php',
+		        data: 'producto=' + id_p,
+		        success: function(variantes) {
+		            var precio, monto, row;
+		            if (variantes.length > 0) {
+		                var selectHtml = '<select class="variante_sel form-control input-sm">';
+		                $.each(variantes, function(i, v) {
+		                    selectHtml += '<option value="' + v.id_vp + '" data-precio="' + v.precioc_vp + '" data-cantidad="' + v.cantidad_vp + '">' + v.variante + '</option>';
+		                });
+		                selectHtml += '</select>';
+		                precio = variantes[0].precioc_vp;
+		                monto = precio * cantidad;
+		                total = monto*1 + total*1;
+		                row = '<tr class="child">' +
+		                    '<input type="hidden" value="' + id_p + '" name="id_pro[]">' +
+		                    '<input type="hidden" value="' + unidad + '" name="unidad[]">' +
+		                    '<input type="hidden" class="id_vp_input" value="' + variantes[0].id_vp + '" name="id_vp[]">' +
+		                    '<td><input class="cantidad" type="number" value="' + cantidad + '" name="cantidad[]"></td>' +
+		                    '<td>' + selectHtml + '</td>' +
+		                    '<td>' + nombre + '</td>' +
+		                    '<td><input type="number" class="pre" value="' + precio + '" name="precio[]"></td>' +
+		                    '<td><input class="mon" type="text" value="' + monto + '" name="total_pre[]"></td>' +
+		                    '<td><button value="' + monto + '" class="borrar">x</button></td>' +
+		                    '</tr>';
+		            } else {
+		                precio = precioDefecto;
+		                monto = precio * cantidad;
+		                total = monto*1 + total*1;
+		                row = '<tr class="child">' +
+		                    '<input type="hidden" value="' + id_p + '" name="id_pro[]">' +
+		                    '<input type="hidden" value="' + unidad + '" name="unidad[]">' +
+		                    '<input type="hidden" name="id_vp[]" value="">' +
+		                    '<td><input class="cantidad" type="number" value="' + cantidad + '" name="cantidad[]"></td>' +
+		                    '<td style="text-transform:uppercase;">' + unidad + '</td>' +
+		                    '<td>' + nombre + '</td>' +
+		                    '<td><input type="number" class="pre" value="' + precio + '" name="precio[]"></td>' +
+		                    '<td><input class="mon" type="text" value="' + monto + '" name="total_pre[]"></td>' +
+		                    '<td><button value="' + monto + '" class="borrar">x</button></td>' +
+		                    '</tr>';
+		            }
+		            $('#items tr:last').after(row);
+		            $("#total").val(total);
+		        }
+		    });
 		});
+	    // cambio de variante: actualiza precio e id_vp oculto
+	    $('body').on('change', '.variante_sel', function() {
+	        var $opt = $(this).find('option:selected');
+	        var nuevoPrecio = parseFloat($opt.data('precio')) || 0;
+	        var $row = $(this).closest('tr');
+	        $row.find('.id_vp_input').val($opt.val());
+	        var anterior = parseFloat($row.find('.mon').val()) || 0;
+	        var cant = parseFloat($row.find('.cantidad').val()) || 1;
+	        var monto = nuevoPrecio * cant;
+	        $row.find('.pre').val(nuevoPrecio);
+	        $row.find('.mon').val(monto);
+	        $row.find('.borrar').val(monto);
+	        total = total - anterior + monto;
+	        $("#total").val(total);
+	    });
+
 	    //borrar item
 	    $("#items").on('click', '.borrar', function () {
 		    //$(this).closest('tr').remove();

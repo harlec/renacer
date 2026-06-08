@@ -26,6 +26,7 @@ if (isset($_POST) && !empty($_POST)) {
 	$unidad= $_POST['unidad'];
 	$precio = $_POST['precio'];
 	$cantidad = $_POST['cantidad'];
+	$id_vp_arr = isset($_POST['id_vp']) ? $_POST['id_vp'] : array();
 	//$monto = $_POST['monto'];
 	$total = $_POST['total'];
 	$total_pre = $_POST['total_pre'];
@@ -73,6 +74,36 @@ if (isset($_POST) && !empty($_POST)) {
 					$prod2 = Sdba::table('productos');
 					$prod2->where('id_producto', $id_p[$i]);
 					$prod2->update(array('precio_compra' => floatval($precio[$i])));
+				}
+			}
+
+			// Actualizar precioc_vp de variantes según la variante seleccionada
+			for ($i = 0; $i < count($id_p); $i++) {
+				if (!empty($id_vp_arr[$i])) {
+					$id_vp_sel = intval($id_vp_arr[$i]);
+					$vp_sel = Sdba::table('variante_p');
+					$vp_sel->where('id_vp', $id_vp_sel);
+					$vp_data = $vp_sel->get_one();
+					$cantidad_vp_sel = floatval($vp_data['cantidad_vp']);
+					if ($cantidad_vp_sel > 0) {
+						$precio_sel = floatval($precio[$i]);
+						$precio_unit = $precio_sel / $cantidad_vp_sel;
+						// Actualizar la variante seleccionada
+						$vp_upd = Sdba::table('variante_p');
+						$vp_upd->where('id_vp', $id_vp_sel);
+						$vp_upd->update(array('precioc_vp' => $precio_sel));
+						// Recalcular precioc_vp de las demás variantes del mismo producto
+						$vp_otros = Sdba::table('variante_p');
+						$vp_otros->where('producto_vp', $id_p[$i]);
+						$vp_otros_list = $vp_otros->get();
+						foreach ($vp_otros_list as $vo) {
+							if ($vo['id_vp'] != $id_vp_sel) {
+								$vp_upd2 = Sdba::table('variante_p');
+								$vp_upd2->where('id_vp', $vo['id_vp']);
+								$vp_upd2->update(array('precioc_vp' => round($precio_unit * floatval($vo['cantidad_vp']), 2)));
+							}
+						}
+					}
 				}
 			}
 
