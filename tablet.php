@@ -1148,9 +1148,23 @@ function printTicket(){
   })
   .then(r=>r.json())
   .then(data=>{
-    if(!data.ok || !data.url) throw new Error('Sin URL');
-    showPrintButton(data.url);
+    if(!data.ok || !data.b64) throw new Error('Sin datos ESC/POS');
+    // Decodificar base64 → bytes binarios ESC/POS
+    const bin   = atob(data.b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    // Enviar directo al servidor HTTP de RawBT en la misma tablet
+    return fetch('http://localhost:19100', {
+      method : 'POST',
+      mode   : 'no-cors',
+      body   : new Blob([bytes], {type:'application/octet-stream'}),
+    });
   })
+  .then(()=>toast('Imprimiendo ✓'))
+  .catch(err=>{
+    console.error(err);
+    toast('Error: verifica que RawBT esté abierto y conectado','err');
+  });
   .catch(err=>{
     console.error(err);
     toast('Error al generar el ticket','err');

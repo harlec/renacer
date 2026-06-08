@@ -108,13 +108,6 @@ $out .= iconv('UTF-8','CP850//TRANSLIT','Reclamos dentro de 13 dias.') . $LF;
 $out .= $LF . $LF . $LF;
 $out .= $cut;
 
-// ── Guardar en temp del sistema y devolver URL pública ─────
-$token = bin2hex(random_bytes(16));
-$file  = sys_get_temp_dir() . '/renacer_ticket_' . $token . '.bin';
-file_put_contents($file, $out);
-
-$protocol   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$ticket_url = "$protocol://{$_SERVER['HTTP_HOST']}/ticket_rawbt.php?token=$token";
-
+// ── Devolver bytes ESC/POS como base64 ─────────────────────
 ob_clean();
-echo json_encode(['ok' => true, 'url' => $ticket_url]);
+echo json_encode(['ok' => true, 'b64' => base64_encode($out)]);
