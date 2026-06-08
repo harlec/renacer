@@ -1139,32 +1139,50 @@ function printTicket(){
     phone    : phone,
   };
 
-  toast('Generando ticket...');
+  // Construir ticket en texto plano — rawbt: imprime lo que recibe directamente
+  const W   = 32;
+  const SEP = '-'.repeat(W);
+  const pad = (s, n) => String(s).substring(0, n).padEnd(n);
+  const rpad = (s, n) => String(s).substring(0, n).padStart(n);
 
-  fetch('/inc/ticket_escpos.php', {
-    method  : 'POST',
-    headers : {'Content-Type':'application/json'},
-    body    : JSON.stringify(payload),
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if(!data.ok || !data.b64) throw new Error('Sin datos ESC/POS');
-    // Decodificar base64 → bytes binarios ESC/POS
-    const bin   = atob(data.b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    // Enviar directo al servidor HTTP de RawBT en la misma tablet
-    return fetch('http://localhost:19100', {
-      method : 'POST',
-      mode   : 'no-cors',
-      body   : new Blob([bytes], {type:'application/octet-stream'}),
-    });
-  })
-  .then(()=>toast('Imprimiendo ✓'))
-  .catch(err=>{
-    console.error(err);
-    toast('Error: verifica que RawBT esté abierto y conectado','err');
+  let ticket = '';
+  ticket += 'DISTRIBUIDORA RENACER\n';
+  ticket += 'Y aunque tu principio haya sido\n';
+  ticket += 'pequeno, tu postrer estado sera\n';
+  ticket += 'muy grande. Job 8:7\n';
+  ticket += SEP + '\n';
+  ticket += 'NOTA VENTA\n';
+  ticket += SEP + '\n';
+  ticket += 'FECHA: ' + fecha + '\n';
+  if (clienteNombre) ticket += 'CLIENTE: ' + clienteNombre + '\n';
+  ticket += SEP + '\n';
+  ticket += pad('DESCRIPCION', W - 9) + rpad('TOTAL', 9) + '\n';
+  ticket += SEP + '\n';
+
+  cart.forEach(ci => {
+    const tot  = 'S/' + ci.total.toFixed(2);
+    const name = ci.name.substring(0, W);
+    if (name.length + tot.length + 1 <= W) {
+      ticket += pad(name, W - tot.length) + tot + '\n';
+    } else {
+      ticket += name.substring(0, W) + '\n';
+      ticket += rpad(tot, W) + '\n';
+    }
   });
+
+  ticket += SEP + '\n';
+  ticket += pad('TOTAL:', W - 10) + rpad('S/' + grand.toFixed(2), 10) + '\n';
+  ticket += SEP + '\n';
+  ticket += 'LETRAS: ' + numeroALetras(grand).substring(0, W - 8) + '\n';
+  ticket += 'VENDEDOR: ' + vendedor + '\n';
+  ticket += 'ENTREGA: ________________________\n';
+  ticket += SEP + '\n';
+  ticket += 'DIOS TE BENDIGA\n';
+  ticket += 'GRACIAS POR TU PREFERENCIA\n';
+  ticket += 'Reclamos dentro de 13 dias.\n';
+  ticket += '\n\n\n\n';
+
+  showPrintButton(null, ticket);
   .catch(err=>{
     console.error(err);
     toast('Error al generar el ticket','err');
@@ -1172,13 +1190,13 @@ function printTicket(){
 }
 
 // ── Botón imprimir con RawBT ───────────────────────────────
-function showPrintButton(url) {
+function showPrintButton(url, text) {
   const ov = document.getElementById('rawbt-overlay');
   const lk = document.getElementById('rawbt-link');
-  lk.href = 'rawbt:' + url;
+  // Si hay texto plano, usarlo directo; si hay URL, usar la URL
+  lk.href = text ? 'rawbt:' + text : 'rawbt:' + url;
   ov.style.display = 'flex';
-  // Auto-cerrar tras 15 segundos
-  setTimeout(()=>{ ov.style.display='none'; }, 15000);
+  setTimeout(()=>{ ov.style.display='none'; }, 20000);
 }
 
 // ── Toast ──────────────────────────────────────────────────
