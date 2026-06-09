@@ -49,6 +49,12 @@ if (isset($_POST) && !empty($_POST)) {
 			for ($i=0; $i < count($id_p) ; $i++) { 
 				if ($unidad[$i]=='TNE') {
 					$cantidad1 = $cantidad[$i]*50;
+				} elseif (!empty($id_vp_arr[$i])) {
+					$vp_q = Sdba::table('variante_p');
+					$vp_q->where('id_vp', intval($id_vp_arr[$i]));
+					$vp_q_data = $vp_q->get_one();
+					$cvp = floatval($vp_q_data['cantidad_vp']);
+					$cantidad1 = $cvp > 0 ? $cantidad[$i] * $cvp : $cantidad[$i];
 				} else {
 					$cantidad1 = $cantidad[$i];
 				}
