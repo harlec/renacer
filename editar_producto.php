@@ -173,7 +173,7 @@ foreach ($variantes_plist as $value) {
 															</div>
 															<div class="form-group">
 															    <label for="exampleInputPassword1">Stock</label>
-															    <input type="text" class="form-control" name="stock" id="stock" placeholder="Stock" value="<?php echo $stockp;?>">
+															    <input type="text" class="form-control" name="stock" id="stock" placeholder="Stock" value="<?php echo $stocktt;?>" readonly style="background:#f5f5f5;cursor:not-allowed;">
 															</div>
 											    		</div>
 											    		<div class="col-md-6">

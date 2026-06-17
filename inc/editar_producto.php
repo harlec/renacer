@@ -35,7 +35,7 @@ $mensajeError = 'hasta aca bien';
 			
 			$ventas = Sdba::table('productos');
 			$ventas->where('id_producto', $id);
-			$data = array('nom_prod'=>$nombre,'codigo_producto'=>'','precio_venta'=>$precio_v,'precio_compra'=>$_POST['precio_c'] ?? '','unidad_prod'=>$unidad,'categoria'=>$categoria,'stockp'=>$stockn);
+			$data = array('nom_prod'=>$nombre,'codigo_producto'=>'','precio_venta'=>$precio_v,'precio_compra'=>$_POST['precio_c'] ?? '','unidad_prod'=>$unidad,'categoria'=>$categoria);
 			$ventas->update($data);
 
 			//insertamos las variantes
@@ -46,44 +46,6 @@ $mensajeError = 'hasta aca bien';
 				}
 				$respuestaOk = true;
 				$mensajeError = 'entro';
-				//guardamos en stock
-				$stockQuery = Sdba::table('stock');
-				$stockQuery->where('producto', $id);
-				$stockQuery->order_by('id_stock', 'desc');
-				$st = $stockQuery->get_one();
-				$stockfv = $st['stockt'];
-
-				// Verificamos el stock
-				if($stockfv > $stockn){
-					$diferencia = $stockfv - $stockn;
-					$datas = array(
-						'id_stock' => '',
-						'producto' => $id,
-						'egreso' => $diferencia,
-						'stock' => $stockn,
-						'motivo' => 'aj',
-						'fv' => $fv,
-						'stockt' => $stockn,
-						'fecha' => $fecha
-					);	
-				}
-				elseif($stockfv < $stockn){  // ✅ Corregido: $stockn en lugar de $sctockn
-					$diferencia = $stockn - $stockfv;
-					$datas = array(
-						'id_stock' => '',
-						'producto' => $id,
-						'ingreso' => $diferencia,
-						'stock' => $stockn,
-						'motivo' => 'aj',
-						'fv' => $fv,
-						'stockt' => $stockn,
-						'fecha' => $fecha
-					);
-				}
-
-				// Insertar nuevo stock
-				$stockInsert = Sdba::table('stock');
-				$stockInsert->insert($datas);	
 
 
 		

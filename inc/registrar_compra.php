@@ -59,7 +59,7 @@ if (isset($_POST) && !empty($_POST)) {
 					$cantidad1 = $cantidad[$i];
 				}
 				$dventas = Sdba::table('detalle_compras');
-				$ddata = array('id_de_compra'=>'','compra'=>$venta_id,'producto'=>$id_p[$i],'cantidad'=>$cantidad[$i],'precio'=>$precio[$i],'total'=>$total_pre[$i],'estado'=>'0');
+				$ddata = array('id_de_compra'=>'','compra'=>$venta_id,'producto'=>$id_p[$i],'cantidad'=>$cantidad1,'precio'=>$precio[$i],'total'=>$total_pre[$i],'estado'=>'0');
 				$dventas->insert($ddata);
 
 				$stock = Sdba::table('stock');
