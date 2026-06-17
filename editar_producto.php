@@ -172,8 +172,13 @@ foreach ($variantes_plist as $value) {
 															    <input type="number" step="0.01" class="form-control" name="precio_c" value="<?php echo $precio_c; ?>" placeholder="Precio de compra">
 															</div>
 															<div class="form-group">
-															    <label for="exampleInputPassword1">Stock</label>
-															    <input type="text" class="form-control" name="stock" id="stock" placeholder="Stock" value="<?php echo $stocktt;?>" readonly style="background:#f5f5f5;cursor:not-allowed;">
+															    <label>Stock</label>
+															    <div class="input-group">
+															    	<input type="text" class="form-control" name="stock" id="stock" placeholder="Stock" value="<?php echo $stocktt;?>" readonly style="background:#f5f5f5;cursor:not-allowed;">
+															    	<span class="input-group-btn">
+															    		<button type="button" class="btn btn-warning" data-toggle="modal" data-target="#modalStock"><i class="fas fa-sliders-h"></i> Ajustar</button>
+															    	</span>
+															    </div>
 															</div>
 											    		</div>
 											    		<div class="col-md-6">
@@ -266,6 +271,48 @@ foreach ($variantes_plist as $value) {
 				</div>	
 			</div> -->
 		</div>
+
+	<!-- Modal Ajustar Stock -->
+	<div class="modal fade" id="modalStock" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-sm" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">Ajustar Stock</h4>
+				</div>
+				<div class="modal-body">
+					<p>Stock actual: <strong id="stock_actual_modal"><?php echo $stocktt;?></strong></p>
+					<div class="form-group">
+						<div class="btn-group btn-group-justified" data-toggle="buttons">
+							<label class="btn btn-default active">
+								<input type="radio" name="tipo_ajuste" value="ingreso" checked> Ingreso
+							</label>
+							<label class="btn btn-default">
+								<input type="radio" name="tipo_ajuste" value="egreso"> Egreso
+							</label>
+							<label class="btn btn-default">
+								<input type="radio" name="tipo_ajuste" value="ajuste"> Ajuste
+							</label>
+						</div>
+					</div>
+					<div class="form-group">
+						<label id="lbl_cantidad">Cantidad a ingresar</label>
+						<input type="number" class="form-control" id="modal_cantidad" min="0" placeholder="0">
+						<small id="ajuste_hint" class="text-muted" style="display:none;">El sistema calculará la diferencia automáticamente.</small>
+					</div>
+					<div class="form-group">
+						<label>Motivo <small class="text-muted">(opcional)</small></label>
+						<input type="text" class="form-control" id="modal_motivo" placeholder="Ej: inventario físico">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+					<button type="button" class="btn btn-success" id="btn_guardar_stock">Guardar</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	 	<!-- Tab panes -->
 		
 
@@ -412,7 +459,79 @@ foreach ($variantes_plist as $value) {
 		});
 
 		
-	    console.log( "ready!" );
+	
+		// Modal ajustar stock
+		$('input[name="tipo_ajuste"]').on('change', function() {
+			var tipo = $('input[name="tipo_ajuste"]:checked').val();
+			if (tipo === 'ingreso') {
+				$('#lbl_cantidad').text('Cantidad a ingresar');
+				$('#ajuste_hint').hide();
+			} else if (tipo === 'egreso') {
+				$('#lbl_cantidad').text('Cantidad a egresar');
+				$('#ajuste_hint').hide();
+			} else {
+				$('#lbl_cantidad').text('Ajustar a');
+				$('#ajuste_hint').show();
+			}
+		});
+
+		$('#modalStock').on('show.bs.modal', function() {
+			$('#modal_cantidad').val('');
+			$('#modal_motivo').val('');
+			$('input[name="tipo_ajuste"][value="ingreso"]').prop('checked', true).closest('label').addClass('active').siblings().removeClass('active');
+			$('#lbl_cantidad').text('Cantidad a ingresar');
+			$('#ajuste_hint').hide();
+		});
+
+		$('#btn_guardar_stock').on('click', function() {
+			var tipo_ajuste = $('input[name="tipo_ajuste"]:checked').val();
+			var cantidad_input = parseFloat($('#modal_cantidad').val());
+			var motivo = $('#modal_motivo').val() || tipo_ajuste;
+			var stock_actual = parseFloat($('#stock').val()) || 0;
+
+			if (isNaN(cantidad_input) || cantidad_input < 0) {
+				swal('Advertencia', 'Ingrese una cantidad válida', 'warning');
+				return;
+			}
+
+			var tipo, cantidad;
+			if (tipo_ajuste === 'ingreso') {
+				tipo = 1; cantidad = cantidad_input;
+			} else if (tipo_ajuste === 'egreso') {
+				tipo = 2; cantidad = cantidad_input;
+			} else {
+				if (cantidad_input > stock_actual) {
+					tipo = 1; cantidad = cantidad_input - stock_actual;
+				} else if (cantidad_input < stock_actual) {
+					tipo = 2; cantidad = stock_actual - cantidad_input;
+				} else {
+					swal('Aviso', 'El stock ya es ' + stock_actual, 'info');
+					return;
+				}
+			}
+
+			$.ajax({
+				cache: false,
+				type: 'POST',
+				dataType: 'json',
+				url: '/inc/agregar_stock.php',
+				data: { producto: <?php echo $id; ?>, tipo: tipo, cantidad: cantidad, motivo: motivo, fv: '', total: stock_actual },
+				success: function(response) {
+					if (!response.respuesta) {
+						swal('Advertencia', response.mensaje, 'warning');
+					} else {
+						var nuevo_stock = tipo_ajuste === 'ajuste' ? cantidad_input : (tipo === 1 ? stock_actual + cantidad : stock_actual - cantidad);
+						$('#stock').val(nuevo_stock);
+						$('#stock_actual_modal').text(nuevo_stock);
+						$('#modalStock').modal('hide');
+						swal('Perfecto', 'Stock actualizado', 'success');
+					}
+				},
+				error: function() { swal('Advertencia', 'Error General del Sistema', 'warning'); }
+			});
+		});
+
+    console.log( "ready!" );
 	});
 		
 	</script>
