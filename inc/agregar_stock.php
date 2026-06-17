@@ -1,28 +1,31 @@
 <?php
 session_start();
 
-include('sdba/sdba.php'); // include main file
+include('sdba/sdba.php');
 
 $respuestaOk = false;
-$mensajeError = 'hasta aca bien';
+$mensajeError = 'Error al procesar';
 
-	$total = $_POST['total'];
-	$producto = $_POST['producto'];
-	$tipo = $_POST['tipo'];
-	$fv = $_POST['fv'];
-	if(empty($fv)){
-		$fv = '0000-00-00';
+try {
+	$producto = isset($_POST['producto']) ? intval($_POST['producto']) : 0;
+	$tipo     = isset($_POST['tipo'])     ? $_POST['tipo']             : '1';
+	$cantidad = isset($_POST['cantidad']) ? floatval($_POST['cantidad']): 0;
+	$motivo   = 'A-' . (isset($_POST['motivo']) && $_POST['motivo'] !== '' ? $_POST['motivo'] : 'ajuste');
+	$fv       = (isset($_POST['fv']) && !empty($_POST['fv'])) ? $_POST['fv'] : '0000-00-00';
+	$fecha    = date("Y-m-d");
+
+	if (!$producto || $cantidad <= 0) {
+		$mensajeError = 'Datos incompletos';
+		echo json_encode(array('respuesta' => false, 'mensaje' => $mensajeError, 'id' => $producto));
+		exit;
 	}
-	$cantidad = $_POST['cantidad'];
-	$motivo = 'A-'.$_POST['motivo'];
-	$respuestaOk = true;
-	$fecha = date("Y-m-d");
 
-	$stock = Sdba::table('stock');
-	$stock->where('producto',$producto);
-	$stock->order_by('id_stock','desc');
-	$st = $stock->get_one();
-	$stockfv = $st['stockt'];
+	// Stock actual desde la tabla
+	$stockQ = Sdba::table('stock');
+	$stockQ->where('producto', $producto);
+	$stockQ->order_by('id_stock', 'desc');
+	$st = $stockQ->get_one();
+	$stockfv = ($st && isset($st['stockt'])) ? floatval($st['stockt']) : 0;
 
 	if ($tipo == '1') {
 		$stockf = $stockfv + $cantidad;
@@ -39,10 +42,14 @@ $mensajeError = 'hasta aca bien';
 	$prod->where('id_producto', $producto);
 	$prod->update(array('stockp' => $stockf));
 
-		$salidaJson = array('respuesta' => $respuestaOk,
-							'mensaje' => $mensajeError,
-							'id' => $producto);
+	$respuestaOk = true;
+	$mensajeError = 'ok';
 
-		echo json_encode($salidaJson);
+} catch (Exception $e) {
+	$mensajeError = $e->getMessage();
+} catch (Error $e) {
+	$mensajeError = $e->getMessage();
+}
 
+echo json_encode(array('respuesta' => $respuestaOk, 'mensaje' => $mensajeError, 'id' => $producto));
 ?>
