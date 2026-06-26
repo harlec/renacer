@@ -73,12 +73,14 @@ LIMIT 20")->result();
 $productos_stock_bajo = Sdba::db()->query("SELECT codigo_producto, nom_prod, stockp, precio_venta FROM productos WHERE stockp < 10 AND stockp > 0 ORDER BY stockp ASC")->result();
 
 // ── GRÁFICA ÚLTIMOS 7 DÍAS ──────────────────────────────────────────────────
+$dias_es = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 $dias_chart = [];
 $labels_chart = [];
 for ($i = 6; $i >= 0; $i--) {
     $d = date('Y-m-d', strtotime("-$i days"));
     $dias_chart[] = $d;
-    $labels_chart[] = date('d/m', strtotime($d));
+    $dia_nombre = $dias_es[(int)date('w', strtotime($d))];
+    $labels_chart[] = date('d/m', strtotime($d)) . ' ' . $dia_nombre;
 }
 
 // Totales diarios
@@ -487,10 +489,10 @@ $hoy_idx       = 6; // último elemento
                     },
                     tooltip: {
                         callbacks: {
-                            label: ctx => ' S/ ' + ctx.parsed.y.toLocaleString('es-PE', { minimumFractionDigits: 2 }),
+                            label: ctx => '  ' + ctx.dataset.label + ':  S/ ' + ctx.parsed.y.toLocaleString('es-PE', { minimumFractionDigits: 2 }),
                             footer: items => {
                                 const total = items.reduce((s, i) => s + i.parsed.y, 0);
-                                return 'Total: S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 2 });
+                                return 'Total día:  S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 2 });
                             }
                         }
                     }
