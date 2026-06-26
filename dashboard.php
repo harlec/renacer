@@ -109,8 +109,8 @@ foreach ($result_users as $r) {
     $users_data[$nombre][$r['dia']] = (float)$r['monto'];
 }
 
-// Colores por usuario
-$user_colors = ['#ff9a34','#4a9cdb','#2ecc8a','#e74c6e','#a29bfe','#fd79a8'];
+// Colores por usuario — paleta: negro / navy / naranja / derivados
+$user_colors = ['#ff9a34','#1e3a4c','#6a9fb5','#c2520a','#2d5a72','#a8c8d8'];
 $user_datasets = [];
 $ci = 0;
 foreach ($users_data as $nombre => $por_dia) {
@@ -144,8 +144,16 @@ $hoy_idx       = 6; // último elemento
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous" media="print" onload="this.media='all'">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+    /* ── paleta Color Hunt ────────────────────────── */
+    :root {
+        --c-black:  #1a1a1a;
+        --c-navy:   #1e3a4c;
+        --c-orange: #ff9a34;
+        --c-light:  #f0f0f0;
+    }
+
     /* ── reset layout ─────────────────────────────── */
-    body.dashboard { background: #f4f5f7; }
+    body.dashboard { background: var(--c-light); }
     .dashboard .kbg { margin-top: 56px; padding: 0; position: static; }
     .dash-wrap { padding: 20px 24px; }
 
@@ -183,9 +191,9 @@ $hoy_idx       = 6; // último elemento
     }
     .stat-card .sc-value {
         font-size: 28px; font-weight: 700;
-        color: #ff6b2b; line-height: 1.1;
+        color: var(--c-orange); line-height: 1.1;
     }
-    .stat-card .sc-value.dark { color: #2d3436; }
+    .stat-card .sc-value.dark { color: var(--c-navy); }
     .stat-card .sc-sub { font-size: 12px; color: #bbb; }
 
     /* ── panel genérico ───────────────────────────── */
@@ -202,7 +210,7 @@ $hoy_idx       = 6; // último elemento
         font-size: 13px; font-weight: 600; color: #444;
         display: flex; align-items: center; justify-content: space-between;
     }
-    .dash-panel-head .ph-icon { color: #ff9a34; margin-right: 6px; font-size: 12px; }
+    .dash-panel-head .ph-icon { color: var(--c-orange); margin-right: 6px; font-size: 12px; }
     .dash-panel-head .ph-total { font-size: 13px; font-weight: 700; color: #2d3436; }
     .dash-panel-body { padding: 6px 0; }
     .dash-panel-body .table { margin-bottom: 0; font-size: 13px; }
@@ -219,7 +227,7 @@ $hoy_idx       = 6; // último elemento
         color: #444; vertical-align: middle;
     }
     .dash-panel-body .table > tbody > tr:hover > td { background: #fafafa; }
-    .dash-panel-body .table > tbody > tr > td.monto { color: #27ae60; font-weight: 600; }
+    .dash-panel-body .table > tbody > tr > td.monto { color: var(--c-navy); font-weight: 600; }
     .dash-panel-body .table > tbody > tr > td.num { color: #555; font-weight: 600; }
 
     /* stock badge */
@@ -455,7 +463,7 @@ $hoy_idx       = 6; // último elemento
 
                     ctx.save();
                     ctx.font = 'bold 11px system-ui, sans-serif';
-                    ctx.fillStyle = isHoy ? '#e05a00' : '#666';
+                    ctx.fillStyle = isHoy ? '#cc7a1a' : '#666';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(label, bar.x, bar.y - 4);
