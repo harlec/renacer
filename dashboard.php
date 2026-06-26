@@ -110,7 +110,7 @@ foreach ($result_users as $r) {
 }
 
 // Colores por usuario — paleta: negro / navy / naranja / derivados
-$user_colors = ['#ff9a34','#1e3a4c','#6a9fb5','#c2520a','#2d5a72','#a8c8d8'];
+$user_colors = ['#ff5023','#1e3a4c','#6a9fb5','#c2520a','#2d5a72','#a8c8d8'];
 $user_datasets = [];
 $ci = 0;
 foreach ($users_data as $nombre => $por_dia) {
@@ -148,7 +148,7 @@ $hoy_idx       = 6; // último elemento
     :root {
         --c-black:  #1a1a1a;
         --c-navy:   #1e3a4c;
-        --c-orange: #ff9a34;
+        --c-orange: #ff5023;
         --c-light:  #f0f0f0;
     }
 
@@ -463,7 +463,7 @@ $hoy_idx       = 6; // último elemento
 
                     ctx.save();
                     ctx.font = 'bold 11px system-ui, sans-serif';
-                    ctx.fillStyle = isHoy ? '#cc7a1a' : '#666';
+                    ctx.fillStyle = isHoy ? '#cc3a10' : '#666';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(label, bar.x, bar.y - 4);
