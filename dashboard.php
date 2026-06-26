@@ -428,15 +428,41 @@ $hoy_idx       = 6; // último elemento
         const datasets = <?= $datasets_json ?>;
         const hoyIdx   = <?= $hoy_idx ?>;
 
-        // Si hay un solo dataset (sin usuarios registrados), usar color por defecto
         if (datasets.length === 0) return;
 
-        // Resaltar barra de hoy: oscurecer cada dataset en el índice de hoy
+        // Resaltar barra de hoy
         datasets.forEach(ds => {
             if (Array.isArray(ds.backgroundColor)) return;
             const base = ds.backgroundColor;
             ds.backgroundColor = labels.map((_, i) => i === hoyIdx ? base : base + 'aa');
         });
+
+        // Plugin inline: total encima de cada barra apilada
+        const totalLabelPlugin = {
+            id: 'stackedTotalLabel',
+            afterDatasetsDraw(chart) {
+                const { ctx, data } = chart;
+                const lastMeta = chart.getDatasetMeta(data.datasets.length - 1);
+
+                lastMeta.data.forEach((bar, i) => {
+                    const total = data.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0);
+                    if (total === 0) return;
+
+                    const isHoy = i === hoyIdx;
+                    const label = total >= 1000
+                        ? 'S/ ' + (total / 1000).toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'k'
+                        : 'S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+                    ctx.save();
+                    ctx.font = 'bold 11px system-ui, sans-serif';
+                    ctx.fillStyle = isHoy ? '#e05a00' : '#666';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(label, bar.x, bar.y - 4);
+                    ctx.restore();
+                });
+            }
+        };
 
         const ctx = document.getElementById('chartVentas7dias').getContext('2d');
         new Chart(ctx, {
@@ -445,6 +471,7 @@ $hoy_idx       = 6; // último elemento
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 24 } },
                 plugins: {
                     legend: {
                         position: 'bottom',
@@ -452,7 +479,11 @@ $hoy_idx       = 6; // último elemento
                     },
                     tooltip: {
                         callbacks: {
-                            label: ctx => ' S/ ' + ctx.parsed.y.toLocaleString('es-PE', { minimumFractionDigits: 2 })
+                            label: ctx => ' S/ ' + ctx.parsed.y.toLocaleString('es-PE', { minimumFractionDigits: 2 }),
+                            footer: items => {
+                                const total = items.reduce((s, i) => s + i.parsed.y, 0);
+                                return 'Total: S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 2 });
+                            }
                         }
                     }
                 },
@@ -471,7 +502,8 @@ $hoy_idx       = 6; // último elemento
                         }
                     }
                 }
-            }
+            },
+            plugins: [totalLabelPlugin]
         });
     })();
     </script>
