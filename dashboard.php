@@ -80,7 +80,7 @@ for ($i = 6; $i >= 0; $i--) {
     $d = date('Y-m-d', strtotime("-$i days"));
     $dias_chart[] = $d;
     $dia_nombre = $dias_es[(int)date('w', strtotime($d))];
-    $labels_chart[] = date('d/m', strtotime($d)) . ' ' . $dia_nombre;
+    $labels_chart[] = $dia_nombre . ' ' . date('d/m', strtotime($d));
 }
 
 // Totales diarios
