@@ -470,10 +470,11 @@ $hoy_idx       = 6; // último elemento
             id: 'stackedTotalLabel',
             afterDatasetsDraw(chart) {
                 const { ctx, data } = chart;
-                const lastMeta = chart.getDatasetMeta(data.datasets.length - 1);
+                const lastBarIdx = data.datasets.map((ds, i) => ds.type !== 'line' ? i : -1).filter(i => i >= 0).pop();
+                const lastMeta = chart.getDatasetMeta(lastBarIdx);
 
                 lastMeta.data.forEach((bar, i) => {
-                    const total = data.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0);
+                    const total = data.datasets.filter(ds => ds.type !== 'line').reduce((sum, ds) => sum + (ds.data[i] || 0), 0);
                     if (total === 0) return;
 
                     const isHoy = i === hoyIdx;
