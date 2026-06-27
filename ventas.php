@@ -69,16 +69,16 @@ $conn_tmp->close();
 											<div class="panel-body">
 											    <table id="datos" class="table table-hover"> 
 											    	<thead> 
-											    		<tr> 
+											    		<tr>
 											    			<th>#</th>
-											    			<th>Venta</th> 
+											    			<th>Venta</th>
+											    			<th>Usuario</th>
 											    			<th>Tipo</th>
 											    			<th>Forma</th>
-											    			<th>Fecha</th> 
-											    			<th>Monto</th> 
-											    			<th>Comprobante</th> 
+											    			<th>Fecha</th>
+											    			<th>Monto</th>
+											    			<th>Comprobante</th>
 											    			<th>Opciones</th>
-
 											    		</tr> 
 											    	</thead> 
 											    	<tbody></tbody> 
@@ -125,8 +125,9 @@ $conn_tmp->close();
 				{ data: 2 },
 				{ data: 3 },
 				{ data: 4 },
-				{ data: 5, orderable: false },
-				{ data: 6, orderable: false }
+				{ data: 5 },
+				{ data: 6, orderable: false },
+				{ data: 7, orderable: false }
 			],
 		    language: {
 		        info: "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",

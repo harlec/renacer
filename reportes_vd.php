@@ -5,56 +5,44 @@ if ($_SESSION['type']=='operador') {
 }
 
 include('inc/sdba/sdba.php'); // include main file
-$ventas = Sdba::table('ventas');
-//$ventas->left_join('categoria','categorias','id_categoria'); // creating table object
-$ventas->where('fecha',date('Y-m-d'));
-$ventas_list = $ventas->get(); 
+
+$hoy = date('Y-m-d');
+$ventas_list = Sdba::db()->query("
+    SELECT v.*, c.tipo AS comp_tipo, c.numero AS comp_numero, c.url AS comp_url,
+           u.nombres AS nombre_usuario
+    FROM ventas v
+    LEFT JOIN comprobantes c ON c.venta = v.id_venta
+    LEFT JOIN usuarios u ON u.id_usuario = v.usuario
+    WHERE DATE(v.fecha) = '$hoy'
+    ORDER BY v.id_venta DESC
+")->result();
 
 $datos = '';
 $i = 1;
 foreach ($ventas_list as $value) {
 
-	$ocultar='';
+	$ocultar = '';
 	$comprobante = '';
-	$id = $value['id_venta'];
 
-	$ventas1 = Sdba::table('comprobantes'); // creating table object
-	$ventas1->where('venta', $id);
-	$ventas1->order_by('id_comprobante','desc');
-	$ventas_list1 = $ventas1->get_one();
-	
-	if ($value['estado']=='1') {
+	if ($value['estado'] == '1') {
 		$ocultar = 'ocultar';
-		$comprobante = '<a title="Ver comprobante" target="_BLANK" href="'.$ventas_list1['url'].'">'.$ventas_list1['tipo'].''.$ventas_list1['numero'].'</a>';
+		$comprobante = '<a title="Ver comprobante" target="_BLANK" href="'.htmlspecialchars($value['comp_url']).'">'.htmlspecialchars($value['comp_tipo'].$value['comp_numero']).'</a>';
 	}
-	if ($value['tipo']=='1') {
-		$tipo = 'Contado';
-	}
-	else{
-		$tipo = 'Credito';
-	}
-	switch ($value['forma']) {
-		case '1':
-			$forma = 'Efectivo';
-			break;
-		case '2':
-			$forma = 'Tar. Debito';
-			break;
-		case '3':
-			$forma = 'Tar. Crédito';
-			break;
-	}
+	$tipo  = ($value['tipo'] == '1') ? 'Contado' : 'Crédito';
+	$forma_map = ['1'=>'Efectivo','2'=>'Tar. Débito','3'=>'Tar. Crédito'];
+	$forma = $forma_map[$value['forma']] ?? '-';
+	$usuario_nombre = htmlspecialchars($value['nombre_usuario'] ?: '-', ENT_QUOTES, 'UTF-8');
 
-
-	$datos .='<tr> 
-    			<th scope="row">'.$i.'</th> 
+	$datos .= '<tr>
+    			<th scope="row">'.$i.'</th>
     			<td>v-'.$value['id_venta'].'</td>
+    			<td>'.$usuario_nombre.'</td>
     			<td>'.$tipo.'</td>
     			<td>'.$forma.'</td>
-    			<td>'.$value['fecha'].'</td> 
-    			<td>'.$value['total'].'</td> 
-    			<td>'.$comprobante.'</td> 
-    			<td><a title="Ver venta" class="" title="ver" href="ver_venta.php?id='.$value['id_venta'].'"><img src="assets/img/eye.png" /></a><a class="btn btn-success '.$ocultar.'" href="factura.php?id='.$value['id_venta'].'" title="factura electrónica"><i class="fas fa-file-invoice-dollar"></i></a><a class="btn btn-danger '.$ocultar.'" href="boleta.php?id='.$value['id_venta'].'" title="boleta electrónica"><i class="fab fa-bitcoin"></i></a><button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td> 
+    			<td>'.$value['fecha'].'</td>
+    			<td>'.$value['total'].'</td>
+    			<td>'.$comprobante.'</td>
+    			<td><a title="Ver venta" href="ver_venta.php?id='.$value['id_venta'].'"><img src="assets/img/eye.png" /></a><a class="btn btn-success '.$ocultar.'" href="factura.php?id='.$value['id_venta'].'" title="factura electrónica"><i class="fas fa-file-invoice-dollar"></i></a><a class="btn btn-danger '.$ocultar.'" href="boleta.php?id='.$value['id_venta'].'" title="boleta electrónica"><i class="fab fa-bitcoin"></i></a><button class="btn-custom" id="borrar" value="'.$value['id_venta'].'" title="borrar"><img src="assets/img/trash.png" /></button></td>
     		  </tr>';
     $i++;
 }
@@ -135,16 +123,16 @@ foreach ($ventas_list as $value) {
 											<div class="panel-body">
 											    <table id="datos" class="table table-hover"> 
 											    	<thead> 
-											    		<tr> 
+											    		<tr>
 											    			<th>#</th>
-											    			<th>Venta</th> 
+											    			<th>Venta</th>
+											    			<th>Usuario</th>
 											    			<th>Tipo</th>
 											    			<th>Forma</th>
-											    			<th>Fecha</th> 
-											    			<th>Monto</th> 
-											    			<th>Comprobante</th> 
+											    			<th>Fecha</th>
+											    			<th>Monto</th>
+											    			<th>Comprobante</th>
 											    			<th>Opciones</th>
-
 											    		</tr> 
 											    	</thead> 
 											    	<tbody> 
@@ -254,22 +242,13 @@ foreach ($ventas_list as $value) {
 
                 // Total over all pages
                 total = api
-                    .column(5)
+                    .column(6)
                     .data()
                     .reduce( function (a, b) {
                         return Math.ceil(intVal(a) + intVal(b));
                     },0 );
 
-                // Total over this page
-                // pageTotal = api
-                //     .column( 4, { page: 'current'} )
-                //     .data()
-                //     .reduce( function (a, b) {
-                //         return intVal(a) + intVal(b);
-                //     }, 0 );
-
-                // Update footer
-                $( api.column( 5 ).footer() ).html(total);
+                $( api.column( 6 ).footer() ).html(total);
                 console.log(total);
             }
 		});		

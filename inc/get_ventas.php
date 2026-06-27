@@ -62,10 +62,12 @@ $sql = "
         COALESCE(SUM(dv.total), 0) AS monto,
         MAX(c.tipo)   AS comp_tipo,
         MAX(c.numero) AS comp_numero,
-        MAX(c.url)    AS comp_url
+        MAX(c.url)    AS comp_url,
+        u.nombres     AS nombre_usuario
     FROM ventas v
     LEFT JOIN detalle_ventas dv ON dv.venta = v.id_venta
     LEFT JOIN comprobantes   c  ON c.venta  = v.id_venta
+    LEFT JOIN usuarios       u  ON u.id_usuario = v.usuario
     WHERE v.estado != '2' $where_user $where_search
     GROUP BY v.id_venta
     ORDER BY $order_by
@@ -103,6 +105,7 @@ while ($row = $result->fetch_assoc()) {
 
     $data[] = [
         'v-' . $row['id_venta'],
+        $row['nombre_usuario'] ?: '-',
         $tipo,
         $forma,
         $row['fecha'],
