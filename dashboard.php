@@ -477,9 +477,7 @@ $hoy_idx       = 6; // último elemento
                     if (total === 0) return;
 
                     const isHoy = i === hoyIdx;
-                    const label = total >= 1000
-                        ? 'S/ ' + (total / 1000).toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'k'
-                        : 'S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    const label = 'S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                     ctx.save();
                     ctx.font = 'bold 11px system-ui, sans-serif';
