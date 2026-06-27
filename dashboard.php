@@ -480,7 +480,7 @@ $hoy_idx       = 6; // último elemento
                     const label = 'S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                     ctx.save();
-                    ctx.font = 'bold 11px system-ui, sans-serif';
+                    ctx.font = 'bold 16px system-ui, sans-serif';
                     ctx.fillStyle = isHoy ? '#cc3a10' : '#666';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'bottom';
