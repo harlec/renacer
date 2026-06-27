@@ -508,11 +508,6 @@ $hoy_idx       = 6; // último elemento
                             label: ctx => {
                                 if (ctx.dataset.type === 'line') return null;
                                 return '  ' + ctx.dataset.label + ':  S/ ' + ctx.parsed.y.toLocaleString('es-PE', { minimumFractionDigits: 2 });
-                            },
-                            footer: items => {
-                                const total = items.filter(i => i.dataset.type !== 'line').reduce((s, i) => s + i.parsed.y, 0);
-                                if (total === 0) return '';
-                                return 'Total día:  S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 2 });
                             }
                         }
                     }
