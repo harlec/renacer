@@ -111,8 +111,8 @@ foreach ($result_users as $r) {
     $users_data[$nombre][$r['dia']] = (float)$r['monto'];
 }
 
-// Colores por usuario — paleta: negro / navy / naranja / derivados
-$user_colors = ['#ff5023','#1e3a4c','#6a9fb5','#c2520a','#2d5a72','#a8c8d8'];
+// Colores por usuario: azul, rojo, verde, naranja, pasteles
+$user_colors = ['#4472c4','#e05252','#70c44b','#ff9a34','#a78bfa','#67c6d6','#f9a8d4'];
 $user_datasets = [];
 $ci = 0;
 foreach ($users_data as $nombre => $por_dia) {
@@ -121,14 +121,16 @@ foreach ($users_data as $nombre => $por_dia) {
         'label'           => $nombre,
         'data'            => array_values($por_dia),
         'backgroundColor' => $color,
-        'borderRadius'    => 4,
+        'borderRadius'    => 3,
         'borderSkipped'   => false,
+        'stack'           => 'usuarios',
     ];
     $ci++;
 }
 
 $labels_json   = json_encode($labels_chart);
 $datasets_json = json_encode($user_datasets);
+$totales_json  = json_encode(array_values($totales_chart));
 $hoy_idx       = 6; // último elemento
 ?>
 <!DOCTYPE html>
@@ -436,6 +438,7 @@ $hoy_idx       = 6; // último elemento
     (function () {
         const labels   = <?= $labels_json ?>;
         const datasets = <?= $datasets_json ?>;
+        const totales  = <?= $totales_json ?>;
         const hoyIdx   = <?= $hoy_idx ?>;
 
         if (datasets.length === 0) return;
@@ -444,7 +447,22 @@ $hoy_idx       = 6; // último elemento
         datasets.forEach(ds => {
             if (Array.isArray(ds.backgroundColor)) return;
             const base = ds.backgroundColor;
-            ds.backgroundColor = labels.map((_, i) => i === hoyIdx ? base : base + 'aa');
+            ds.backgroundColor = labels.map((_, i) => i === hoyIdx ? base : base + 'bb');
+        });
+
+        // Línea de total diario
+        datasets.push({
+            type: 'line',
+            label: 'Total día',
+            data: totales,
+            borderColor: '#1e3a4c',
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            pointBackgroundColor: labels.map((_, i) => i === hoyIdx ? '#ff5023' : '#1e3a4c'),
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            tension: 0.35,
+            order: -1,
         });
 
         // Plugin inline: total encima de cada barra apilada
@@ -489,9 +507,13 @@ $hoy_idx       = 6; // último elemento
                     },
                     tooltip: {
                         callbacks: {
-                            label: ctx => '  ' + ctx.dataset.label + ':  S/ ' + ctx.parsed.y.toLocaleString('es-PE', { minimumFractionDigits: 2 }),
+                            label: ctx => {
+                                if (ctx.dataset.type === 'line') return null;
+                                return '  ' + ctx.dataset.label + ':  S/ ' + ctx.parsed.y.toLocaleString('es-PE', { minimumFractionDigits: 2 });
+                            },
                             footer: items => {
-                                const total = items.reduce((s, i) => s + i.parsed.y, 0);
+                                const total = items.filter(i => i.dataset.type !== 'line').reduce((s, i) => s + i.parsed.y, 0);
+                                if (total === 0) return '';
                                 return 'Total día:  S/ ' + total.toLocaleString('es-PE', { minimumFractionDigits: 2 });
                             }
                         }
