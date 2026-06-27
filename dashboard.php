@@ -501,7 +501,10 @@ $hoy_idx       = 6; // último elemento
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: { font: { size: 12 }, boxWidth: 12, padding: 16 }
+                        labels: {
+                            font: { size: 12 }, boxWidth: 12, padding: 16,
+                            filter: (item, data) => data.datasets[item.datasetIndex].type !== 'line'
+                        }
                     },
                     tooltip: {
                         callbacks: {
