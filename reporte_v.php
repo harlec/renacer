@@ -241,25 +241,14 @@ foreach ($ventas_list1 as $value) {
                             i : 0;
                 };
 
-                // Total over all pages
-                total = api
+                var total = api
                     .column(6)
                     .data()
-                    .reduce( function (a, b) {
-                        return Math.ceil(intVal(a) + intVal(b));
-                    },0 );
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
 
-                // Total over this page
-                // pageTotal = api
-                //     .column( 4, { page: 'current'} )
-                //     .data()
-                //     .reduce( function (a, b) {
-                //         return intVal(a) + intVal(b);
-                //     }, 0 );
-
-                // Update footer
-                $( api.column( 6 ).footer() ).html(total);
-                console.log(total);
+                $( api.column(6).footer() ).html('S/ ' + total.toFixed(2));
             }
 		});	
 		

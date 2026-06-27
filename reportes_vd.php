@@ -240,16 +240,14 @@ foreach ($ventas_list as $value) {
                             i : 0;
                 };
 
-                // Total over all pages
-                total = api
+                var total = api
                     .column(6)
                     .data()
-                    .reduce( function (a, b) {
-                        return Math.ceil(intVal(a) + intVal(b));
-                    },0 );
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
 
-                $( api.column( 6 ).footer() ).html(total);
-                console.log(total);
+                $( api.column(6).footer() ).html('S/ ' + total.toFixed(2));
             }
 		});		
 	    console.log( "ready!" );
