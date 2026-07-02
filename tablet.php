@@ -753,8 +753,8 @@ body{
         </div>
         <div class="action-row">
           <button class="btn-save" id="btn-save" onclick="saveAndPrint()" disabled>💾 Guardar</button>
-          <button class="btn-pay" id="btn-pay" onclick="openTicket()" disabled>🧾 Cobrar</button>
-          <button class="btn-print-cart" id="btn-print" onclick="printTicket()" disabled title="Imprimir ticket">🖨️</button>
+          <!--<button class="btn-pay" id="btn-pay" onclick="openTicket()" disabled>🧾 Cobrar</button>
+          <button class="btn-print-cart" id="btn-print" onclick="printTicket()" disabled title="Imprimir ticket">🖨️</button>-->
         </div>
       </div>
     </div>
