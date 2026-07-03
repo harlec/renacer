@@ -44,8 +44,8 @@ if (isset($_POST) && !empty($_POST)) {
                 }
             }
 
-            // Normalizar nombre: sin espacios extra, primera letra de cada palabra en mayúscula
-            $cliente = ucwords(strtolower(trim($cliente)));
+            // Normalizar nombre: sin espacios extra, todo en mayúsculas
+            $cliente = strtoupper(trim($cliente));
             $cliente_safe = $conn->real_escape_string($cliente);
             // Buscar cliente ignorando mayúsculas/minúsculas
             $rc = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$cliente_safe') LIMIT 1");

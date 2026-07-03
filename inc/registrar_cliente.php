@@ -12,7 +12,7 @@ $mensajeError = 'hasta aca bien';
 
 //if (isset($_POST) && !empty($_POST)) {
 
-	$cliente = $_POST['cliente'];
+	$cliente = strtoupper(trim($_POST['cliente']));
 	$documento = $_POST['documento'];
 	$telefono = $_POST['telefono'];
 	$email = $_POST['email'];

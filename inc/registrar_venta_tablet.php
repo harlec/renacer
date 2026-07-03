@@ -56,7 +56,7 @@ if (!empty($_POST)) {
                 if ($cl) {
                     $id_cliente = (int)$cl['id_cliente'];
                 } else {
-                    $conn->query("INSERT INTO clientes (cliente, estado) VALUES ('Tablet', '1')");
+                    $conn->query("INSERT INTO clientes (cliente, estado) VALUES ('TABLET', '1')");
                     $id_cliente = (int)$conn->insert_id;
                 }
             }
