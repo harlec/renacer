@@ -172,7 +172,7 @@ foreach ($el as $value) {
 											    		</div>
 											    		<div class="col-md-6">
 											    			<label for="exampleInputPassword1">Cliente</label>
-											    				<input class="form-control" type="text" id="cliente" name="cliente">
+											    				<input class="form-control" style="text-transform:uppercase;" type="text" id="cliente" name="cliente" oninput="this.value = this.value.toUpperCase();">
 															    <!-- <select class="form-control" name="cliente">
 															    	<?php //echo $emplel; ?>
 															    </select> -->

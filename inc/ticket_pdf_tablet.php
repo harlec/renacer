@@ -12,7 +12,7 @@ $items    = $data['items']    ?? [];
 $grand    = floatval($data['grand']    ?? 0);
 $vendedor = htmlspecialchars($data['vendedor'] ?? '', ENT_QUOTES);
 $fecha    = htmlspecialchars($data['fecha']    ?? '', ENT_QUOTES);
-$cliente  = htmlspecialchars($data['cliente']  ?? '', ENT_QUOTES);
+$cliente  = htmlspecialchars(strtoupper($data['cliente']  ?? ''), ENT_QUOTES);
 $addr     = htmlspecialchars($data['addr']     ?? '', ENT_QUOTES);
 $phone    = htmlspecialchars($data['phone']    ?? '', ENT_QUOTES);
 

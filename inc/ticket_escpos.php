@@ -11,7 +11,7 @@ $items    = $data['items']    ?? [];
 $grand    = floatval($data['grand']    ?? 0);
 $vendedor = $data['vendedor'] ?? '';
 $fecha    = $data['fecha']    ?? '';
-$cliente  = $data['cliente']  ?? '';
+$cliente  = strtoupper($data['cliente']  ?? '');
 
 // ── Número a letras ────────────────────────────────────────
 require_once __DIR__ . '/vendor/autoload.php';
