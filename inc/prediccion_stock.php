@@ -100,3 +100,12 @@ function obtener_prediccion_stock($ventana_dias = 30, $umbral_urgente = 7, $umbr
 
     return ['prediccion' => $prediccion, 'sin_movimiento' => $sin_movimiento, 'agotados' => $agotados];
 }
+
+/**
+ * Convierte días restantes (float) en una frase corta y accionable.
+ */
+function formatear_dias_restantes($dias) {
+    if ($dias < 1) return 'No alcanza para mañana';
+    if ($dias < 2) return 'Alcanza solo para mañana';
+    return 'Quedan ' . (int)floor($dias) . ' días';
+}

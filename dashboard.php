@@ -464,7 +464,7 @@ $hoy_idx       = 6; // último elemento
                                         <tr>
                                             <td style="text-transform:uppercase"><?= htmlspecialchars($prod['nombre'] ?: 'Sin nombre', ENT_QUOTES, 'UTF-8') ?></td>
                                             <td style="text-align:center"><?= number_format($prod['stock_actual'], 2) ?></td>
-                                            <td style="text-align:center"><?= number_format($prod['dias_restantes'], 1) ?></td>
+                                            <td style="text-align:center"><?= formatear_dias_restantes($prod['dias_restantes']) ?></td>
                                             <td style="text-align:center">
                                                 <span class="stock-badge <?= $prod['nivel'] === 'urgente' ? 'critical' : ($prod['nivel'] === 'atencion' ? 'low' : 'normal') ?>"><?= ucfirst($prod['nivel']) ?></span>
                                             </td>
@@ -472,6 +472,9 @@ $hoy_idx       = 6; // último elemento
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        <div style="padding:10px 16px;border-top:1px solid #f7f7f7;text-align:right">
+                            <a href="reporte_prediccion_stock.php" style="font-size:12px;color:var(--c-navy);font-weight:600;text-decoration:none">Ver reporte completo <i class="fas fa-arrow-right" style="font-size:10px"></i></a>
                         </div>
                     </div>
                 </div>
