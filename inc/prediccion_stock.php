@@ -37,6 +37,7 @@ function obtener_prediccion_stock($ventana_dias = 30, $umbral_urgente = 7, $umbr
 
     $prediccion = [];
     $sin_movimiento = [];
+    $agotados = [];
 
     foreach ($rows as $r) {
         $stock_actual = round((float)$r['stock_actual'], 3);
@@ -51,6 +52,18 @@ function obtener_prediccion_stock($ventana_dias = 30, $umbral_urgente = 7, $umbr
                     'stock_actual'     => $stock_actual,
                 ];
             }
+            continue;
+        }
+
+        // Ya se agotó: es reactivo (ya pasó), no predictivo. Se reporta aparte
+        // para que no tape en el ranking a los productos que todavía se pueden salvar.
+        if ($stock_actual <= 0) {
+            $agotados[] = [
+                'id_producto'       => (int)$r['id_producto'],
+                'codigo_producto'   => $r['codigo_producto'],
+                'nombre'            => $r['nom_prod'],
+                'unidades_vendidas' => round($unidades, 3),
+            ];
             continue;
         }
 
@@ -83,6 +96,7 @@ function obtener_prediccion_stock($ventana_dias = 30, $umbral_urgente = 7, $umbr
     }
 
     usort($prediccion, fn($a, $b) => $a['dias_restantes'] <=> $b['dias_restantes']);
+    usort($agotados, fn($a, $b) => $b['unidades_vendidas'] <=> $a['unidades_vendidas']);
 
-    return ['prediccion' => $prediccion, 'sin_movimiento' => $sin_movimiento];
+    return ['prediccion' => $prediccion, 'sin_movimiento' => $sin_movimiento, 'agotados' => $agotados];
 }

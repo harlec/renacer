@@ -442,8 +442,13 @@ $hoy_idx       = 6; // último elemento
                     <div class="dash-panel">
                         <div class="dash-panel-head danger">
                             <span><i class="fas fa-chart-line ph-icon"></i> Predicción de Quiebre de Stock</span>
-                            <span style="font-size:12px;color:#e74c3c;font-weight:600"><?= count($prediccion_data['prediccion']) ?> productos</span>
+                            <span style="font-size:12px;color:#e74c3c;font-weight:600"><?= count($prediccion_data['prediccion']) ?> por agotarse</span>
                         </div>
+                        <?php if (count($prediccion_data['agotados']) > 0): ?>
+                        <div style="padding:8px 16px;background:#fde8e8;color:#c0392b;font-size:12px;font-weight:600;border-bottom:1px solid #fbdcdc">
+                            <i class="fas fa-times-circle"></i> <?= count($prediccion_data['agotados']) ?> productos ya sin stock (con ventas en los últimos 30 días)
+                        </div>
+                        <?php endif; ?>
                         <div class="dash-panel-body">
                             <table class="table">
                                 <thead>
@@ -456,7 +461,7 @@ $hoy_idx       = 6; // último elemento
                                 <tbody>
                                     <?php foreach ($prediccion_stock as $prod): ?>
                                         <tr>
-                                            <td style="text-transform:uppercase"><?= htmlspecialchars($prod['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td style="text-transform:uppercase"><?= htmlspecialchars($prod['nombre'] ?: 'Sin nombre', ENT_QUOTES, 'UTF-8') ?></td>
                                             <td style="text-align:center"><?= number_format($prod['dias_restantes'], 1) ?></td>
                                             <td style="text-align:center">
                                                 <span class="stock-badge <?= $prod['nivel'] === 'urgente' ? 'critical' : ($prod['nivel'] === 'atencion' ? 'low' : 'normal') ?>"><?= ucfirst($prod['nivel']) ?></span>
