@@ -15,11 +15,14 @@ $filas = '';
 
 foreach ($prediccion_data['prediccion'] as $prod) {
     $nivel_label = ucfirst($prod['nivel']);
+    $falta_manana_label = $prod['falta_manana'] > 0 ? number_format($prod['falta_manana'], 2) : 'Alcanza';
     $filas .= '<tr>
                 <td>' . htmlspecialchars($prod['codigo_producto'], ENT_QUOTES, 'UTF-8') . '</td>
                 <td style="text-transform:uppercase">' . htmlspecialchars($prod['nombre'] ?: 'Sin nombre', ENT_QUOTES, 'UTF-8') . '</td>
                 <td>' . number_format($prod['stock_actual'], 2) . '</td>
                 <td>' . number_format($prod['velocidad_diaria'], 2) . '</td>
+                <td>' . $falta_manana_label . '</td>
+                <td>' . number_format($prod['necesario_semana'], 2) . '</td>
                 <td>' . formatear_dias_restantes($prod['dias_restantes']) . '</td>
                 <td>' . $nivel_label . '</td>
               </tr>';
@@ -31,6 +34,8 @@ foreach ($prediccion_data['agotados'] as $prod) {
                 <td style="text-transform:uppercase">' . htmlspecialchars($prod['nombre'] ?: 'Sin nombre', ENT_QUOTES, 'UTF-8') . '</td>
                 <td>0.00</td>
                 <td>-</td>
+                <td>-</td>
+                <td>-</td>
                 <td>Ya sin stock</td>
                 <td>Agotado</td>
               </tr>';
@@ -41,6 +46,8 @@ foreach ($prediccion_data['sin_movimiento'] as $prod) {
                 <td>' . htmlspecialchars($prod['codigo_producto'], ENT_QUOTES, 'UTF-8') . '</td>
                 <td style="text-transform:uppercase">' . htmlspecialchars($prod['nombre'] ?: 'Sin nombre', ENT_QUOTES, 'UTF-8') . '</td>
                 <td>' . number_format($prod['stock_actual'], 2) . '</td>
+                <td>-</td>
+                <td>-</td>
                 <td>-</td>
                 <td>Sin ventas en 30 días</td>
                 <td>Sin movimiento</td>
@@ -128,6 +135,8 @@ foreach ($prediccion_data['sin_movimiento'] as $prod) {
                                                             <th>Producto</th>
                                                             <th>Stock Actual</th>
                                                             <th>Venta Diaria Prom.</th>
+                                                            <th>Falta para Mañana</th>
+                                                            <th>Necesario para la Semana</th>
                                                             <th>Cobertura</th>
                                                             <th>Estado</th>
                                                         </tr>

@@ -84,6 +84,9 @@ function obtener_prediccion_stock($ventana_dias = 30, $umbral_urgente = 7, $umbr
             $nivel = 'normal';
         }
 
+        $falta_manana     = round(max(0, $velocidad_diaria - $stock_actual), 2);
+        $necesario_semana = round($velocidad_diaria * 7, 2);
+
         $prediccion[] = [
             'id_producto'      => (int)$r['id_producto'],
             'codigo_producto'  => $r['codigo_producto'],
@@ -92,6 +95,8 @@ function obtener_prediccion_stock($ventana_dias = 30, $umbral_urgente = 7, $umbr
             'velocidad_diaria' => round($velocidad_diaria, 3),
             'dias_restantes'   => $dias_restantes,
             'nivel'            => $nivel,
+            'falta_manana'     => $falta_manana,
+            'necesario_semana' => $necesario_semana,
         ];
     }
 
@@ -107,5 +112,5 @@ function obtener_prediccion_stock($ventana_dias = 30, $umbral_urgente = 7, $umbr
 function formatear_dias_restantes($dias) {
     if ($dias < 1) return 'No alcanza para mañana';
     if ($dias < 2) return 'Alcanza solo para mañana';
-    return 'Quedan ' . (int)floor($dias) . ' días';
+    return 'Te queda para ' . (int)floor($dias) . ' días';
 }
