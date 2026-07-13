@@ -454,6 +454,7 @@ $hoy_idx       = 6; // último elemento
                                 <thead>
                                     <tr>
                                         <th>Producto</th>
+                                        <th style="text-align:center">Stock Actual</th>
                                         <th style="text-align:center">Días Restantes</th>
                                         <th style="text-align:center">Nivel</th>
                                     </tr>
@@ -462,6 +463,7 @@ $hoy_idx       = 6; // último elemento
                                     <?php foreach ($prediccion_stock as $prod): ?>
                                         <tr>
                                             <td style="text-transform:uppercase"><?= htmlspecialchars($prod['nombre'] ?: 'Sin nombre', ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td style="text-align:center"><?= number_format($prod['stock_actual'], 2) ?></td>
                                             <td style="text-align:center"><?= number_format($prod['dias_restantes'], 1) ?></td>
                                             <td style="text-align:center">
                                                 <span class="stock-badge <?= $prod['nivel'] === 'urgente' ? 'critical' : ($prod['nivel'] === 'atencion' ? 'low' : 'normal') ?>"><?= ucfirst($prod['nivel']) ?></span>
