@@ -72,6 +72,11 @@ LIMIT 20")->result();
 // STOCK BAJO (Productos con stock menor a 10)
 $productos_stock_bajo = Sdba::db()->query("SELECT codigo_producto, nom_prod, stockp, precio_venta FROM productos WHERE stockp < 10 AND stockp > 0 ORDER BY stockp ASC")->result();
 
+// PREDICCIÓN DE QUIEBRE DE STOCK (velocidad de venta últimos 30 días)
+require_once('inc/prediccion_stock.php');
+$prediccion_data = obtener_prediccion_stock(30);
+$prediccion_stock = array_slice($prediccion_data['prediccion'], 0, 10);
+
 // ── GRÁFICA ÚLTIMOS 7 DÍAS ──────────────────────────────────────────────────
 $dias_es = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 $dias_chart = [];
@@ -243,6 +248,7 @@ $hoy_idx       = 6; // último elemento
     }
     .stock-badge.low { background: #fff3cd; color: #856404; }
     .stock-badge.critical { background: #fde8e8; color: #c0392b; }
+    .stock-badge.normal { background: #eafaf1; color: #1e8449; }
 
     /* ── gráfica 7 días ───────────────────────────── */
     .chart-panel { padding: 20px; }
@@ -394,39 +400,76 @@ $hoy_idx       = 6; // último elemento
                 </div>
             </div>
 
-            <!-- ── Fila 4: Stock bajo ── -->
-            <?php if (count($productos_stock_bajo) > 0): ?>
-            <div class="dash-panel">
-                <div class="dash-panel-head danger">
-                    <span><i class="fas fa-box-open ph-icon"></i> Alertas de Stock Bajo</span>
-                    <span style="font-size:12px;color:#e74c3c;font-weight:600"><?= count($productos_stock_bajo) ?> productos</span>
+            <!-- ── Fila 4: Stock bajo + Predicción de quiebre ── -->
+            <div class="row" style="margin:0 -7px;">
+                <?php if (count($productos_stock_bajo) > 0): ?>
+                <div class="col-md-6" style="padding:0 7px;">
+                    <div class="dash-panel">
+                        <div class="dash-panel-head danger">
+                            <span><i class="fas fa-box-open ph-icon"></i> Alertas de Stock Bajo</span>
+                            <span style="font-size:12px;color:#e74c3c;font-weight:600"><?= count($productos_stock_bajo) ?> productos</span>
+                        </div>
+                        <div class="dash-panel-body">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Producto</th>
+                                        <th style="text-align:center">Stock</th>
+                                        <th style="text-align:right">Precio</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach (array_slice($productos_stock_bajo, 0, 15) as $prod): ?>
+                                        <tr>
+                                            <td style="color:#999;font-size:12px"><?= htmlspecialchars($prod['codigo_producto'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td style="text-transform:uppercase"><?= htmlspecialchars($prod['nom_prod'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td style="text-align:center">
+                                                <span class="stock-badge <?= $prod['stockp'] <= 3 ? 'critical' : 'low' ?>"><?= number_format($prod['stockp'], 2) ?></span>
+                                            </td>
+                                            <td class="monto" style="text-align:right">S/ <?= number_format($prod['precio_venta'], 2) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="dash-panel-body">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Producto</th>
-                                <th style="text-align:center">Stock</th>
-                                <th style="text-align:right">Precio</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach (array_slice($productos_stock_bajo, 0, 15) as $prod): ?>
-                                <tr>
-                                    <td style="color:#999;font-size:12px"><?= htmlspecialchars($prod['codigo_producto'], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td style="text-transform:uppercase"><?= htmlspecialchars($prod['nom_prod'], ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td style="text-align:center">
-                                        <span class="stock-badge <?= $prod['stockp'] <= 3 ? 'critical' : 'low' ?>"><?= number_format($prod['stockp'], 2) ?></span>
-                                    </td>
-                                    <td class="monto" style="text-align:right">S/ <?= number_format($prod['precio_venta'], 2) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                <?php endif; ?>
+
+                <?php if (count($prediccion_stock) > 0): ?>
+                <div class="col-md-6" style="padding:0 7px;">
+                    <div class="dash-panel">
+                        <div class="dash-panel-head danger">
+                            <span><i class="fas fa-chart-line ph-icon"></i> Predicción de Quiebre de Stock</span>
+                            <span style="font-size:12px;color:#e74c3c;font-weight:600"><?= count($prediccion_data['prediccion']) ?> productos</span>
+                        </div>
+                        <div class="dash-panel-body">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th style="text-align:center">Días Restantes</th>
+                                        <th style="text-align:center">Nivel</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($prediccion_stock as $prod): ?>
+                                        <tr>
+                                            <td style="text-transform:uppercase"><?= htmlspecialchars($prod['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td style="text-align:center"><?= number_format($prod['dias_restantes'], 1) ?></td>
+                                            <td style="text-align:center">
+                                                <span class="stock-badge <?= $prod['nivel'] === 'urgente' ? 'critical' : ($prod['nivel'] === 'atencion' ? 'low' : 'normal') ?>"><?= ucfirst($prod['nivel']) ?></span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
 
         </div><!-- /.dash-wrap -->
     </div><!-- /.kbg -->
