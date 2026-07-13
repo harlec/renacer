@@ -78,9 +78,9 @@ if (isset($_POST) && !empty($_POST)) {
                               VALUES ($venta_id, $pid, $ivp, $cant, $prec, $tot, '0')");
 
                 // Descontar stock atómicamente y leer resultado
-                $conn->query("UPDATE productos SET stockp = stockp - $cant WHERE id_producto = $pid");
+                $conn->query("UPDATE productos SET stockp = ROUND(stockp - $cant, 3) WHERE id_producto = $pid");
                 $rs       = $conn->query("SELECT stockp FROM productos WHERE id_producto = $pid");
-                $stocktot = floatval($rs->fetch_assoc()['stockp']);
+                $stocktot = round(floatval($rs->fetch_assoc()['stockp']), 3);
 
                 // Registrar movimiento
                 $conn->query("INSERT INTO stock (producto, egreso, motivo, stock, fv, stockt, fecha, estado)

@@ -96,7 +96,7 @@ if (isset($_POST) && !empty($_POST)) {
                     $stock->order_by('id_stock', 'desc');
                     $stockl = $stock->get_one();
                     $stock_actual = floatval($stockl['stockt']);
-                    $nuevo_stock = $stock_actual + floatval($detalle['cantidad']);
+                    $nuevo_stock = round($stock_actual + floatval($detalle['cantidad']), 3);
                     
                     // Registrar devolución en historial
                     $motivo = 'EV-' . $id_venta . '-EDIT';
@@ -155,7 +155,7 @@ if (isset($_POST) && !empty($_POST)) {
                     }
                     
                     // Descontar stock
-                    $nuevo_stock = $stock_disponible - $cantidad;
+                    $nuevo_stock = round($stock_disponible - $cantidad, 3);
                     $motivo = 'V-' . $id_venta . '-EDIT';
                     $data_stock = array(
                         'id_stock' => '',

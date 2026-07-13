@@ -28,10 +28,10 @@ try {
 	$stockfv = ($st && isset($st['stockt'])) ? floatval($st['stockt']) : 0;
 
 	if ($tipo == '1') {
-		$stockf = $stockfv + $cantidad;
+		$stockf = round($stockfv + $cantidad, 3);
 		$datas = array('id_stock'=>'','producto'=>$producto,'ingreso'=>$cantidad,'stock'=>$stockf,'motivo'=>$motivo,'fv'=>$fv,'stockt'=>$stockf,'fecha'=>$fecha);
 	} else {
-		$stockf = $stockfv - $cantidad;
+		$stockf = round($stockfv - $cantidad, 3);
 		$datas = array('id_stock'=>'','producto'=>$producto,'egreso'=>$cantidad,'stock'=>$stockf,'motivo'=>$motivo,'fv'=>$fv,'stockt'=>$stockf,'fecha'=>$fecha);
 	}
 

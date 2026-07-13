@@ -81,9 +81,9 @@ if (!empty($_POST)) {
                 $conn->query("INSERT INTO detalle_ventas (venta, producto, id_vp, cantidad, precio, total, estado)
                               VALUES ($venta_id, $pid, $ivp, $cant, $prec, $tot, '0')");
 
-                $conn->query("UPDATE productos SET stockp = stockp - $cant WHERE id_producto = $pid");
+                $conn->query("UPDATE productos SET stockp = ROUND(stockp - $cant, 3) WHERE id_producto = $pid");
                 $rs       = $conn->query("SELECT stockp FROM productos WHERE id_producto = $pid");
-                $stocktot = floatval($rs->fetch_assoc()['stockp']);
+                $stocktot = round(floatval($rs->fetch_assoc()['stockp']), 3);
 
                 $conn->query("INSERT INTO stock (producto, egreso, motivo, stock, fv, stockt, fecha, estado)
                               VALUES ($pid, $cant, '$motivo', $stocktot, '', $stocktot, '$fecha_safe', '0')");

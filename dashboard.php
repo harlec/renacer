@@ -417,7 +417,7 @@ $hoy_idx       = 6; // último elemento
                                     <td style="color:#999;font-size:12px"><?= htmlspecialchars($prod['codigo_producto'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td style="text-transform:uppercase"><?= htmlspecialchars($prod['nom_prod'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td style="text-align:center">
-                                        <span class="stock-badge <?= $prod['stockp'] <= 3 ? 'critical' : 'low' ?>"><?= $prod['stockp'] ?></span>
+                                        <span class="stock-badge <?= $prod['stockp'] <= 3 ? 'critical' : 'low' ?>"><?= number_format($prod['stockp'], 2) ?></span>
                                     </td>
                                     <td class="monto" style="text-align:right">S/ <?= number_format($prod['precio_venta'], 2) ?></td>
                                 </tr>

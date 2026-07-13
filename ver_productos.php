@@ -45,11 +45,11 @@ foreach ($ventas_list as $value) {
 
 	
 
-	$datos .='<tr '.$col.'><td>'.$value['id_producto'].'</td> 
+	$datos .='<tr '.$col.'><td>'.$value['id_producto'].'</td>
     			<td style="text-transform:uppercase;">'.$value['nom_prod'].'</td>
     			<td>'.$unidadn.'</td>
     			<td>'.$value['nom_cat'].'</td>
-    			<td>'.$stockt.'</td> 
+    			<td>'.number_format($stockt, 2).'</td>
     			<td>'.$value['precio_venta'].'</td>
     			<td>'.$value['precio_compra'].'</td>
     			<td><a class="" alt="ver" href="editar_producto.php?id='.$value['id_producto'].'"><img src="assets/img/edit.png"/></a><button class="btn-custom" id="borrar" value="'.$value['id_producto'].'" alt="boleta"><img src="assets/img/trash.png" /></button></td> 
