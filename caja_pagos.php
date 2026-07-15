@@ -24,6 +24,11 @@ include('inc/control.php');
         box-shadow:0 1px 3px rgba(0,0,0,.08); cursor:pointer; border:2px solid transparent;
     }
     .cola-item:hover, .cola-item:active { border-color: var(--c-orange); }
+    .cola-item.nueva { animation: destelloNueva 1.8s ease-out 2; border-color: var(--c-orange); }
+    @keyframes destelloNueva {
+        0%   { background:#fff3ee; }
+        100% { background:#fff; }
+    }
     .cola-item .ci-num { font-weight:700; color:var(--c-navy); }
     .cola-item .ci-cliente { font-size:12px; color:#888; text-transform:uppercase; }
     .cola-item .ci-hora { font-size:12px; color:#aaa; }
@@ -195,16 +200,20 @@ include('inc/control.php');
     function money(n) { return 'S/ ' + n.toFixed(2); }
 
     // ── Cola en tiempo real ──────────────────────────────
+    let idsConocidos = null; // null = primera carga, no resaltar nada todavía
+
     function renderCola(items) {
         contador.textContent = items.length;
         if (items.length === 0) {
             cola.innerHTML = '<div class="vacio">No hay ventas pendientes de pago</div>';
+            idsConocidos = new Set();
             return;
         }
         cola.innerHTML = items.map(function (v) {
+            const esNueva = idsConocidos !== null && !idsConocidos.has(v.id_venta);
             const saldoHtml = v.saldo < v.total
                 ? '<div class="ci-saldo">Saldo: ' + money(v.saldo) + '</div>' : '';
-            return '<div class="cola-item" data-venta="' + v.id_venta + '" data-total="' + v.total.toFixed(2) + '" data-saldo="' + v.saldo.toFixed(2) + '">' +
+            return '<div class="cola-item' + (esNueva ? ' nueva' : '') + '" data-venta="' + v.id_venta + '" data-total="' + v.total.toFixed(2) + '" data-saldo="' + v.saldo.toFixed(2) + '">' +
                 '<div>' +
                     '<div class="ci-num">v-' + v.id_venta + '</div>' +
                     '<div class="ci-cliente">' + v.cliente + '</div>' +
@@ -216,6 +225,7 @@ include('inc/control.php');
                 '</div>' +
             '</div>';
         }).join('');
+        idsConocidos = new Set(items.map(v => v.id_venta));
     }
 
     function cargarCola() {
