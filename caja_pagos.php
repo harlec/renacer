@@ -37,40 +37,46 @@ include('inc/control.php');
     }
     .overlay.abierto { display:flex; }
     .panel-pago {
-        background:#fff; border-radius:16px; width:100%; max-width:460px;
-        padding:20px; max-height:94vh; overflow-y:auto; position:relative;
+        background:#fff; border-radius:16px; width:100%; max-width:900px;
+        padding:24px; max-height:92vh; overflow-y:auto; position:relative;
     }
-    .panel-pago .pp-head { text-align:center; margin-bottom:14px; }
+    .panel-pago .pp-head { text-align:center; margin-bottom:16px; }
     .panel-pago .pp-num { font-weight:700; color:var(--c-navy); font-size:16px; }
     .panel-pago .pp-total { font-size:32px; font-weight:800; color:var(--c-navy); }
     .panel-pago .pp-saldo { font-size:14px; color:#c0392b; font-weight:600; margin-top:2px; }
 
-    .metodos { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
+    .pp-body { display:grid; grid-template-columns: 1.15fr 1fr; gap:28px; align-items:start; }
+    @media (max-width: 720px) {
+        .panel-pago { max-width:460px; }
+        .pp-body { grid-template-columns: 1fr; }
+    }
+
+    .metodos { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 14px; }
     .metodo-btn {
-        padding:16px 8px; border-radius:12px; border:2px solid #eee; background:#fafafa;
+        padding:14px 8px; border-radius:12px; border:2px solid #eee; background:#fafafa;
         font-size:15px; font-weight:700; color:#555; text-align:center; user-select:none;
     }
     .metodo-btn.activo { border-color: var(--c-orange); background:#fff3ee; color:var(--c-orange); }
     .metodo-btn i { display:block; font-size:20px; margin-bottom:4px; }
 
-    .campo-monto { margin:12px 0; }
+    .campo-monto { margin:10px 0; }
     .campo-monto label { font-size:12px; color:#888; font-weight:600; }
     .campo-monto input {
-        width:100%; font-size:26px; font-weight:700; padding:10px 12px; border-radius:10px;
+        width:100%; font-size:24px; font-weight:700; padding:8px 12px; border-radius:10px;
         border:2px solid #ddd; text-align:center; color:var(--c-navy);
     }
     .campo-monto input.activo-teclado { border-color: var(--c-orange); }
-    .vuelto-linea { text-align:center; font-size:15px; font-weight:700; color:#27ae60; margin-top:6px; }
+    .vuelto-linea { text-align:center; font-size:15px; font-weight:700; color:#27ae60; margin-top:4px; }
 
-    .keypad { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin:14px 0; }
+    .keypad { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
     .keypad button {
-        padding:14px 0; font-size:20px; font-weight:700; border-radius:10px; border:1px solid #e5e5e5;
+        padding:20px 0; font-size:22px; font-weight:700; border-radius:10px; border:1px solid #e5e5e5;
         background:#f7f7f7; color:var(--c-navy); user-select:none;
     }
     .keypad button:active { background:#eee; }
     .keypad button.tecla-back { color:#c0392b; }
 
-    .lineas-agregadas { margin:14px 0; }
+    .lineas-agregadas { margin:10px 0; }
     .linea { display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:14px; }
     .linea .quitar { color:#c0392b; font-weight:700; padding:0 6px; }
 
@@ -118,39 +124,44 @@ include('inc/control.php');
             <div class="pp-saldo" id="ppSaldoLabel">Saldo pendiente</div>
         </div>
 
-        <div class="metodos">
-            <div class="metodo-btn" data-metodo="efectivo"><i class="fas fa-money-bill-wave"></i>Efectivo</div>
-            <div class="metodo-btn" data-metodo="yape"><i class="fas fa-mobile-alt"></i>Yape</div>
-            <div class="metodo-btn" data-metodo="plin"><i class="fas fa-mobile-alt"></i>Plin</div>
-            <div class="metodo-btn" data-metodo="tarjeta"><i class="fas fa-credit-card"></i>Tarjeta</div>
-        </div>
-
-        <div id="editorLinea" style="display:none">
-            <div class="campo-monto">
-                <label id="labelMonto">Monto</label>
-                <input type="text" id="inputMonto" inputmode="none">
-            </div>
-            <div id="bloqueEfectivo" style="display:none">
-                <div class="campo-monto">
-                    <label>Recibido</label>
-                    <input type="text" id="inputRecibido" inputmode="none">
+        <div class="pp-body">
+            <div class="pp-left">
+                <div class="metodos">
+                    <div class="metodo-btn" data-metodo="efectivo"><i class="fas fa-money-bill-wave"></i>Efectivo</div>
+                    <div class="metodo-btn" data-metodo="yape"><i class="fas fa-mobile-alt"></i>Yape</div>
+                    <div class="metodo-btn" data-metodo="plin"><i class="fas fa-mobile-alt"></i>Plin</div>
+                    <div class="metodo-btn" data-metodo="tarjeta"><i class="fas fa-credit-card"></i>Tarjeta</div>
                 </div>
-                <div class="vuelto-linea" id="vueltoLinea">Vuelto: S/ 0.00</div>
+
+                <div id="editorLinea" style="display:none">
+                    <div class="campo-monto">
+                        <label id="labelMonto">Monto</label>
+                        <input type="text" id="inputMonto" inputmode="none">
+                    </div>
+                    <div id="bloqueEfectivo" style="display:none">
+                        <div class="campo-monto">
+                            <label>Recibido</label>
+                            <input type="text" id="inputRecibido" inputmode="none">
+                        </div>
+                        <div class="vuelto-linea" id="vueltoLinea">Vuelto: S/ 0.00</div>
+                    </div>
+                </div>
+
+                <div class="lineas-agregadas" id="lineasAgregadas"></div>
+
+                <button class="btn-cobrar" id="btnConfirmar" disabled>Cobrar</button>
             </div>
 
-            <div class="keypad" id="keypad">
-                <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button>
-                <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
-                <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
-                <button data-key=".">.</button><button data-key="0">0</button><button data-key="back" class="tecla-back">⌫</button>
+            <div class="pp-right" id="editorTeclado" style="display:none">
+                <div class="keypad" id="keypad">
+                    <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button>
+                    <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
+                    <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
+                    <button data-key=".">.</button><button data-key="0">0</button><button data-key="back" class="tecla-back">⌫</button>
+                </div>
+                <button class="btn-cobrar" id="btnAgregarLinea" style="margin-top:14px">Agregar</button>
             </div>
-
-            <button class="btn-cobrar" id="btnAgregarLinea">Agregar</button>
         </div>
-
-        <div class="lineas-agregadas" id="lineasAgregadas"></div>
-
-        <button class="btn-cobrar" id="btnConfirmar" disabled>Cobrar</button>
     </div>
 </div>
 
@@ -164,6 +175,7 @@ include('inc/control.php');
     const ppSaldo = document.getElementById('ppSaldo');
     const metodoBtns = document.querySelectorAll('.metodo-btn');
     const editorLinea = document.getElementById('editorLinea');
+    const editorTeclado = document.getElementById('editorTeclado');
     const inputMonto = document.getElementById('inputMonto');
     const bloqueEfectivo = document.getElementById('bloqueEfectivo');
     const inputRecibido = document.getElementById('inputRecibido');
@@ -233,6 +245,7 @@ include('inc/control.php');
         renderSaldo();
         lineasAgregadas.innerHTML = '';
         editorLinea.style.display = 'none';
+        editorTeclado.style.display = 'none';
         metodoBtns.forEach(b => b.classList.remove('activo'));
         btnConfirmar.disabled = true;
         btnConfirmar.textContent = 'Cobrar';
@@ -262,6 +275,7 @@ include('inc/control.php');
             marcarActivo(inputMonto);
             calcularVuelto();
             editorLinea.style.display = 'block';
+            editorTeclado.style.display = 'block';
             actualizarLabelAgregar();
         });
     });
@@ -335,6 +349,7 @@ include('inc/control.php');
         renderSaldo();
 
         editorLinea.style.display = 'none';
+        editorTeclado.style.display = 'none';
         metodoBtns.forEach(b => b.classList.remove('activo'));
         metodoSeleccionado = null;
 
