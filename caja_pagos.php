@@ -272,7 +272,8 @@ include('inc/control.php');
             inputMonto.value = saldoRestante.toFixed(2);
             bloqueEfectivo.style.display = metodoSeleccionado === 'efectivo' ? 'block' : 'none';
             inputRecibido.value = saldoRestante.toFixed(2);
-            marcarActivo(inputMonto);
+            // en efectivo el campo que casi siempre hay que tocar es "Recibido"
+            marcarActivo(metodoSeleccionado === 'efectivo' ? inputRecibido : inputMonto);
             calcularVuelto();
             editorLinea.style.display = 'block';
             editorTeclado.style.display = 'block';
@@ -296,8 +297,11 @@ include('inc/control.php');
         vueltoLinea.textContent = 'Vuelto: ' + money(vuelto);
     }
 
+    let reemplazarSiguiente = true; // el próximo dígito borra el valor precargado, en vez de pegarse al final
+
     function marcarActivo(input) {
         campoActivo = input;
+        reemplazarSiguiente = true;
         inputMonto.classList.toggle('activo-teclado', input === inputMonto);
         inputRecibido.classList.toggle('activo-teclado', input === inputRecibido);
     }
@@ -308,9 +312,6 @@ include('inc/control.php');
     function alCambiarCampo(campo) {
         if (campo === inputMonto) {
             actualizarLabelAgregar();
-            if (metodoSeleccionado === 'efectivo') {
-                inputRecibido.value = inputMonto.value;
-            }
         }
         calcularVuelto();
     }
@@ -322,7 +323,8 @@ include('inc/control.php');
         const btn = e.target.closest('button');
         if (!btn) return;
         const key = btn.dataset.key;
-        let val = campoActivo.value;
+        let val = reemplazarSiguiente ? '' : campoActivo.value;
+        reemplazarSiguiente = false;
 
         if (key === 'back') {
             val = val.slice(0, -1);
