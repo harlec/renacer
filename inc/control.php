@@ -12,7 +12,7 @@ else{
 }
 
 function menu($i){
-	$uno = ''; $dos = ''; $tres = ''; $cuatro = ''; $cinco = ''; $seis = ''; $siete = ''; $ocho = '';
+	$uno = ''; $dos = ''; $tres = ''; $cuatro = ''; $cinco = ''; $seis = ''; $siete = ''; $ocho = ''; $nueve = '';
 	switch ($i) {
 		case '1':
 			$uno = 'active';
@@ -38,6 +38,9 @@ function menu($i){
 		case '8':
 			$ocho = 'active';
 			break;
+		case '9':
+			$nueve = 'active';
+			break;
 	}
 	if ($_SESSION['type']=='admin') {
 		echo '<div id="navbar" class="navbar-collapse collapse">
@@ -47,6 +50,7 @@ function menu($i){
 	            <li class="'.$siete.' text-center" ><a title="clientes" href="ver_clientes.php"><img class="isvg" src="assets/img/clientes.png"><br><span>Clientes</span></a></li>
 	            <li class="'.$tres.' text-center" ><a title="Productos" href="ver_productos.php"><img class="isvg" src="assets/img/products.png"><br><span>Productos</span></a></li>
 	            <li class="'.$cuatro.' text-center" ><a title="Ventas" href="venta.php"><img class="isvg" src="assets/img/ventas.png"><br><span>Ventas</span></a></li>
+	            <li class="'.$nueve.' text-center" ><a title="Caja" href="caja_pagos.php"><svg class="isvg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg><br><span>Caja</span></a></li>
 	            <li class="'.$seis.' text-center" ><a title="Compras" href="compra.php"><img class="isvg" src="assets/img/compras.png"><br><span>Compras</span></a></li>
 	            <li class="'.$cinco.' text-center" ><a title="reportes" href="reportes.php"><img class="isvg" src="assets/img/reports.png"><br><span>Reportes</span></a></li>
 	            <li class="'.$ocho.' dropdown text-center">
@@ -66,6 +70,7 @@ function menu($i){
 	          <ul class="nav navbar-nav menu">
 	            <li class="'.$uno.' text-center"><a title="Escritorio" href="dashboard.php"><img class="isvg" src="assets/img/dashboard.svg"><br><span>Escritorio</span></a></li>
 	            <li class="'.$cuatro.' text-center" ><a title="Ventas" href="venta.php"><img class="isvg" src="assets/img/ventas.png"><br><span>Ventas</span></a></li>
+	            <li class="'.$nueve.' text-center" ><a title="Caja" href="caja_pagos.php"><svg class="isvg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg><br><span>Caja</span></a></li>
 	          </ul>
 	          <ul id="right-top">
 	          	<li>Hola <strong style="text-transform: uppercase;">'.$_SESSION['usuario'].'</strong><a href="salir.php"><img class="isvg" src="assets/img/salir.png"><br></a></li>

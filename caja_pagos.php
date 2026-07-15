@@ -1,20 +1,5 @@
 <?php
 include('inc/control.php');
-include('inc/sdba/sdba.php');
-
-$pendientes = Sdba::db()->query("
-    SELECT v.id_venta, v.fecha, v.total, c.cliente AS nombre_cliente,
-           COALESCE(vp.pagado, 0) AS pagado
-    FROM ventas v
-    LEFT JOIN clientes c ON c.id_cliente = v.cliente
-    LEFT JOIN (
-        SELECT venta, SUM(monto) AS pagado FROM venta_pagos GROUP BY venta
-    ) vp ON vp.venta = v.id_venta
-    WHERE v.estado != '2'
-      AND DATE(v.fecha) = CURDATE()
-      AND COALESCE(vp.pagado, 0) < v.total
-    ORDER BY v.fecha ASC
-")->result();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -24,34 +9,36 @@ $pendientes = Sdba::db()->query("
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
 <style>
     :root { --c-navy: #1e3a4c; --c-orange: #ff5023; }
     body { background:#f4f4f4; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
-    .caja-wrap { max-width: 480px; margin: 0 auto; padding: 16px; }
-    .caja-titulo { font-size: 20px; font-weight: 700; color: var(--c-navy); margin: 8px 0 16px; text-align:center; }
+    .caja-wrap { max-width: 1600px; margin: 0 auto; padding: 20px 24px 60px; }
+    .caja-titulo { font-size: 22px; font-weight: 700; color: var(--c-navy); margin: 8px 0 18px; display:flex; align-items:center; gap:10px; }
+    .caja-titulo .contador { font-size:14px; font-weight:600; color:#fff; background:var(--c-orange); border-radius:20px; padding:3px 12px; }
+
+    .cola-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 
     .cola-item {
-        background:#fff; border-radius:12px; padding:14px 16px; margin-bottom:10px;
+        background:#fff; border-radius:12px; padding:14px 16px;
         display:flex; justify-content:space-between; align-items:center;
         box-shadow:0 1px 3px rgba(0,0,0,.08); cursor:pointer; border:2px solid transparent;
     }
-    .cola-item:active { border-color: var(--c-orange); }
+    .cola-item:hover, .cola-item:active { border-color: var(--c-orange); }
     .cola-item .ci-num { font-weight:700; color:var(--c-navy); }
     .cola-item .ci-cliente { font-size:12px; color:#888; text-transform:uppercase; }
     .cola-item .ci-hora { font-size:12px; color:#aaa; }
     .cola-item .ci-monto { font-size:20px; font-weight:700; color:var(--c-orange); }
     .cola-item .ci-saldo { font-size:11px; color:#c0392b; }
-    .vacio { text-align:center; color:#aaa; padding:40px 0; }
+    .vacio { text-align:center; color:#aaa; padding:60px 0; grid-column:1/-1; font-size:15px; }
 
     .overlay {
         display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100;
-        align-items:flex-end; justify-content:center;
+        align-items:center; justify-content:center;
     }
     .overlay.abierto { display:flex; }
     .panel-pago {
-        background:#fff; border-radius:16px 16px 0 0; width:100%; max-width:480px;
-        padding:20px; max-height:92vh; overflow-y:auto;
+        background:#fff; border-radius:16px; width:100%; max-width:460px;
+        padding:20px; max-height:94vh; overflow-y:auto; position:relative;
     }
     .panel-pago .pp-head { text-align:center; margin-bottom:14px; }
     .panel-pago .pp-num { font-weight:700; color:var(--c-navy); font-size:16px; }
@@ -60,19 +47,28 @@ $pendientes = Sdba::db()->query("
 
     .metodos { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
     .metodo-btn {
-        padding:18px 8px; border-radius:12px; border:2px solid #eee; background:#fafafa;
-        font-size:15px; font-weight:700; color:#555; text-align:center;
+        padding:16px 8px; border-radius:12px; border:2px solid #eee; background:#fafafa;
+        font-size:15px; font-weight:700; color:#555; text-align:center; user-select:none;
     }
     .metodo-btn.activo { border-color: var(--c-orange); background:#fff3ee; color:var(--c-orange); }
-    .metodo-btn i { display:block; font-size:22px; margin-bottom:4px; }
+    .metodo-btn i { display:block; font-size:20px; margin-bottom:4px; }
 
-    .campo-monto { margin:14px 0; }
+    .campo-monto { margin:12px 0; }
     .campo-monto label { font-size:12px; color:#888; font-weight:600; }
     .campo-monto input {
         width:100%; font-size:26px; font-weight:700; padding:10px 12px; border-radius:10px;
         border:2px solid #ddd; text-align:center; color:var(--c-navy);
     }
+    .campo-monto input.activo-teclado { border-color: var(--c-orange); }
     .vuelto-linea { text-align:center; font-size:15px; font-weight:700; color:#27ae60; margin-top:6px; }
+
+    .keypad { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin:14px 0; }
+    .keypad button {
+        padding:14px 0; font-size:20px; font-weight:700; border-radius:10px; border:1px solid #e5e5e5;
+        background:#f7f7f7; color:var(--c-navy); user-select:none;
+    }
+    .keypad button:active { background:#eee; }
+    .keypad button.tecla-back { color:#c0392b; }
 
     .lineas-agregadas { margin:14px 0; }
     .linea { display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:14px; }
@@ -87,30 +83,29 @@ $pendientes = Sdba::db()->query("
 </style>
 </head>
 <body>
-<div class="caja-wrap">
-    <div class="caja-titulo"><i class="fas fa-cash-register"></i> Pagos pendientes hoy</div>
-
-    <div id="cola">
-        <?php if (count($pendientes) === 0): ?>
-            <div class="vacio">No hay ventas pendientes de pago</div>
-        <?php else: ?>
-            <?php foreach ($pendientes as $v):
-                $saldo = round((float)$v['total'] - (float)$v['pagado'], 2); ?>
-            <div class="cola-item" data-venta="<?= (int)$v['id_venta'] ?>" data-total="<?= number_format($v['total'], 2, '.', '') ?>" data-saldo="<?= number_format($saldo, 2, '.', '') ?>">
-                <div>
-                    <div class="ci-num">v-<?= (int)$v['id_venta'] ?></div>
-                    <div class="ci-cliente"><?= htmlspecialchars($v['nombre_cliente'] ?: 'Sin cliente', ENT_QUOTES, 'UTF-8') ?></div>
-                    <div class="ci-hora"><?= date('H:i', strtotime($v['fecha'])) ?></div>
-                </div>
-                <div style="text-align:right">
-                    <div class="ci-monto">S/ <?= number_format($v['total'], 2) ?></div>
-                    <?php if ($v['pagado'] > 0): ?>
-                        <div class="ci-saldo">Saldo: S/ <?= number_format($saldo, 2) ?></div>
-                    <?php endif; ?>
-                </div>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#"><img class="img-responsive logo" src="/assets/img/harlec-sistema.png"></a>
             </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+            <?php menu('9'); ?>
+        </div>
+    </nav>
+
+<div class="caja-wrap" style="margin-top:70px">
+    <div class="caja-titulo">
+        Pagos pendientes hoy
+        <span class="contador" id="contador">0</span>
+    </div>
+
+    <div class="cola-grid" id="cola">
+        <div class="vacio">Cargando...</div>
     </div>
 </div>
 
@@ -133,15 +128,23 @@ $pendientes = Sdba::db()->query("
         <div id="editorLinea" style="display:none">
             <div class="campo-monto">
                 <label id="labelMonto">Monto</label>
-                <input type="number" id="inputMonto" inputmode="decimal" step="0.01">
+                <input type="text" id="inputMonto" inputmode="none">
             </div>
             <div id="bloqueEfectivo" style="display:none">
                 <div class="campo-monto">
                     <label>Recibido</label>
-                    <input type="number" id="inputRecibido" inputmode="decimal" step="0.01">
+                    <input type="text" id="inputRecibido" inputmode="none">
                 </div>
                 <div class="vuelto-linea" id="vueltoLinea">Vuelto: S/ 0.00</div>
             </div>
+
+            <div class="keypad" id="keypad">
+                <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button>
+                <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
+                <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
+                <button data-key=".">.</button><button data-key="0">0</button><button data-key="back" class="tecla-back">⌫</button>
+            </div>
+
             <button class="btn-cobrar" id="btnAgregarLinea">Agregar</button>
         </div>
 
@@ -151,9 +154,12 @@ $pendientes = Sdba::db()->query("
     </div>
 </div>
 
+<script src="https://use.fontawesome.com/releases/v5.7.2/css/all.css"></script>
 <script>
 (function () {
     const overlay = document.getElementById('overlay');
+    const cola = document.getElementById('cola');
+    const contador = document.getElementById('contador');
     const ppNum = document.getElementById('ppNum');
     const ppSaldo = document.getElementById('ppSaldo');
     const metodoBtns = document.querySelectorAll('.metodo-btn');
@@ -168,16 +174,58 @@ $pendientes = Sdba::db()->query("
     const labelMonto = document.getElementById('labelMonto');
 
     let ventaActual = null;
-    let totalVenta = 0;
     let saldoRestante = 0;
     let lineas = [];
     let metodoSeleccionado = null;
+    let campoActivo = inputMonto;
+    let panelAbierto = false;
 
     function money(n) { return 'S/ ' + n.toFixed(2); }
 
+    // ── Cola en tiempo real ──────────────────────────────
+    function renderCola(items) {
+        contador.textContent = items.length;
+        if (items.length === 0) {
+            cola.innerHTML = '<div class="vacio">No hay ventas pendientes de pago</div>';
+            return;
+        }
+        cola.innerHTML = items.map(function (v) {
+            const saldoHtml = v.saldo < v.total
+                ? '<div class="ci-saldo">Saldo: ' + money(v.saldo) + '</div>' : '';
+            return '<div class="cola-item" data-venta="' + v.id_venta + '" data-total="' + v.total.toFixed(2) + '" data-saldo="' + v.saldo.toFixed(2) + '">' +
+                '<div>' +
+                    '<div class="ci-num">v-' + v.id_venta + '</div>' +
+                    '<div class="ci-cliente">' + v.cliente + '</div>' +
+                    '<div class="ci-hora">' + v.hora + '</div>' +
+                '</div>' +
+                '<div style="text-align:right">' +
+                    '<div class="ci-monto">' + money(v.total) + '</div>' +
+                    saldoHtml +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    function cargarCola() {
+        fetch('inc/get_pagos_pendientes.php')
+            .then(r => r.json())
+            .then(res => {
+                if (!res.ok) return;
+                renderCola(res.data);
+                // Si la venta que tengo abierta en el panel ya no está pendiente, la cerró alguien más
+                if (panelAbierto && ventaActual && !res.data.some(v => String(v.id_venta) === String(ventaActual))) {
+                    alert('Esta venta ya fue cobrada.');
+                    cerrarPanel();
+                }
+            })
+            .catch(() => {});
+    }
+    cargarCola();
+    setInterval(cargarCola, 5000);
+
+    // ── Panel de pago ────────────────────────────────────
     function abrirPanel(item) {
         ventaActual = item.dataset.venta;
-        totalVenta = parseFloat(item.dataset.total);
         saldoRestante = parseFloat(item.dataset.saldo);
         lineas = [];
         metodoSeleccionado = null;
@@ -187,11 +235,15 @@ $pendientes = Sdba::db()->query("
         editorLinea.style.display = 'none';
         metodoBtns.forEach(b => b.classList.remove('activo'));
         btnConfirmar.disabled = true;
+        btnConfirmar.textContent = 'Cobrar';
         overlay.classList.add('abierto');
+        panelAbierto = true;
     }
 
     function cerrarPanel() {
         overlay.classList.remove('abierto');
+        panelAbierto = false;
+        ventaActual = null;
     }
 
     function renderSaldo() {
@@ -207,11 +259,21 @@ $pendientes = Sdba::db()->query("
             inputMonto.value = saldoRestante.toFixed(2);
             bloqueEfectivo.style.display = metodoSeleccionado === 'efectivo' ? 'block' : 'none';
             inputRecibido.value = saldoRestante.toFixed(2);
+            marcarActivo(inputMonto);
             calcularVuelto();
             editorLinea.style.display = 'block';
-            btnAgregarLinea.textContent = 'Cobrar ' + money(saldoRestante);
+            actualizarLabelAgregar();
         });
     });
+
+    function actualizarLabelAgregar() {
+        const monto = parseFloat(inputMonto.value) || 0;
+        if (Math.abs(monto - saldoRestante) < 0.005) {
+            btnAgregarLinea.textContent = 'Cobrar ' + money(monto);
+        } else {
+            btnAgregarLinea.textContent = 'Agregar línea';
+        }
+    }
 
     function calcularVuelto() {
         const monto = parseFloat(inputMonto.value) || 0;
@@ -219,18 +281,45 @@ $pendientes = Sdba::db()->query("
         const vuelto = Math.max(0, recibido - monto);
         vueltoLinea.textContent = 'Vuelto: ' + money(vuelto);
     }
-    inputRecibido.addEventListener('input', calcularVuelto);
-    inputMonto.addEventListener('input', function () {
-        const monto = parseFloat(inputMonto.value) || 0;
-        if (Math.abs(monto - saldoRestante) < 0.005) {
-            btnAgregarLinea.textContent = 'Cobrar ' + money(monto);
+
+    function marcarActivo(input) {
+        campoActivo = input;
+        inputMonto.classList.toggle('activo-teclado', input === inputMonto);
+        inputRecibido.classList.toggle('activo-teclado', input === inputRecibido);
+    }
+    inputMonto.addEventListener('click', () => marcarActivo(inputMonto));
+    inputRecibido.addEventListener('click', () => marcarActivo(inputRecibido));
+
+    // Si escriben con teclado físico (numérico o normal) directo en el campo
+    function alCambiarCampo(campo) {
+        if (campo === inputMonto) {
+            actualizarLabelAgregar();
+            if (metodoSeleccionado === 'efectivo') {
+                inputRecibido.value = inputMonto.value;
+            }
+        }
+        calcularVuelto();
+    }
+    inputMonto.addEventListener('input', () => alCambiarCampo(inputMonto));
+    inputRecibido.addEventListener('input', () => alCambiarCampo(inputRecibido));
+
+    // ── Teclado numérico en pantalla ─────────────────────
+    document.getElementById('keypad').addEventListener('click', function (e) {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const key = btn.dataset.key;
+        let val = campoActivo.value;
+
+        if (key === 'back') {
+            val = val.slice(0, -1);
+        } else if (key === '.') {
+            if (!val.includes('.')) val += '.';
         } else {
-            btnAgregarLinea.textContent = 'Agregar línea';
+            if (val.includes('.') && val.split('.')[1].length >= 2) return; // máx 2 decimales
+            val += key;
         }
-        if (metodoSeleccionado === 'efectivo') {
-            inputRecibido.value = inputMonto.value;
-            calcularVuelto();
-        }
+        campoActivo.value = val;
+        alCambiarCampo(campoActivo);
     });
 
     btnAgregarLinea.addEventListener('click', function () {
@@ -240,10 +329,7 @@ $pendientes = Sdba::db()->query("
             return;
         }
         lineas.push({ metodo: metodoSeleccionado, monto: monto });
-        const div = document.createElement('div');
-        div.className = 'linea';
-        div.innerHTML = '<span>' + metodoSeleccionado[0].toUpperCase() + metodoSeleccionado.slice(1) + ': ' + money(monto) + '</span><span class="quitar" data-idx="' + (lineas.length - 1) + '">&times;</span>';
-        lineasAgregadas.appendChild(div);
+        renderLineas();
 
         saldoRestante = Math.round((saldoRestante - monto) * 100) / 100;
         renderSaldo();
@@ -252,17 +338,6 @@ $pendientes = Sdba::db()->query("
         metodoBtns.forEach(b => b.classList.remove('activo'));
         metodoSeleccionado = null;
 
-        btnConfirmar.disabled = saldoRestante > 0.005;
-        btnConfirmar.textContent = saldoRestante > 0.005 ? 'Falta ' + money(saldoRestante) : 'Confirmar pago';
-    });
-
-    lineasAgregadas.addEventListener('click', function (e) {
-        if (!e.target.classList.contains('quitar')) return;
-        const idx = parseInt(e.target.dataset.idx);
-        saldoRestante = Math.round((saldoRestante + lineas[idx].monto) * 100) / 100;
-        lineas.splice(idx, 1);
-        renderLineas();
-        renderSaldo();
         btnConfirmar.disabled = saldoRestante > 0.005;
         btnConfirmar.textContent = saldoRestante > 0.005 ? 'Falta ' + money(saldoRestante) : 'Confirmar pago';
     });
@@ -277,6 +352,17 @@ $pendientes = Sdba::db()->query("
         });
     }
 
+    lineasAgregadas.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('quitar')) return;
+        const idx = parseInt(e.target.dataset.idx);
+        saldoRestante = Math.round((saldoRestante + lineas[idx].monto) * 100) / 100;
+        lineas.splice(idx, 1);
+        renderLineas();
+        renderSaldo();
+        btnConfirmar.disabled = saldoRestante > 0.005;
+        btnConfirmar.textContent = saldoRestante > 0.005 ? 'Falta ' + money(saldoRestante) : 'Confirmar pago';
+    });
+
     btnConfirmar.addEventListener('click', function () {
         if (lineas.length === 0) return;
         btnConfirmar.disabled = true;
@@ -290,12 +376,8 @@ $pendientes = Sdba::db()->query("
         .then(r => r.json())
         .then(data => {
             if (data.ok) {
-                const item = document.querySelector('.cola-item[data-venta="' + ventaActual + '"]');
-                if (item) item.remove();
-                if (!document.querySelector('.cola-item')) {
-                    document.getElementById('cola').innerHTML = '<div class="vacio">No hay ventas pendientes de pago</div>';
-                }
                 cerrarPanel();
+                cargarCola();
             } else {
                 alert(data.mensaje || 'No se pudo registrar el pago');
                 btnConfirmar.disabled = false;
@@ -309,7 +391,7 @@ $pendientes = Sdba::db()->query("
         });
     });
 
-    document.getElementById('cola').addEventListener('click', function (e) {
+    cola.addEventListener('click', function (e) {
         const item = e.target.closest('.cola-item');
         if (item) abrirPanel(item);
     });
