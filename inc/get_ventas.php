@@ -58,16 +58,22 @@ $filtered = $r ? $r->fetch_assoc()['c'] : 0;
 // Query principal
 $sql = "
     SELECT
-        v.id_venta, v.fecha, v.estado,
+        v.id_venta, v.fecha, v.estado, v.total,
         COALESCE(SUM(dv.total), 0) AS monto,
         MAX(c.tipo)   AS comp_tipo,
         MAX(c.numero) AS comp_numero,
         MAX(c.url)    AS comp_url,
-        u.nombres     AS nombre_usuario
+        u.nombres     AS nombre_usuario,
+        MAX(vp.pagos_raw) AS pagos_raw,
+        MAX(vp.pagado)    AS pagado
     FROM ventas v
     LEFT JOIN detalle_ventas dv ON dv.venta = v.id_venta
     LEFT JOIN comprobantes   c  ON c.venta  = v.id_venta
     LEFT JOIN usuarios       u  ON u.id_usuario = v.usuario
+    LEFT JOIN (
+        SELECT venta, GROUP_CONCAT(CONCAT(metodo, ':', monto) SEPARATOR '|') AS pagos_raw, SUM(monto) AS pagado
+        FROM venta_pagos GROUP BY venta
+    ) vp ON vp.venta = v.id_venta
     WHERE v.estado != '2' $where_user $where_search
     GROUP BY v.id_venta
     ORDER BY $order_by
@@ -86,7 +92,21 @@ $data = [];
 while ($row = $result->fetch_assoc()) {
 
     $tipo  = '-';
-    $forma = '-';
+
+    $metodos_label = ['efectivo' => 'Efectivo', 'yape' => 'Yape', 'plin' => 'Plin', 'tarjeta' => 'Tarjeta'];
+    if (!empty($row['pagos_raw'])) {
+        $partes = [];
+        foreach (explode('|', $row['pagos_raw']) as $linea) {
+            [$metodo, $monto] = explode(':', $linea);
+            $partes[] = ($metodos_label[$metodo] ?? $metodo) . ' S/' . number_format((float)$monto, 2);
+        }
+        $forma = implode(' + ', $partes);
+        if ((float)$row['pagado'] < (float)$row['total'] - 0.01) {
+            $forma .= ' (parcial)';
+        }
+    } else {
+        $forma = 'Pendiente';
+    }
 
     $comprobante = '';
     if ($row['estado'] == '1' && !empty($row['comp_url'])) {
