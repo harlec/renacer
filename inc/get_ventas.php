@@ -93,7 +93,7 @@ while ($row = $result->fetch_assoc()) {
 
     $tipo  = '-';
 
-    $metodos_label = ['efectivo' => 'Efectivo', 'yape' => 'Yape', 'plin' => 'Plin', 'tarjeta' => 'Tarjeta'];
+    $metodos_label = ['efectivo' => 'Efectivo', 'yape' => 'Yape', 'plin' => 'Plin', 'bbva' => 'BBVA', 'tarjeta' => 'Tarjeta'];
     if (!empty($row['pagos_raw'])) {
         $partes = [];
         foreach (explode('|', $row['pagos_raw']) as $linea) {

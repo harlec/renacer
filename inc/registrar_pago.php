@@ -22,7 +22,7 @@ if ($conn->connect_error) {
 $ventas_ids = json_decode($_POST['ventas'] ?? '[]', true);
 $pagos      = json_decode($_POST['pagos'] ?? '[]', true);
 $usuario_id = intval($_SESSION['id_usr']);
-$metodos_validos = ['efectivo', 'yape', 'plin', 'tarjeta'];
+$metodos_validos = ['efectivo', 'yape', 'plin', 'bbva', 'tarjeta'];
 
 if (!is_array($ventas_ids) || count($ventas_ids) === 0 || !is_array($pagos) || count($pagos) === 0) {
     echo json_encode(['ok' => false, 'mensaje' => 'Datos incompletos']);
