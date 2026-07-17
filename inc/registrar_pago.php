@@ -76,8 +76,21 @@ foreach ($pagos as $p) {
     $suma_nueva += $monto;
 }
 
-if (abs($suma_nueva - $saldo_combinado) > 0.01) {
+// Redondeo comercial: en efectivo se permite cobrar hasta 9 céntimos de más
+// (no existen monedas de 1-5 céntimos para dar el vuelto exacto). En cualquier
+// otro método, o si el exceso es mayor, se exige el monto exacto.
+$hay_efectivo = false;
+foreach ($pagos as $p) {
+    if ($p['metodo'] === 'efectivo') { $hay_efectivo = true; break; }
+}
+$diferencia = round($suma_nueva - $saldo_combinado, 2);
+
+if ($diferencia < -0.01) {
     echo json_encode(['ok' => false, 'mensaje' => 'La suma de los pagos (S/ ' . number_format($suma_nueva, 2) . ') no cubre el saldo pendiente (S/ ' . number_format($saldo_combinado, 2) . ')']);
+    exit;
+}
+if ($diferencia > 0.01 && (!$hay_efectivo || $diferencia > 0.09)) {
+    echo json_encode(['ok' => false, 'mensaje' => 'El monto cobrado (S/ ' . number_format($suma_nueva, 2) . ') supera el saldo pendiente (S/ ' . number_format($saldo_combinado, 2) . ') más del margen de redondeo permitido']);
     exit;
 }
 

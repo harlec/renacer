@@ -127,8 +127,24 @@ $facturan = 0;
 		$i++;
 	}
 
+	// Si ya hay un pago registrado y cobró de más por redondeo (efectivo sin monedas
+	// chicas), se muestra el desglose real en vez del subtotal sin redondear.
+	$pagos_q = Sdba::table('venta_pagos');
+	$pagos_q->where('venta', $id);
+	$pagos_list = $pagos_q->get();
+	$pagado = 0;
+	foreach ($pagos_list as $pg) { $pagado += (float)$pg['monto']; }
+	$pagado = round($pagado, 2);
+
+	$redondeo = 0;
+	$total_final = $tot;
+	if ($pagado > 0 && $pagado - $tot > 0.001) {
+		$redondeo = round($pagado - $tot, 2);
+		$total_final = $pagado;
+	}
+
 	$formatter = new NumeroALetras();
-	$letras =  $formatter->toInvoice($tot, 2).' SOLES';
+	$letras =  $formatter->toInvoice($total_final, 2).' SOLES';
 
 ?>
 
@@ -168,9 +184,19 @@ Tu postrer estado será muy grande”</h6>
 		    	<tbody>
 						<?php echo $mostrar_de_venta; ?>
 
+						<?php if ($redondeo > 0): ?>
+						<tr>
+							<td style="text-align: right;">SUBTOTAL: S/</td>
+							<td style="padding-left:8px;text-align: right; font-size:11px;"><?php echo number_format($tot,2,'.',','); ?></td>
+						</tr>
+						<tr>
+							<td style="text-align: right;">REDONDEO: S/</td>
+							<td style="padding-left:8px;text-align: right; font-size:11px;"><?php echo number_format($redondeo,2,'.',','); ?></td>
+						</tr>
+						<?php endif; ?>
 						<tr>
 							<td style="text-align: right;" class="text-right" ><h4>TOTAL: S/</h4></td>
-							<td style="padding-left:8px;text-align: right; font-size:12px;" class=""><h4><?php echo number_format($tot,2,'.',','); ?></h4>
+							<td style="padding-left:8px;text-align: right; font-size:12px;" class=""><h4><?php echo number_format($total_final,2,'.',','); ?></h4>
 							</td>
 						</tr>
 						<tr>

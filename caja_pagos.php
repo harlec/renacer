@@ -106,6 +106,7 @@ include('inc/control.php');
     }
     .campo-monto input.activo-teclado { border-color: var(--c-orange); }
     .vuelto-linea { text-align:center; font-size:15px; font-weight:700; color:#27ae60; margin-top:4px; }
+    .nota-redondeo { text-align:center; font-size:12px; color:#c0392b; font-weight:600; margin-top:4px; }
 
     .keypad { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
     .keypad button {
@@ -213,6 +214,7 @@ include('inc/control.php');
                     <div class="campo-monto">
                         <label id="labelMonto">Monto</label>
                         <input type="text" id="inputMonto" inputmode="none">
+                        <div class="nota-redondeo" id="notaRedondeo" style="display:none"></div>
                     </div>
                     <div id="bloqueEfectivo" style="display:none">
                         <div class="campo-monto">
@@ -378,15 +380,33 @@ include('inc/control.php');
         ppSaldo.textContent = money(saldoRestante);
     }
 
+    // Redondeo comercial: en efectivo no se puede dar vuelto en centavos chicos,
+    // así que el monto a cobrar sube a la décima de sol más cercana hacia arriba.
+    function redondearArriba10(valor) { return Math.ceil(valor * 10 - 0.0001) / 10; }
+
     metodoBtns.forEach(btn => {
         btn.addEventListener('click', function () {
             metodoBtns.forEach(b => b.classList.remove('activo'));
             btn.classList.add('activo');
             metodoSeleccionado = btn.dataset.metodo;
             labelMonto.textContent = 'Monto en ' + btn.textContent.trim();
-            inputMonto.value = saldoRestante.toFixed(2);
+
+            let montoSugerido = saldoRestante;
+            if (metodoSeleccionado === 'efectivo') {
+                montoSugerido = Math.round(redondearArriba10(saldoRestante) * 100) / 100;
+            }
+            inputMonto.value = montoSugerido.toFixed(2);
             bloqueEfectivo.style.display = metodoSeleccionado === 'efectivo' ? 'block' : 'none';
-            inputRecibido.value = saldoRestante.toFixed(2);
+            inputRecibido.value = montoSugerido.toFixed(2);
+
+            const notaRedondeo = document.getElementById('notaRedondeo');
+            if (metodoSeleccionado === 'efectivo' && montoSugerido - saldoRestante > 0.001) {
+                notaRedondeo.textContent = 'Redondeado hacia arriba (antes ' + money(saldoRestante) + ')';
+                notaRedondeo.style.display = 'block';
+            } else {
+                notaRedondeo.style.display = 'none';
+            }
+
             // en efectivo el campo que casi siempre hay que tocar es "Recibido"
             marcarActivo(metodoSeleccionado === 'efectivo' ? inputRecibido : inputMonto);
             calcularVuelto();
@@ -398,7 +418,7 @@ include('inc/control.php');
 
     function actualizarLabelAgregar() {
         const monto = parseFloat(inputMonto.value) || 0;
-        if (Math.abs(monto - saldoRestante) < 0.005) {
+        if (monto >= saldoRestante - 0.005) {
             btnAgregarLinea.textContent = 'Cobrar ' + money(monto);
         } else {
             btnAgregarLinea.textContent = 'Agregar línea';
@@ -455,14 +475,15 @@ include('inc/control.php');
 
     btnAgregarLinea.addEventListener('click', function () {
         const monto = Math.round((parseFloat(inputMonto.value) || 0) * 100) / 100;
-        if (monto <= 0 || monto > saldoRestante + 0.005) {
+        const excesoPermitido = metodoSeleccionado === 'efectivo' ? 0.09 : 0; // margen de redondeo
+        if (monto <= 0 || monto > saldoRestante + excesoPermitido + 0.005) {
             alert('Monto inválido');
             return;
         }
         lineas.push({ metodo: metodoSeleccionado, monto: monto });
         renderLineas();
 
-        saldoRestante = Math.round((saldoRestante - monto) * 100) / 100;
+        saldoRestante = Math.max(0, Math.round((saldoRestante - monto) * 100) / 100);
         renderSaldo();
 
         editorLinea.style.display = 'none';
