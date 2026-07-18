@@ -22,7 +22,7 @@ if ($conn->connect_error) {
 $ventas_ids = json_decode($_POST['ventas'] ?? '[]', true);
 $pagos      = json_decode($_POST['pagos'] ?? '[]', true);
 $usuario_id = intval($_SESSION['id_usr']);
-$metodos_validos = ['efectivo', 'yape', 'plin', 'bbva', 'tarjeta'];
+$metodos_validos = ['efectivo', 'yape', 'plin', 'bbva', 'yape_susan', 'tarjeta'];
 
 if (!is_array($ventas_ids) || count($ventas_ids) === 0 || !is_array($pagos) || count($pagos) === 0) {
     echo json_encode(['ok' => false, 'mensaje' => 'Datos incompletos']);
@@ -125,12 +125,15 @@ try {
         foreach ($lineas_venta as $l) {
             $metodo = $conn->real_escape_string($l['metodo']);
             $monto  = round($l['monto'], 2);
-            $conn->query("INSERT INTO venta_pagos (venta, metodo, monto, usuario, fecha) VALUES ($venta_id, '$metodo', $monto, $usuario_id, '$fecha')");
+            $ok = $conn->query("INSERT INTO venta_pagos (venta, metodo, monto, usuario, fecha) VALUES ($venta_id, '$metodo', $monto, $usuario_id, '$fecha')");
+            if (!$ok) {
+                throw new Exception('Insert falló: ' . $conn->error);
+            }
         }
     }
     $conn->commit();
     echo json_encode(['ok' => true]);
 } catch (Exception $e) {
     $conn->rollback();
-    echo json_encode(['ok' => false, 'mensaje' => 'Error al registrar el pago']);
+    echo json_encode(['ok' => false, 'mensaje' => 'Error al registrar el pago: ' . $e->getMessage()]);
 }

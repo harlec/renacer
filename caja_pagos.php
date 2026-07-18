@@ -16,7 +16,7 @@ include('inc/control.php');
     .caja-titulo { font-size: 22px; font-weight: 700; color: var(--c-navy); margin: 8px 0 18px; display:flex; align-items:center; gap:10px; }
     .caja-titulo .contador { font-size:14px; font-weight:600; color:#fff; background:var(--c-orange); border-radius:20px; padding:3px 12px; }
 
-    .resumen-row { display:grid; grid-template-columns: repeat(6, 1fr); gap:14px; margin-bottom:24px; }
+    .resumen-row { display:grid; grid-template-columns: repeat(7, 1fr); gap:14px; margin-bottom:24px; }
     .resumen-card { background:#fff; border-radius:12px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
     .resumen-card .rc-label { font-size:12px; color:#888; font-weight:600; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
     .resumen-card .rc-valor { font-size:24px; font-weight:800; color:var(--c-navy); margin-top:6px; }
@@ -163,6 +163,10 @@ include('inc/control.php');
             <div class="rc-valor" id="resBbva">S/ 0.00</div>
         </div>
         <div class="resumen-card">
+            <div class="rc-label"><i class="fas fa-mobile-alt"></i> Yape Susan</div>
+            <div class="rc-valor" id="resYapeSusan">S/ 0.00</div>
+        </div>
+        <div class="resumen-card">
             <div class="rc-label"><i class="fas fa-credit-card"></i> Tarjeta</div>
             <div class="rc-valor" id="resTarjeta">S/ 0.00</div>
         </div>
@@ -207,6 +211,7 @@ include('inc/control.php');
                     <div class="metodo-btn" data-metodo="yape"><i class="fas fa-mobile-alt"></i>Yape</div>
                     <div class="metodo-btn" data-metodo="plin"><i class="fas fa-mobile-alt"></i>Plin</div>
                     <div class="metodo-btn" data-metodo="bbva"><i class="fas fa-university"></i>BBVA</div>
+                    <div class="metodo-btn" data-metodo="yape_susan"><i class="fas fa-mobile-alt"></i>Yape Susan</div>
                     <div class="metodo-btn" data-metodo="tarjeta"><i class="fas fa-credit-card"></i>Tarjeta</div>
                 </div>
 
@@ -316,6 +321,7 @@ include('inc/control.php');
         document.getElementById('resYape').textContent = money(r.yape);
         document.getElementById('resPlin').textContent = money(r.plin);
         document.getElementById('resBbva').textContent = money(r.bbva);
+        document.getElementById('resYapeSusan').textContent = money(r.yape_susan);
         document.getElementById('resTarjeta').textContent = money(r.tarjeta);
         document.getElementById('resTotal').textContent = money(r.total);
     }
