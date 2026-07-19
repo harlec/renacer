@@ -106,6 +106,9 @@ foreach ($prediccion_data['sin_movimiento'] as $prod) {
                 <li class="active">
                     <a href="reporte_prediccion_stock.php">Predicción de Stock</a>
                 </li>
+                <li>
+                    <a href="reporte_huevos.php">Reporte Huevos</a>
+                </li>
             </ul>
           </div>
         </nav>

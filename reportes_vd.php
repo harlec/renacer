@@ -99,6 +99,12 @@ foreach ($ventas_list as $value) {
 	      		<li >
 	      			<a href="reporte_mv.php">Reporte Mas vendido</a>
 	      		</li>
+			<li>
+				<a href="reporte_prediccion_stock.php">Predicción de Stock</a>
+			</li>
+			<li>
+				<a href="reporte_huevos.php">Reporte Huevos</a>
+			</li>
 	      		<!-- <li >
 	      			<a href="categorias.php">Categorías</a>
 	      		</li>
