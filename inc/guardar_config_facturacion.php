@@ -12,5 +12,6 @@ set_config('nubefact_ruta', $_POST['nubefact_ruta']);
 set_config('nubefact_token', $_POST['nubefact_token']);
 set_config('nubefact_activo', $_POST['nubefact_activo'] == '1' ? '1' : '0');
 set_config('migo_token', $_POST['migo_token']);
+set_config('monto_maximo_proforma_diario', isset($_POST['monto_maximo_proforma_diario']) ? (float) $_POST['monto_maximo_proforma_diario'] : 0);
 
 echo json_encode(array('ok' => true));

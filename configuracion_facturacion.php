@@ -8,6 +8,7 @@ $nubefact_ruta   = get_config('nubefact_ruta');
 $nubefact_token  = get_config('nubefact_token');
 $nubefact_activo = get_config('nubefact_activo', '0');
 $migo_token      = get_config('migo_token');
+$monto_maximo_proforma_diario = get_config('monto_maximo_proforma_diario', '0');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -77,6 +78,25 @@ $migo_token      = get_config('migo_token');
                 </div>
             </div>
         </div>
+
+        <div class="panel panel-default">
+            <div class="panel-heading"><b>Proformas</b></div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label>Monto máximo acumulado de proformas por día (S/)</label>
+                    <input type="number" step="0.01" min="0" class="form-control" id="monto_maximo_proforma_diario" value="<?php echo htmlspecialchars($monto_maximo_proforma_diario); ?>" placeholder="0 = sin límite">
+                    <p class="help-block">La suma de todas las proformas del día no podrá superar este monto. Cada proforma individual ya está limitada a S/ 700.00. Deja en 0 para no aplicar límite acumulado.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel panel-default">
+            <div class="panel-heading"><b>Herramientas de prueba (QA)</b></div>
+            <div class="panel-body">
+                <p class="help-block">Genera una proforma con cliente, productos y cantidades al azar para probar las reglas de monto de arriba. Uso exclusivo de ambientes de prueba.</p>
+                <button class="btn btn-warning" id="btn-generar-prueba"><i class="fas fa-random"></i> Generar proforma de prueba</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -107,11 +127,23 @@ $('#btn-guardar').on('click', function(){
         nubefact_ruta: $('#nubefact_ruta').val(),
         nubefact_token: $('#nubefact_token').val(),
         nubefact_activo: $('#nubefact_activo').is(':checked') ? '1' : '0',
-        migo_token: $('#migo_token').val()
+        migo_token: $('#migo_token').val(),
+        monto_maximo_proforma_diario: $('#monto_maximo_proforma_diario').val()
     }, function(d){
         showAlert(d.ok ? 'Configuración guardada.' : 'Error al guardar.', d.ok ? 'success' : 'danger');
     }, 'json').fail(function(xhr){
         showAlert('Error del servidor: ' + xhr.status, 'danger');
+    });
+});
+
+$('#btn-generar-prueba').on('click', function(){
+    var btn = $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generando...');
+    $.post('/inc/generar_proforma_prueba.php', {}, function(d){
+        showAlert(d.mensaje, d.respuesta ? 'success' : 'danger');
+    }, 'json').fail(function(xhr){
+        showAlert('Error del servidor: ' + xhr.status, 'danger');
+    }).always(function(){
+        btn.prop('disabled', false).html('<i class="fas fa-random"></i> Generar proforma de prueba');
     });
 });
 </script>

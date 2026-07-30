@@ -9,9 +9,13 @@ $id_usuario = $_SESSION['id_usr'];
 //$tienda = $_SESSION['tienda'];
 
 include('sdba/sdba.php'); // include main file
+include('config_facturacion.php');
+
+define('MONTO_MAXIMO_PROFORMA', 700);
 
 $respuestaOk = false;
 $mensajeError = 'hasta aca bien';
+$venta_id = null;
 //$usuario = $_SESSION['id_usr'];
 
 if (isset($_POST) && !empty($_POST)) {
@@ -28,9 +32,34 @@ if (isset($_POST) && !empty($_POST)) {
 	$total = $_POST['total'];
 	$total_pre = $_POST['total_pre'];
 	$respuestaOk = true;
+
+	//validamos el monto individual de la proforma
+	if ($respuestaOk && (float)$total >= MONTO_MAXIMO_PROFORMA) {
+		$respuestaOk = false;
+		$mensajeError = 'El monto de la proforma no puede ser mayor o igual a S/ ' . number_format(MONTO_MAXIMO_PROFORMA, 2);
+	}
+
+	//validamos el acumulado diario de proformas contra el tope configurado
+	if ($respuestaOk) {
+		$tope_diario = (float) get_config('monto_maximo_proforma_diario', '0');
+		if ($tope_diario > 0) {
+			$hoy = date('Y-m-d');
+			$acumulado = Sdba::table('proforma');
+			$acumulado->where('fecha_ope', $hoy . ' 00:00:00', false, false, 'AND', '>=');
+			$acumulado->where('fecha_ope', $hoy . ' 23:59:59', false, false, 'AND', '<=');
+			$acumulado->where('estado', '1', false, false, 'AND', '!=');
+			$total_hoy = (float) $acumulado->sum('total');
+
+			if ($total_hoy + (float)$total > $tope_diario) {
+				$respuestaOk = false;
+				$mensajeError = 'Se alcanzó el monto máximo acumulado de proformas del día (S/ ' . number_format($tope_diario, 2) . '). Acumulado actual: S/ ' . number_format($total_hoy, 2);
+			}
+		}
+	}
+
 	//guardamos en tabla ventas
 
-	if (!empty($fecha) && !empty($id_p) && !empty($total_pre)) {
+	if ($respuestaOk && !empty($fecha) && !empty($id_p) && !empty($total_pre)) {
 			
 			$ventas = Sdba::table('proforma');
 			$data = array('id_venta'=>'','fecha'=> $fecha,'fecha_ope'=>$fecha_ope,'total'=>$total,'cliente'=>$cliente,'usuario'=>$id_usuario,'tipo'=>$tipo,'estado'=>'0');
