@@ -369,7 +369,7 @@ $facturan = 0;
 			});
 
 			
-				var forma = <?php echo $tipo; ?>;
+				var forma = "<?php echo $tipo; ?>";
 				if (forma == '2') {
 					$('.mos').show();
 				}
