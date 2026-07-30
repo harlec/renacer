@@ -250,7 +250,7 @@ $facturan = 0;
 				var hugo = JSON.parse(response);
 				var nombres = hugo.nombre;
 				$('#r_social').val(nombres);
-			});
+			}, 'text');
 		});
 
 //borrar item

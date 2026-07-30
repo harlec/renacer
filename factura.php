@@ -278,7 +278,7 @@ $facturan = 0;
 					var hugo = JSON.parse(response);
 					$('#r_social').val(hugo.nombre_o_razon_social);
 					$('#direccion').val(hugo.direccion);
-				});
+				}, 'text');
 			}
 		});
 
