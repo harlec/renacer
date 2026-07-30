@@ -1,5 +1,6 @@
 ﻿<?php
 include('sdba/sdba.php');
+include('config_facturacion.php');
 session_start();
 
 
@@ -9,10 +10,9 @@ $numero = $_POST['numero'];
 $tipo = $_POST['tipo'];
 $motivo = $_POST['motivo'];
 
-// RUTA para enviar documentos
-$ruta = "https://www.pse.pe/api/v1/48a600f7000a40b0adb189d78fc14187706fae317b1e4465b0560dc04aa0783c";
-
-$token = "eyJhbGciOiJIUzI1NiJ9.IjRjNmM3NTU1YzFjNTQ5MDY5MzJmZWEyMDZiNjgyNTFlOWVhNTY2Y2U2MTE4NGVjMjlmMjA4ZTQyNWRhM2U5OTIi.cUvMBtUfm0j4_OUTRbUysBZhBzXnWWv9KsX1apQZA0U";
+// RUTA y TOKEN configurados en Configuración > Facturación Electrónica
+$ruta = get_config('nubefact_ruta');
+$token = get_config('nubefact_token');
 
 /*
 #########################################################

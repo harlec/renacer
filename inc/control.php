@@ -57,6 +57,7 @@ function menu($i){
 	              <a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Configuración"><img class="isvg" src="/assets/img/config_tablet.svg"><br><span>Config.</span></a>
 	              <ul class="dropdown-menu">
 	                <li><a href="/tablet_config_admin.php"><img src="/assets/img/config_tablet.svg" style="width:16px;margin-right:6px;vertical-align:middle;"> Configuración Tablet</a></li>
+	                <li><a href="/configuracion_facturacion.php"><i class="fas fa-file-invoice" style="width:16px;margin-right:6px"></i> Facturación Electrónica</a></li>
 	              </ul>
 	            </li>
 	          </ul>

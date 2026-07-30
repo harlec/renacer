@@ -1,5 +1,6 @@
 ﻿<?php
 include('sdba/sdba.php');
+include('config_facturacion.php');
 session_start();
 $usuario = $_SESSION['usuario']; 
 
@@ -68,14 +69,9 @@ for ($i=0; $i < count($platos); $i++) {
 $totalg = $total_gravada/1.18;
 $totaligv = $total_gravada - $totalg;
 
-// RUTA para enviar documentos
-//$ruta = "https://api.nubefact.com/api/v1/c4718034-54de-4e07-a9d7-52794d607dcc";
-
-$ruta = "https://www.pse.pe/api/v1/48a600f7000a40b0adb189d78fc14187706fae317b1e4465b0560dc04aa0783c";
-
-//TOKEN para enviar documentos
-//$token = "84e0dde914dc4d96adeedfb73562b144268ef8f883a0444a80ef582cd06a2dfa";
-$token = "eyJhbGciOiJIUzI1NiJ9.IjI1OGE0OWI5YTI5MTQwMmQ4NGI0MTFiNWI5YjIxYTljN2MxNTA4NTJiNDJjNDI1YmFlNjEzNmEyMjM2N2VkYTEi.YFS-7HeD1d0gBLO4ATncm_aFe1jULPVnZz4iMihsvcc";
+// RUTA y TOKEN configurados en Configuración > Facturación Electrónica
+$ruta = get_config('nubefact_ruta');
+$token = get_config('nubefact_token');
 
 /*
 #########################################################
