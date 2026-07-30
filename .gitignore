@@ -1,0 +1,9 @@
+# Carpetas de comprobantes/PDFs generados en runtime (no son codigo fuente)
+/archivos/
+/archivos1/
+/archivos_2/
+/temp/
+
+# Basura de sistema
+.DS_Store
+Thumbs.db
