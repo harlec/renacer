@@ -10,11 +10,26 @@ $facturan = 0;
 	$factura_list = $factura->get_one();
 	$facturan = $factura_list['valor'] + 1;
 
-	$id = $_GET['id'];
+	// Acepta ?ids=1,2,3 (unir varias notas de venta) o ?id=1 (compatibilidad)
+	$ids_raw   = $_GET['ids'] ?? $_GET['id'] ?? '';
+	$venta_ids = array_values(array_unique(array_filter(array_map('intval', explode(',', $ids_raw)))));
 
-	//obtenemos fecha de la venta
+	if (empty($venta_ids)) {
+		die('Falta indicar la(s) venta(s) a facturar.');
+	}
+
+	// Validar que ninguna venta seleccionada esté ya facturada (estado=1) ni anulada (estado=2)
+	$chk = Sdba::table('ventas');
+	$chk->where_in('id_venta', $venta_ids);
+	$chk->where('estado', '0');
+	$chk_list = $chk->get();
+	if (count($chk_list) !== count($venta_ids)) {
+		die('Una o más de las ventas seleccionadas ya no está pendiente (puede que ya se haya facturado o anulado). Vuelve a la lista de notas de venta e inténtalo de nuevo.');
+	}
+
+	//obtenemos datos de la primera venta del grupo (tipo/forma/fecha se toman de ahí)
 	$venta = Sdba::table('ventas'); // creating table object
-	$venta->where('id_venta', $id);
+	$venta->where('id_venta', $venta_ids[0]);
 	$venta_l = $venta->get_one();
 
 	$tipo = $venta_l['tipo'];
@@ -43,38 +58,41 @@ $facturan = 0;
 			break;
 	}
 
-	$fechita = date("d-m-Y", strtotime($venta_l['fecha'])); 
-	
-	$ventas = Sdba::table('detalle_ventas'); // creating table object
-	$ventas->where('venta', $id);
-	$ventas->left_join('producto','productos','id_producto');
-	$ventas_list = $ventas->get();
+	$fechita = count($venta_ids) > 1 ? date('d-m-Y') : date("d-m-Y", strtotime($venta_l['fecha']));
 
 	$i=1;
 	$tot = 0;
-	foreach ($ventas_list as $key ) {
+	$mostrar_de_venta = '';
+	foreach ($venta_ids as $vid) {
+		$ventas = Sdba::table('detalle_ventas'); // creating table object
+		$ventas->where('venta', $vid);
+		$ventas->left_join('producto','productos','id_producto');
+		$ventas_list = $ventas->get();
 
-		$id_unidad = $key['unidad_prod'];
-		$unidad = Sdba::table('unidades');
-		$unidad->where('id_unidad', $id_unidad);
-		$unidad_same = $unidad->get_one();
+		foreach ($ventas_list as $key ) {
 
-		$unidad_p = $unidad_same['codigo'];
+			$id_unidad = $key['unidad_prod'];
+			$unidad = Sdba::table('unidades');
+			$unidad->where('id_unidad', $id_unidad);
+			$unidad_same = $unidad->get_one();
 
-		$tot = $tot + $key['total'];
-		$mostrar_de_venta .= '<tr>
-								<td><input type="hidden" name="exonerada[]" value="'.$key['exonerada'].'">'.$i.'</td>
-								<input type="hidden" name="codigo[]" value="'.$key['id_producto'].'">
-								<td><input type="text" name="plato[]" value="'.$key['nom_prod'].'"></td>
-								<td><input type="text" name="unidad[]" value="'.$unidad_p.'"></td>
-								<td><input type="text" name="precio[]" value="'.$key['precio'].'"></td>
-								<td><input type="text" name="cantidad[]" value="'.$key["cantidad"].'"></td>
-								<td> <input type="text" name="totalp[]" value="'.$key["total"].'"></td>
-								<td><button id="rp" class="borrar" value="'.$key["total"].'"><i class="fa fa-trash" aria-hidden="true"></i></button></td>
-							</tr>
-							
-							';
-		$i++;
+			$unidad_p = $unidad_same['codigo'];
+
+			$tot = $tot + $key['total'];
+			$mostrar_de_venta .= '<tr>
+									<td><input type="hidden" name="exonerada[]" value="'.$key['exonerada'].'">'.$i.'</td>
+									<input type="hidden" name="codigo[]" value="'.$key['id_producto'].'">
+									<td><input type="text" name="plato[]" value="'.$key['nom_prod'].'"></td>
+									<td><input type="text" name="unidad[]" value="'.$unidad_p.'"></td>
+									<td><input type="text" name="precio[]" value="'.$key['precio'].'"></td>
+									<td><input type="text" name="cantidad[]" value="'.$key["cantidad"].'"></td>
+									<td> <input type="text" name="totalp[]" value="'.$key["total"].'"></td>
+									<td><button id="rp" class="borrar" value="'.$key["total"].'"><i class="fa fa-trash" aria-hidden="true"></i></button></td>
+								</tr>
+
+								';
+			$i++;
+		}
 	}
 ?>
 
@@ -132,12 +150,12 @@ $facturan = 0;
 											<div class="panel panel-default pa">  
 												  <div class="panel-body">
 												  	<div class="text-center">
-												  		<h3>Venta <?php echo $id; ?><br><br></h3>
+												  		<h3>Ventas: <?php echo implode(', ', array_map(function($v){ return 'v-'.$v; }, $venta_ids)); ?><br><br></h3>
 												  	</div>
-												  	
+
 												  		<input type="hidden" name="fechita" name="fechita" value="<?php echo $fechita; ?>">
 												  		<input type="hidden" name="forma" name="forma" value="<?php echo $forma_pl; ?>">
-												  		<input type="hidden" name="venta_id" name="venta_id" value="<?php echo $id; ?>">
+												  		<input type="hidden" name="venta_ids" name="venta_ids" value="<?php echo implode(',', $venta_ids); ?>">
 												  		<input class="form-control" type="hidden" name="facturan" value="<?php echo $facturan; ?>">
 												  			  	
 													<br>

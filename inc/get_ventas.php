@@ -67,9 +67,10 @@ $sql = "
         MAX(vp.pagos_raw) AS pagos_raw,
         MAX(vp.pagado)    AS pagado
     FROM ventas v
-    LEFT JOIN detalle_ventas dv ON dv.venta = v.id_venta
-    LEFT JOIN comprobantes   c  ON c.venta  = v.id_venta
-    LEFT JOIN usuarios       u  ON u.id_usuario = v.usuario
+    LEFT JOIN detalle_ventas   dv ON dv.venta = v.id_venta
+    LEFT JOIN comprobante_ventas cv ON cv.venta = v.id_venta
+    LEFT JOIN comprobantes     c  ON c.id_comprobante = cv.comprobante
+    LEFT JOIN usuarios         u  ON u.id_usuario = v.usuario
     LEFT JOIN (
         SELECT venta, GROUP_CONCAT(CONCAT(metodo, ':', monto) SEPARATOR '|') AS pagos_raw, SUM(monto) AS pagado
         FROM venta_pagos GROUP BY venta

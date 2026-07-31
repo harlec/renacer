@@ -45,6 +45,9 @@ $conn_tmp->close();
 	      		<li class="active">
 	      			<a href="ventas.php">Listar ventas</a>
 	      		</li>
+	      		<li>
+	      			<a href="notas_venta.php">Unir notas de venta</a>
+	      		</li>
 	      		<!-- <li>
 	      			<a href="ventap.php">Proforma</a>
 	      		</li>

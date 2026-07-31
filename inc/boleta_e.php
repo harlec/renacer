@@ -12,7 +12,7 @@ if ($_POST['placa']) {
 }
 $fechita = $_POST['fechita'];
 $tipo_doc = $_POST['tipo_doc'];
-$venta_id = $_POST['venta_id'];
+$venta_ids = array_values(array_unique(array_filter(array_map('intval', explode(',', $_POST['venta_ids'] ?? '')))));
 $user = $_POST['user'];
 $ruc =$_POST['ruc'];
 $r_social = $_POST['r_social'];
@@ -26,6 +26,21 @@ $precio = $_POST['precio'];
 $exonerada = $_POST['exonerada'];
 $totalp = $_POST['totalp'];
 $total = $_POST['total'];
+
+// Re-chequear que ninguna venta se haya facturado/anulado entre que se abrió
+// el formulario y se confirmó el envío (ej. otra pestaña ya la facturó).
+if (empty($venta_ids)) {
+    echo json_encode(['Falta indicar la(s) venta(s) a facturar.']);
+    exit;
+}
+$chk = Sdba::table('ventas');
+$chk->where_in('id_venta', $venta_ids);
+$chk->where('estado', '0');
+$chk_list = $chk->get();
+if (count($chk_list) !== count($venta_ids)) {
+    echo json_encode(['Una o más de las ventas seleccionadas ya no está pendiente (puede que ya se haya facturado o anulado).']);
+    exit;
+}
 
 $detalle = array();
 $igvtot = 0;
@@ -116,7 +131,7 @@ $data = array(
     "total_percepcion"                  => "",
     "total_incluido_percepcion"         => "",
     "detraccion"                        => "false",
-    "observaciones"                     => $user,
+    "observaciones"                     => $user . ' - ' . implode(',', array_map(function($v){ return 'v-'.$v; }, $venta_ids)),
     "documento_que_se_modifica_tipo"    => "",
     "documento_que_se_modifica_serie"   => "",
     "documento_que_se_modifica_numero"  => "",
@@ -178,13 +193,18 @@ if (isset($leer_respuesta['errors'])) {
 } else {
     $fecha = date("Y-m-d", strtotime($fechita));
 	$configuracion = Sdba::table('comprobantes');
-    $data = array('id_comprobante'=>'','serie'=>'BV03','numero'=>$leer_respuesta['numero'],'url'=>$leer_respuesta['enlace'],'tipo'=>'B','venta'=>$venta_id,'tipo_doc'=>$tipo_doc,'doc'=>$ruc,'nombre'=>$r_social,'moneda'=>'PEN','tipo_cambio'=>'','grabada'=>$totalg,'igv'=>$totaligv,'total'=>$total,'fecha'=>$fecha,'state'=>'0');
+    $data = array('id_comprobante'=>'','serie'=>'BV03','numero'=>$leer_respuesta['numero'],'url'=>$leer_respuesta['enlace'],'tipo'=>'B','venta'=>$venta_ids[0],'tipo_doc'=>$tipo_doc,'doc'=>$ruc,'nombre'=>$r_social,'moneda'=>'PEN','tipo_cambio'=>'','grabada'=>$totalg,'igv'=>$totaligv,'total'=>$total,'fecha'=>$fecha,'state'=>'0');
     $configuracion->insert($data);
+    $comprobante_id = $configuracion->insert_id();
 
-    $venta = Sdba::table('ventas');
-    $venta->where('id_venta', $venta_id);
-    $data = array('estado'=>'1');
-    $venta->update($data);
+    // Vincula el comprobante a TODAS las ventas del grupo (tabla puente) y las marca como facturadas
+    foreach ($venta_ids as $vid) {
+        Sdba::table('comprobante_ventas')->insert(array('comprobante'=>$comprobante_id, 'venta'=>$vid));
+
+        $venta = Sdba::table('ventas');
+        $venta->where('id_venta', $vid);
+        $venta->update(array('estado'=>'1'));
+    }
 
     $numerof = Sdba::table('configuracion');
     $numerof->where('parametro', 'boleta');
