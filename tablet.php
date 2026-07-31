@@ -530,6 +530,28 @@ body{
   color:#fff;
 }
 .total-amount small{font-size:14px;color:var(--muted);margin-right:3px}
+.pay-method-row{display:none;gap:6px;margin-bottom:8px}
+.pay-method-row.show{display:flex}
+.pay-method-btn{
+  flex:1;
+  padding:10px 6px;
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:var(--r);
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--muted);
+  cursor:pointer;
+  transition:all .15s;
+}
+.pay-method-btn.active{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-bg,rgba(245,166,35,.12));
+}
 .action-row{display:flex;gap:6px}
 .btn-save{
   flex:1;
@@ -751,6 +773,10 @@ body{
           <span class="total-lbl">Total</span>
           <span class="total-amount"><small>S/</small><span id="total-val">0.00</span></span>
         </div>
+        <div class="pay-method-row" id="pay-method-row">
+          <button class="pay-method-btn" id="pm-efectivo" onclick="selectMetodoPago('efectivo')">💵 Efectivo</button>
+          <button class="pay-method-btn" id="pm-tarjeta" onclick="selectMetodoPago('tarjeta')">💳 Tarjeta</button>
+        </div>
         <div class="action-row">
           <button class="btn-save" id="btn-save" onclick="saveAndPrint()" disabled>💾 Guardar</button>
           <!--<button class="btn-pay" id="btn-pay" onclick="openTicket()" disabled>🧾 Cobrar</button>
@@ -823,6 +849,13 @@ let currentCatId    = null;
 let selectedProduct = null;
 let numBuf          = '0';
 let cart            = [];
+let metodoPago      = null;
+
+// ── ¿La pestaña actual requiere método de pago? ─────────────
+function isHuevosTab(tabKey){
+  const cfg = tabKey && TABS_DATA[tabKey] ? TABS_DATA[tabKey].config : null;
+  return !!cfg && String(cfg.label||'').trim().toLowerCase() === 'huevos';
+}
 
 // ── Reloj ──────────────────────────────────────────────────
 (function clockTick(){
@@ -860,6 +893,7 @@ function switchTab(key){
   currentTab      = key;
   selectedProduct = null;
   numBuf          = '0';
+  metodoPago      = null;
 
   // Colores dinámicos
   const cfg = TABS_DATA[key].config;
@@ -876,6 +910,21 @@ function switchTab(key){
   // Categorías
   buildCatStrip(key);
   updateNumDisplay();
+  updatePayMethodUI();
+}
+
+// ── Método de pago (solo pestaña Huevos) ────────────────────
+function updatePayMethodUI(){
+  const row = document.getElementById('pay-method-row');
+  row.classList.toggle('show', isHuevosTab(currentTab));
+  document.getElementById('pm-efectivo').classList.toggle('active', metodoPago==='efectivo');
+  document.getElementById('pm-tarjeta').classList.toggle('active', metodoPago==='tarjeta');
+  setTotalButtons(cart.reduce((s,i)=>s+i.total,0));
+}
+
+function selectMetodoPago(m){
+  metodoPago = m;
+  updatePayMethodUI();
 }
 
 // ── Barra de categorías ────────────────────────────────────
@@ -1043,8 +1092,9 @@ function renderCart(){
 
 function setTotalButtons(grand){
   document.getElementById('total-val').textContent = grand.toFixed(2);
-  const hasItems = grand>0;
-  document.getElementById('btn-save').disabled  = !hasItems;
+  const hasItems  = grand>0;
+  const pagoListo = !isHuevosTab(currentTab) || !!metodoPago;
+  document.getElementById('btn-save').disabled  = !hasItems || !pagoListo;
   document.getElementById('btn-pay').disabled   = !hasItems;
   document.getElementById('btn-print').disabled = !hasItems;
 }
@@ -1058,6 +1108,8 @@ function clearCart(){
   if(!cart.length) return;
   if(!confirm('¿Limpiar el pedido?')) return;
   cart=[];
+  metodoPago=null;
+  updatePayMethodUI();
   renderCart();
 }
 
@@ -1224,6 +1276,7 @@ function toast(msg, type='ok'){
 // ── Guardar venta y imprimir ───────────────────────────────
 function saveAndPrint(){
   if(!cart.length){ toast('El pedido está vacío','err'); return; }
+  if(isHuevosTab(currentTab) && !metodoPago){ toast('Selecciona un método de pago','err'); return; }
 
   const btn = document.getElementById('btn-save');
   btn.disabled = true;
@@ -1238,6 +1291,7 @@ function saveAndPrint(){
   body.append('fecha',   fecha);
   body.append('total1',  cart.reduce((s,i)=>s+i.total,0).toFixed(2));
   if(id_cliente) body.append('id_cliente', id_cliente);
+  if(isHuevosTab(currentTab) && metodoPago) body.append('metodo_pago', metodoPago);
 
   cart.forEach(ci=>{
     body.append('id_pro[]',     ci.prod_id);
@@ -1256,6 +1310,8 @@ function saveAndPrint(){
     if(data.respuesta){
       printTicket();
       cart=[];
+      metodoPago=null;
+      updatePayMethodUI();
       renderCart();
       toast('Venta guardada ✓');
     } else {

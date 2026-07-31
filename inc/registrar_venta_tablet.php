@@ -27,6 +27,10 @@ if (!empty($_POST)) {
     $total_pre  = $_POST['total_pre']  ?? [];
     $total      = floatval($_POST['total1'] ?? 0);
 
+    $metodos_validos = ['efectivo', 'tarjeta'];
+    $metodo_pago     = $_POST['metodo_pago'] ?? '';
+    $metodo_pago     = in_array($metodo_pago, $metodos_validos, true) ? $metodo_pago : null;
+
     if (!empty($fecha) && !empty($id_p) && !empty($total_pre)) {
 
         $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
@@ -68,6 +72,12 @@ if (!empty($_POST)) {
                           VALUES ('$fecha_safe', '$fecha_ope', $total, $id_cliente, $id_usuario, '0')");
             $venta_id = $conn->insert_id;
             if (!$venta_id) throw new Exception("No se pudo crear la venta");
+
+            // Pago (efectivo/tarjeta) — solo pestañas que lo envían, ej. Huevos
+            if ($metodo_pago && $total > 0) {
+                $conn->query("INSERT INTO venta_pagos (venta, metodo, monto, usuario, fecha)
+                              VALUES ($venta_id, '$metodo_pago', $total, $id_usuario, '$fecha_ope')");
+            }
 
             // Detalle + stock
             for ($i = 0; $i < count($id_p); $i++) {
