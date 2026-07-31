@@ -64,6 +64,7 @@ $sql = "
         MAX(c.numero) AS comp_numero,
         MAX(c.url)    AS comp_url,
         u.nombres     AS nombre_usuario,
+        cl.cliente    AS nombre_cliente,
         MAX(vp.pagos_raw) AS pagos_raw,
         MAX(vp.pagado)    AS pagado
     FROM ventas v
@@ -71,6 +72,7 @@ $sql = "
     LEFT JOIN comprobante_ventas cv ON cv.venta = v.id_venta
     LEFT JOIN comprobantes     c  ON c.id_comprobante = cv.comprobante
     LEFT JOIN usuarios         u  ON u.id_usuario = v.usuario
+    LEFT JOIN clientes         cl ON cl.id_cliente = v.cliente
     LEFT JOIN (
         SELECT venta, GROUP_CONCAT(CONCAT(metodo, ':', monto) SEPARATOR '|') AS pagos_raw, SUM(monto) AS pagado
         FROM venta_pagos GROUP BY venta
@@ -92,7 +94,7 @@ $data = [];
 
 while ($row = $result->fetch_assoc()) {
 
-    $tipo  = '-';
+    $cliente_venta = htmlspecialchars($row['nombre_cliente'] ?: 'Sin cliente');
 
     $metodos_label = ['efectivo' => 'Efectivo', 'yape' => 'Yape', 'plin' => 'Plin', 'bbva' => 'BBVA', 'yape_susan' => 'Yape Susan', 'tarjeta' => 'Tarjeta'];
     if (!empty($row['pagos_raw'])) {
@@ -116,18 +118,22 @@ while ($row = $result->fetch_assoc()) {
     }
 
     $boton_editar = '';
+    $boton_facturar = '';
     if ($row['estado'] == '0') {
         $boton_editar = ' <a title="Editar venta" class="btn btn-warning btn-sm" href="editar_venta.php?id=' . $row['id_venta'] . '"><i class="fas fa-edit"></i></a>';
+        $boton_facturar = ' <a title="Factura electrónica" class="btn btn-success btn-sm" href="factura.php?ids=' . $row['id_venta'] . '"><i class="fas fa-file-invoice-dollar"></i></a>'
+                         . ' <a title="Boleta electrónica" class="btn btn-danger btn-sm" href="boleta.php?ids=' . $row['id_venta'] . '"><i class="fab fa-bitcoin"></i></a>';
     }
 
     $opciones = '<a title="Ver venta" class="btn btn-primary btn-sm" href="ver_venta.php?id=' . $row['id_venta'] . '"><i class="fas fa-eye"></i></a>'
               . $boton_editar
+              . $boton_facturar
               . ' <button class="btn-custom btn-borrar" value="' . $row['id_venta'] . '" title="borrar"><img src="/assets/img/trash.png" /></button>';
 
     $data[] = [
         'v-' . $row['id_venta'],
         $row['nombre_usuario'] ?: '-',
-        $tipo,
+        $cliente_venta,
         $forma,
         $row['fecha'],
         number_format((float)$row['monto'], 2),

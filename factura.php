@@ -177,7 +177,7 @@ $facturan = 0;
 													    	</thead>
 													    	<tbody>
 																	<?php echo $mostrar_de_venta; ?>
-																	<tr>
+																	<tr id="fila-total">
 																		<td colspan="5" class="text-right" ><h4>TOTAL:</h4></td>
 																		<td class=""><h4><input value="<?php echo $tot; ?>" type="number" id="total" name="total"></h4>
 																		</td>
@@ -185,6 +185,9 @@ $facturan = 0;
 																	</tr>
 													    	</tbody>
 													    </table>
+													<div class="text-center" style="margin-bottom:10px">
+														<button type="button" class="btn btn-default btn-sm" id="btn-agregar-item"><i class="fa fa-plus" aria-hidden="true"></i> Agregar producto</button>
+													</div>
 													</div>
 												    <div class="text-center">
 												    	<!-- <button type="submit" class="btn btn-success btn-lg">Facturar</button> -->
@@ -305,16 +308,28 @@ $facturan = 0;
 
 //borrar item
 		    $("body").on('click', '.borrar', function () {
-		    	var to = $(this).val();
-		    	var tot = $('#total').val();
-		    	var queda = tot-to;
-		    	console.log(tot);
-		    	console.log(queda);
+		    	// Toma el monto actual de la fila (por si el usuario lo editó a mano),
+		    	// no el valor original con el que se pintó el botón.
+		    	var to = parseFloat($(this).closest('tr').find('input[name="totalp[]"]').val()) || 0;
+		    	var tot = parseFloat($('#total').val()) || 0;
+		    	var queda = Math.round((tot - to) * 100) / 100;
 			    $(this).closest('tr').remove();
-			    $(this).parents('.pt-r').remove();
 			    $('#total').val(queda);
-			    console.log(to);
+			});
 
+			var contadorItems = <?php echo $i; ?>;
+			$("body").on('click', '#btn-agregar-item', function () {
+				var fila = '<tr>' +
+					'<td><input type="hidden" name="exonerada[]" value="no">' + (contadorItems++) + '</td>' +
+					'<input type="hidden" name="codigo[]" value="0">' +
+					'<td><input type="text" name="plato[]" placeholder="Descripción"></td>' +
+					'<td><input type="text" name="unidad[]" value="NIU"></td>' +
+					'<td><input type="text" name="precio[]" value="0.00"></td>' +
+					'<td><input type="text" name="cantidad[]" value="1"></td>' +
+					'<td><input type="text" name="totalp[]" value="0.00"></td>' +
+					'<td><button type="button" class="borrar"><i class="fa fa-trash" aria-hidden="true"></i></button></td>' +
+					'</tr>';
+				$('#fila-total').before(fila);
 			});
 
 			$("body").on('click', '#facturar', function () {

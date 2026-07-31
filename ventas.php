@@ -76,7 +76,7 @@ $conn_tmp->close();
 											    			<th>#</th>
 											    			<th>Venta</th>
 											    			<th>Usuario</th>
-											    			<th>Tipo</th>
+											    			<th>Cliente</th>
 											    			<th>Forma</th>
 											    			<th>Fecha</th>
 											    			<th>Monto</th>
