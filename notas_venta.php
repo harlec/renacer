@@ -105,6 +105,29 @@ include('inc/control.php');
 									<button type="button" class="btn btn-primary" id="btn-agrupar">Buscar combinación</button>
 								</div>
 							</div>
+							<div class="panel panel-default">
+								<div class="panel-heading" style="display:flex;align-items:center;justify-content:space-between">
+									<span><i class="fas fa-receipt"></i> Comprobantes emitidos hoy</span>
+									<button type="button" class="btn btn-default btn-sm" id="btn-zip-hoy"><i class="fas fa-file-archive"></i> Descargar ZIP</button>
+								</div>
+								<div class="panel-body">
+									<table class="table table-hover">
+										<thead>
+											<tr>
+												<th>Tipo</th>
+												<th>Serie-Número</th>
+												<th>Cliente</th>
+												<th>Ventas</th>
+												<th>Total</th>
+												<th>PDF</th>
+											</tr>
+										</thead>
+										<tbody id="tbody-cmp-hoy">
+											<tr><td colspan="6" style="text-align:center;color:#888">Cargando...</td></tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
 							<div class="kdashboard">
 								<div class="row">
 									<div class="col-md-12">
@@ -199,6 +222,41 @@ include('inc/control.php');
 			render();
 			actualizarBarra();
 		}
+
+		let hayComprobantesHoy = false;
+
+		function cargarComprobantesHoy() {
+			fetch('inc/get_comprobantes_hoy.php')
+				.then(function (r) { return r.json(); })
+				.then(function (res) {
+					const tbody = document.getElementById('tbody-cmp-hoy');
+					hayComprobantesHoy = !!(res.ok && res.data.length);
+					if (!hayComprobantesHoy) {
+						tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888">Aún no se ha emitido ningún comprobante hoy</td></tr>';
+						return;
+					}
+					tbody.innerHTML = res.data.map(function (c) {
+						const pdf = c.url_pdf
+							? '<a href="' + c.url_pdf + '" target="_blank">Ver PDF</a>'
+							: '-';
+						return '<tr>' +
+							'<td>' + c.tipo + '</td>' +
+							'<td>' + c.serie + '-' + c.numero + '</td>' +
+							'<td>' + c.cliente + '</td>' +
+							'<td>' + c.ventas.split(',').map(function (v) { return 'v-' + v; }).join(', ') + '</td>' +
+							'<td>' + money(c.total) + '</td>' +
+							'<td>' + pdf + '</td>' +
+							'</tr>';
+					}).join('');
+				})
+				.catch(function () {});
+		}
+		cargarComprobantesHoy();
+
+		document.getElementById('btn-zip-hoy').addEventListener('click', function () {
+			if (!hayComprobantesHoy) { alert('Aún no se ha emitido ningún comprobante hoy.'); return; }
+			window.open('inc/zip_comprobantes_hoy.php', '_blank');
+		});
 
 		function cargar() {
 			fetch('inc/get_notas_venta_pendientes.php')
