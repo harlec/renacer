@@ -139,6 +139,9 @@ foreach ($el as $value) {
 	      		<li >
 	      			<a href="ventas.php">Listar ventas</a>
 	      		</li>
+	      		<li>
+	      			<a href="notas_venta.php">Facturar</a>
+	      		</li>
 	      		<!-- <li>
 	      			<a href="ventap.php">Proforma</a>
 	      		</li>

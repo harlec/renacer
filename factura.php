@@ -132,6 +132,9 @@ $facturan = 0;
 	      		<li >
 	      			<a href="ventas.php">Listar ventas</a>
 	      		</li>
+	      		<li class="active">
+	      			<a href="notas_venta.php">Facturar</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>
