@@ -241,10 +241,11 @@ include('inc/control.php');
 		});
 
 		// ── Agrupar automático por rango de monto ────────────
-		// Buscar la combinación exacta que sume dentro de un rango es "subset sum" (NP-completo);
-		// con listas de este tamaño alcanza con una heurística: probar orden descendente, ascendente
-		// y varios órdenes aleatorios, siempre sumando de forma "greedy" (agrega mientras no pase el
-		// máximo) y quedándose con el mejor resultado encontrado.
+		// Buscar una combinación que sume dentro de un rango es "subset sum" (NP-completo);
+		// con listas de este tamaño alcanza con una heurística: probar muchos órdenes al azar,
+		// sumando de forma "greedy" (agrega mientras no pase un tope) hasta juntar varias
+		// combinaciones válidas, y elegir una al azar entre ellas para no repetir siempre el
+		// mismo resultado pegado al máximo del rango.
 		function shuffle(arr) {
 			for (let i = arr.length - 1; i > 0; i--) {
 				const j = Math.floor(Math.random() * (i + 1));
@@ -265,19 +266,33 @@ include('inc/control.php');
 		}
 
 		function mejorCombinacion(min, max) {
-			const intentos = [
-				items.slice().sort(function (a, b) { return b.total - a.total; }),
-				items.slice().sort(function (a, b) { return a.total - b.total; }),
-			];
-			for (let i = 0; i < 40; i++) intentos.push(shuffle(items.slice()));
+			// El greedy siempre rellena hasta el tope que se le da, así que si el tope es
+			// siempre "max" el resultado siempre queda pegado al máximo del rango (ej. 599.90).
+			// Para dispersar el resultado dentro del rango, se prueba con un tope ALEATORIO
+			// entre min y max en cada intento, se juntan TODAS las combinaciones válidas
+			// encontradas, y al final se elige una al azar entre ellas.
+			const validas = [];
+			let mejorFueraDeRango = null;
 
-			let mejor = null;
-			for (const lista of intentos) {
-				const r = greedy(lista, max);
-				if (!mejor || r.suma > mejor.suma) mejor = r;
-				if (r.suma >= min && r.suma <= max) return r;
+			function evaluar(r) {
+				if (!mejorFueraDeRango || r.suma > mejorFueraDeRango.suma) mejorFueraDeRango = r;
+				if (r.suma >= min && r.suma <= max) validas.push(r);
 			}
-			return mejor;
+
+			// Un par de intentos "clásicos" pegados al máximo, por si el rango es tan
+			// angosto que solo empaquetando al tope se logra caer dentro de él.
+			evaluar(greedy(items.slice().sort(function (a, b) { return b.total - a.total; }), max));
+			evaluar(greedy(items.slice().sort(function (a, b) { return a.total - b.total; }), max));
+
+			for (let i = 0; i < 80; i++) {
+				const topeAleatorio = min + Math.random() * (max - min);
+				evaluar(greedy(shuffle(items.slice()), topeAleatorio));
+			}
+
+			if (validas.length) {
+				return validas[Math.floor(Math.random() * validas.length)];
+			}
+			return mejorFueraDeRango;
 		}
 
 		document.getElementById('btn-agrupar').addEventListener('click', function () {
