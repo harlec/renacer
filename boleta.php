@@ -79,6 +79,7 @@ $facturan = 0;
     <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="/assets/css/jquery-ui.min.css">
     </head>
 
 <body class="mobile dashboard">
@@ -292,14 +293,47 @@ $facturan = 0;
 				var fila = '<tr>' +
 					'<td><input type="hidden" name="exonerada[]" value="no">' + (contadorItems++) + '</td>' +
 					'<input type="hidden" name="codigo[]" value="0">' +
-					'<td><input type="text" name="plato[]" placeholder="Descripción"></td>' +
+					'<td><input type="text" name="plato[]" class="plato-nuevo" placeholder="Buscar producto..."></td>' +
 					'<td><input type="text" name="unidad[]" value="NIU"></td>' +
 					'<td><input type="text" name="precio[]" value="0.00"></td>' +
 					'<td><input type="text" name="cantidad[]" value="1"></td>' +
 					'<td><input type="text" name="totalp[]" value="0.00"></td>' +
 					'<td><button type="button" class="borrar"><i class="fa fa-trash" aria-hidden="true"></i></button></td>' +
 					'</tr>';
-				$('#fila-total').before(fila);
+				var $fila = $(fila);
+				$('#fila-total').before($fila);
+
+				// Mismo autocomplete de producto que usa venta.php
+				$fila.find('.plato-nuevo').autocomplete({
+					source: function (request, response) {
+						$.ajax({
+							type: 'GET',
+							dataType: 'json',
+							url: '/inc/autocomplete-producto.php',
+							data: { term: request.term },
+							success: function (data) { response(data); }
+						});
+					}
+				});
+			});
+
+			// Al elegir (o terminar de escribir) el producto de una fila agregada a mano,
+			// trae su precio real y su id, igual que hace venta.php con #basics.
+			$("body").on('change paste keyup', '.plato-nuevo', function () {
+				var $fila = $(this).closest('tr');
+				$.ajax({
+					type: 'GET',
+					dataType: 'json',
+					url: '/inc/autocomplete-precio.php',
+					data: { producto: $(this).val() },
+					success: function (response) {
+						if (!response || !response.precio) return;
+						$fila.find('input[name="precio[]"]').val(response.precio);
+						$fila.find('input[name="codigo[]"]').val(response.id_p);
+						var cant = parseFloat($fila.find('input[name="cantidad[]"]').val()) || 1;
+						$fila.find('input[name="totalp[]"]').val((parseFloat(response.precio) * cant).toFixed(2));
+					}
+				});
 			});
 
 			$("body").on('click', '#facturar', function () {
