@@ -14,6 +14,15 @@ include('inc/control.php');
     <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
     <style>
+        :root { --c-navy: #1e3a4c; --c-orange: #ff5023; }
+        .resumen-row { display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:20px; }
+        .resumen-card { background:#fff; border-radius:12px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+        .resumen-card .rc-label { font-size:12px; color:#888; font-weight:600; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+        .resumen-card .rc-valor { font-size:24px; font-weight:800; color:var(--c-navy); margin-top:6px; }
+        .resumen-card.total { background:var(--c-navy); }
+        .resumen-card.total .rc-label { color:#bcd; }
+        .resumen-card.total .rc-valor { color:#fff; }
+        @media (max-width: 700px) { .resumen-row { grid-template-columns: 1fr; } }
         #barra-nv{
             display:none; position:fixed; bottom:0; left:0; right:0; background:#1e3a4c; color:#fff;
             padding:14px 24px; align-items:center; justify-content:space-between; z-index:90;
@@ -50,7 +59,7 @@ include('inc/control.php');
 	      			<a href="ventas.php">Listar ventas</a>
 	      		</li>
 	      		<li class="active">
-	      			<a href="notas_venta.php">Unir notas de venta</a>
+	      			<a href="notas_venta.php">Facturar</a>
 	      		</li>
 	      	</ul>
 	      </div>
@@ -58,14 +67,28 @@ include('inc/control.php');
 		<div class="kbg">
 			<div class="cuerpofull">
 				<div class="titulo">
-					<h3>Unir notas de venta</h3>
+					<h3>Facturar</h3>
 					<p style="font-size:13px;color:#888;margin-top:-6px">
-						Selecciona varias notas de venta pendientes (sin facturar) para emitirlas juntas en un solo comprobante.
+						Selecciona una o varias notas de venta pendientes (sin facturar) para emitirlas juntas en un solo comprobante.
 					</p>
 				</div>
 				<div class="container-fluid">
 					<div class="row">
 						<div class="col-md-12">
+							<div class="resumen-row" id="resumen-row">
+								<div class="resumen-card">
+									<div class="rc-label"><i class="fab fa-bitcoin"></i> Boletas hoy</div>
+									<div class="rc-valor" id="resBoletas">S/ 0.00</div>
+								</div>
+								<div class="resumen-card">
+									<div class="rc-label"><i class="fas fa-file-invoice-dollar"></i> Facturas hoy</div>
+									<div class="rc-valor" id="resFacturas">S/ 0.00</div>
+								</div>
+								<div class="resumen-card total">
+									<div class="rc-label"><i class="fas fa-cash-register"></i> Total facturado hoy</div>
+									<div class="rc-valor" id="resTotal">S/ 0.00</div>
+								</div>
+							</div>
 							<div class="kdashboard">
 								<div class="row">
 									<div class="col-md-12">
@@ -114,6 +137,12 @@ include('inc/control.php');
 		let seleccionados = new Set();
 
 		function money(n) { return 'S/ ' + n.toFixed(2); }
+
+		function renderResumen(r) {
+			document.getElementById('resBoletas').textContent = money(r.boletas || 0);
+			document.getElementById('resFacturas').textContent = money(r.facturas || 0);
+			document.getElementById('resTotal').textContent = money(r.total || 0);
+		}
 
 		function render() {
 			const tbody = document.getElementById('tbody-nv');
@@ -166,6 +195,7 @@ include('inc/control.php');
 					seleccionados.forEach(function (id) { if (!idsPendientes.has(id)) seleccionados.delete(id); });
 					render();
 					actualizarBarra();
+					if (res.resumen) renderResumen(res.resumen);
 				})
 				.catch(function () {});
 		}
