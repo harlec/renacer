@@ -30,7 +30,7 @@ $total = $_POST['total'];
 // Re-chequear que ninguna venta se haya facturado/anulado entre que se abrió
 // el formulario y se confirmó el envío (ej. otra pestaña ya la facturó).
 if (empty($venta_ids)) {
-    echo json_encode(['Falta indicar la(s) venta(s) a facturar.']);
+    echo json_encode(['ok' => false, 'mensaje' => 'Falta indicar la(s) venta(s) a facturar.']);
     exit;
 }
 $chk = Sdba::table('ventas');
@@ -38,7 +38,7 @@ $chk->where_in('id_venta', $venta_ids);
 $chk->where('estado', '0');
 $chk_list = $chk->get();
 if (count($chk_list) !== count($venta_ids)) {
-    echo json_encode(['Una o más de las ventas seleccionadas ya no está pendiente (puede que ya se haya facturado o anulado).']);
+    echo json_encode(['ok' => false, 'mensaje' => 'Una o más de las ventas seleccionadas ya no está pendiente (puede que ya se haya facturado o anulado).']);
     exit;
 }
 
@@ -46,22 +46,22 @@ $detalle = array();
 $igvtot = 0;
 $total_gravada = 0;
 $total_exonerada = 0;
-for ($i=0; $i < count($platos); $i++) { 
+for ($i=0; $i < count($platos); $i++) {
+    $totalp_i = round((float)$totalp[$i], 2);
     if ($exonerada[$i]=='no') {
         $valor_unitario = $precio[$i]/1.18;
-        $subtotal = $valor_unitario*$cantidad[$i];
-        $igv1 = $totalp[$i]-$subtotal;
-        $igv = $igv1; 
-        $igvtot = $igvtot + $igv;
+        $subtotal = round($valor_unitario*$cantidad[$i], 2);
+        $igv = round($totalp_i - $subtotal, 2);
+        $igvtot = round($igvtot + $igv, 2);
         $tipo_igv = '1';
-        $total_gravada = $total_gravada + $totalp[$i];
+        $total_gravada = round($total_gravada + $totalp_i, 2);
     }
     else{
         $valor_unitario = $precio[$i];
-        $subtotal = $valor_unitario*$cantidad[$i];
-        $igv = '0';
+        $subtotal = round($valor_unitario*$cantidad[$i], 2);
+        $igv = 0;
         $tipo_igv = '8';
-        $total_exonerada = $total_exonerada + $totalp[$i];
+        $total_exonerada = round($total_exonerada + $totalp_i, 2);
     }
     $detalle [$i]=array(
         "unidad_de_medida"          => $unidad[$i],
@@ -74,15 +74,18 @@ for ($i=0; $i < count($platos); $i++) {
         "subtotal"                  => $subtotal,
         "tipo_de_igv"               => $tipo_igv,
         "igv"                       => $igv,
-        "total"                     => $totalp[$i],
+        "total"                     => $totalp_i,
         "anticipo_regularizacion"   => "false",
         "anticipo_documento_serie"  => "",
         "anticipo_documento_numero" => ""
     );
-    
+
 }
-$totalg = $total_gravada/1.18;
-$totaligv = $total_gravada - $totalg;
+// total_igv del comprobante = suma EXACTA de los IGV de línea (no se recalcula por
+// separado desde el agregado), para que nunca pueda desalinearse con las líneas al
+// unir varias ventas con precios de decimales largos (ej. huevos a 0.4666.../unidad).
+$totaligv = $igvtot;
+$totalg   = round($total_gravada - $totaligv, 2);
 
 // RUTA y TOKEN configurados en Configuración > Facturación Electrónica
 $ruta = get_config('nubefact_ruta');
@@ -187,9 +190,16 @@ curl_close($ch);
 
 
 $leer_respuesta = json_decode($respuesta, true);
-if (isset($leer_respuesta['errors'])) {
-	//Mostramos los errores si los hay
-    echo json_encode($leer_respuesta['errors']);
+
+// Cualquier respuesta que no sea un JSON válido con "numero" se trata como error
+// (Nubefact caído, timeout, HTML de error, etc.) — nunca se marca la venta como
+// facturada si no hay certeza de que Nubefact aceptó el comprobante.
+if (!is_array($leer_respuesta) || isset($leer_respuesta['errors']) || empty($leer_respuesta['numero'])) {
+    $mensaje = 'No se pudo generar el comprobante (respuesta inválida de Nubefact).';
+    if (is_array($leer_respuesta) && isset($leer_respuesta['errors'])) {
+        $mensaje = is_array($leer_respuesta['errors']) ? implode(' ', $leer_respuesta['errors']) : $leer_respuesta['errors'];
+    }
+    echo json_encode(['ok' => false, 'mensaje' => $mensaje]);
 } else {
     $fecha = date("Y-m-d", strtotime($fechita));
 	$configuracion = Sdba::table('comprobantes');
@@ -211,7 +221,12 @@ if (isset($leer_respuesta['errors'])) {
     $dataf = array('valor'=>$facturan);
     $numerof->update($dataf);
 
-    echo json_encode($respuesta);
+    echo json_encode([
+        'ok'             => true,
+        'numero'         => $leer_respuesta['numero'],
+        'enlace'         => $leer_respuesta['enlace'] ?? null,
+        'enlace_del_pdf' => $leer_respuesta['enlace_del_pdf'] ?? null,
+    ]);
 
 }
 ?>

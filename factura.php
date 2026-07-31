@@ -315,16 +315,15 @@ $facturan = 0;
 			});
 
 			$("body").on('click', '#facturar', function () {
+		    	if ($(this).prop('disabled')) return;
+		    	var $btn = $(this);
 		    	var str2 = $('#frmfactura').serialize();
-		    	console.log(str2);
-		    	//alert(str2);
 		    	$.ajax({
 		    		beforeSend: function(){
+					     $btn.prop('disabled', true);
 					     $("#loading").show();
-					      $("#facturar").css("visibility", "hidden");
-					     
 					},
-					   complete: function(){
+					complete: function(){
 					     $("#loading").hide();
 					},
 					cache: false,
@@ -333,33 +332,17 @@ $facturan = 0;
 					url: "inc/factura_e.php",
 					data: str2,
 					success: function(response){
-
-						//alert('bien');
-						console.log(response);
-
-						var sunat = JSON.parse(response); 
-				  		console.log(sunat.enlace);
-						// console.log(response);
-						//document.location.href = "venta.php";
-						window.open(sunat.enlace_del_pdf,'_blank');
-						return false;
-
-						//if(response.respuesta == false){
-							//swal('Advertencia',response,'warning');
-							//console.log(response);
-
-						//}else{
-
-							//swal('Perfecto', response,'success')
-							// console.log(response.mesa);
-							// $('#mostrarmesa').load('inc/mobile/ver_mesa.php?mesa='+ response.mesa);
-							// //document.location.href = "listar_ventas.php";
-						
-						//}
-					
+						if (response && response.ok) {
+							window.open(response.enlace_del_pdf, '_blank');
+							$btn.text('✓ Factura generada');
+						} else {
+							alert(response && response.mensaje ? response.mensaje : 'No se pudo generar la factura.');
+							$btn.prop('disabled', false);
+						}
 					},
-					error: function(reponse1){
-						alert(reponse1);
+					error: function(){
+						alert('Error de conexión al generar la factura. Intenta de nuevo.');
+						$btn.prop('disabled', false);
 					}
 				});
 				
