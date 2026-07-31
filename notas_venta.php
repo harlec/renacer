@@ -89,6 +89,22 @@ include('inc/control.php');
 									<div class="rc-valor" id="resTotal">S/ 0.00</div>
 								</div>
 							</div>
+							<div class="panel panel-default">
+								<div class="panel-body" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+									<strong><i class="fas fa-magic"></i> Agrupar automático:</strong>
+									<span>monto entre</span>
+									<div class="input-group" style="width:140px">
+										<span class="input-group-addon">S/</span>
+										<input type="number" class="form-control" id="ag-min" value="500" step="0.01" min="0">
+									</div>
+									<span>y</span>
+									<div class="input-group" style="width:140px">
+										<span class="input-group-addon">S/</span>
+										<input type="number" class="form-control" id="ag-max" value="600" step="0.01" min="0">
+									</div>
+									<button type="button" class="btn btn-primary" id="btn-agrupar">Buscar combinación</button>
+								</div>
+							</div>
 							<div class="kdashboard">
 								<div class="row">
 									<div class="col-md-12">
@@ -222,6 +238,75 @@ include('inc/control.php');
 			document.getElementById('chk-todos').checked = false;
 			render();
 			actualizarBarra();
+		});
+
+		// ── Agrupar automático por rango de monto ────────────
+		// Buscar la combinación exacta que sume dentro de un rango es "subset sum" (NP-completo);
+		// con listas de este tamaño alcanza con una heurística: probar orden descendente, ascendente
+		// y varios órdenes aleatorios, siempre sumando de forma "greedy" (agrega mientras no pase el
+		// máximo) y quedándose con el mejor resultado encontrado.
+		function shuffle(arr) {
+			for (let i = arr.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[arr[i], arr[j]] = [arr[j], arr[i]];
+			}
+			return arr;
+		}
+
+		function greedy(lista, max) {
+			let elegidos = [], suma = 0;
+			for (const v of lista) {
+				if (suma + v.total <= max + 0.001) {
+					elegidos.push(v);
+					suma = Math.round((suma + v.total) * 100) / 100;
+				}
+			}
+			return { elegidos, suma };
+		}
+
+		function mejorCombinacion(min, max) {
+			const intentos = [
+				items.slice().sort(function (a, b) { return b.total - a.total; }),
+				items.slice().sort(function (a, b) { return a.total - b.total; }),
+			];
+			for (let i = 0; i < 40; i++) intentos.push(shuffle(items.slice()));
+
+			let mejor = null;
+			for (const lista of intentos) {
+				const r = greedy(lista, max);
+				if (!mejor || r.suma > mejor.suma) mejor = r;
+				if (r.suma >= min && r.suma <= max) return r;
+			}
+			return mejor;
+		}
+
+		document.getElementById('btn-agrupar').addEventListener('click', function () {
+			const min = parseFloat(document.getElementById('ag-min').value) || 0;
+			const max = parseFloat(document.getElementById('ag-max').value) || 0;
+			if (max <= 0 || min > max) { alert('Rango inválido.'); return; }
+			if (!items.length) { alert('No hay notas de venta pendientes.'); return; }
+
+			const totalDisponible = items.reduce(function (s, v) { return s + v.total; }, 0);
+			if (totalDisponible < min) {
+				alert('El total de notas de venta pendientes (' + money(totalDisponible) + ') es menor al mínimo pedido.');
+				return;
+			}
+
+			const r = mejorCombinacion(min, max);
+			if (!r || !r.elegidos.length) {
+				alert('No se encontró ninguna combinación posible.');
+				return;
+			}
+
+			seleccionados = new Set(r.elegidos.map(function (v) { return v.id_venta; }));
+			render();
+			actualizarBarra();
+
+			if (r.suma >= min && r.suma <= max) {
+				alert('Combinación encontrada: ' + money(r.suma) + ' (' + r.elegidos.length + ' ventas seleccionadas).');
+			} else {
+				alert('No se encontró una combinación exacta en ese rango. Se seleccionó la mejor aproximación: ' + money(r.suma) + ' (' + r.elegidos.length + ' ventas). Puedes ajustar la selección a mano o cambiar el rango.');
+			}
 		});
 
 		document.getElementById('btn-boleta-nv').addEventListener('click', function () {
