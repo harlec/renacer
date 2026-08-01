@@ -1,8 +1,9 @@
 ﻿<?php
 include('sdba/sdba.php');
 include('config_facturacion.php');
+include('nubefact_correlativo.php');
 session_start();
-$usuario = $_SESSION['usuario']; 
+$usuario = $_SESSION['usuario'];
 
 //OBTENEMOS LOS PRODUCTOS
 if ($_POST['placa']) {
@@ -34,22 +35,22 @@ $detalle = array();
 $igvtot = 0;
 $total_gravada = 0;
 $total_exonerada = 0;
-for ($i=0; $i < count($platos); $i++) { 
+for ($i=0; $i < count($platos); $i++) {
+    $totalp_i = round((float)$totalp[$i], 2);
     if ($exonerada[$i]=='no') {
         $valor_unitario = $precio[$i]/1.18;
-        $subtotal = $valor_unitario*$cantidad[$i];
-        $igv1 = $totalp[$i]-$subtotal;
-        $igv = $igv1; 
-        $igvtot = $igvtot + $igv;
+        $subtotal = round($valor_unitario*$cantidad[$i], 2);
+        $igv = round($totalp_i - $subtotal, 2);
+        $igvtot = round($igvtot + $igv, 2);
         $tipo_igv = '1';
-        $total_gravada = $total_gravada + $totalp[$i];
+        $total_gravada = round($total_gravada + $totalp_i, 2);
     }
     else{
         $valor_unitario = $precio[$i];
-        $subtotal = $valor_unitario*$cantidad[$i];
-        $igv = '0';
+        $subtotal = round($valor_unitario*$cantidad[$i], 2);
+        $igv = 0;
         $tipo_igv = '8';
-        $total_exonerada = $total_exonerada + $totalp[$i];
+        $total_exonerada = round($total_exonerada + $totalp_i, 2);
     }
     $detalle [$i]=array(
         "unidad_de_medida"          => $unidad[$i],
@@ -62,19 +63,40 @@ for ($i=0; $i < count($platos); $i++) {
         "subtotal"                  => $subtotal,
         "tipo_de_igv"               => $tipo_igv,
         "igv"                       => $igv,
-        "total"                     => $totalp[$i],
+        "total"                     => $totalp_i,
         "anticipo_regularizacion"   => "false",
         "anticipo_documento_serie"  => "",
         "anticipo_documento_numero" => ""
     );
-    
+
 }
-$totalg = $total_gravada/1.18;
-$totaligv = $total_gravada - $totalg;
+// total_igv del comprobante = suma EXACTA de los IGV de línea (no se recalcula por
+// separado desde el agregado), para que nunca pueda desalinearse con las líneas.
+$totaligv = $igvtot;
+$totalg   = round($total_gravada - $totaligv, 2);
 
 // RUTA y TOKEN configurados en Configuración > Facturación Electrónica
 $ruta = get_config('nubefact_ruta');
 $token = get_config('nubefact_token');
+$serie = get_config('serie_nota_credito_boleta', 'BC03');
+
+// Verificar contra Nubefact cuál es el siguiente correlativo realmente libre para esta
+// serie, en vez de mandar "numero": null (el manual de Nubefact indica que es obligatorio,
+// y confiar en su auto-asignación es lo que probablemente causó el correlativo faltante).
+$conn_corr = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
+$conn_corr->set_charset('utf8');
+$numero_esperado = numero_esperado($conn_corr, 'NB', $serie);
+$conn_corr->close();
+
+$verificacion = siguiente_numero_verificado($ruta, $token, 3, $serie, $numero_esperado);
+if (!$verificacion['ok']) {
+    echo json_encode(['ok' => false, 'mensaje' => $verificacion['mensaje']]);
+    exit;
+}
+$numero = $verificacion['numero'];
+$aviso  = $verificacion['salto']
+    ? "Se detectó un desfase con Nubefact: se saltó del correlativo $numero_esperado esperado al $numero real. Revisa que no falte un comprobante anterior de la serie $serie."
+    : null;
 
 /*
 #########################################################
@@ -88,8 +110,8 @@ $token = get_config('nubefact_token');
 $data = array(
     "operacion"				=> "generar_comprobante",
     "tipo_de_comprobante"               => "3",
-    "serie"                             => "BC03",
-    "numero"				=> null,
+    "serie"                             => $serie,
+    "numero"				=> $numero,
     "sunat_transaction"			=> "1",
     "cliente_tipo_de_documento"		=> $tipo_doc,
     "cliente_numero_de_documento"	=> $ruc,
@@ -175,13 +197,20 @@ curl_close($ch);
 
 
 $leer_respuesta = json_decode($respuesta, true);
-if (isset($leer_respuesta['errors'])) {
-	//Mostramos los errores si los hay
-    echo json_encode($leer_respuesta['errors']);
+
+// Cualquier respuesta que no sea un JSON válido con "numero" se trata como error
+// (Nubefact caído, timeout, HTML de error, etc.) — nunca se marca la venta como
+// facturada si no hay certeza de que Nubefact aceptó el comprobante.
+if (!is_array($leer_respuesta) || isset($leer_respuesta['errors']) || empty($leer_respuesta['numero'])) {
+    $mensaje = 'No se pudo generar el comprobante (respuesta inválida de Nubefact).';
+    if (is_array($leer_respuesta) && isset($leer_respuesta['errors'])) {
+        $mensaje = is_array($leer_respuesta['errors']) ? implode(' ', $leer_respuesta['errors']) : $leer_respuesta['errors'];
+    }
+    echo json_encode(['ok' => false, 'mensaje' => $mensaje]);
 } else {
     $fecha = date("Y-m-d", strtotime($fechita));
 	$configuracion = Sdba::table('comprobantes');
-    $data = array('id_comprobante'=>'','serie'=>'BC03','numero'=>$leer_respuesta['numero'],'url'=>$leer_respuesta['enlace'],'tipo'=>'NB','venta'=>$venta_id,'tipo_doc'=>$tipo_doc,'doc'=>$ruc,'nombre'=>$r_social,'moneda'=>'PEN','tipo_cambio'=>'','grabada'=>$totalg,'igv'=>$totaligv,'total'=>$total,'fecha'=>$fecha,'state'=>'0');
+    $data = array('id_comprobante'=>'','serie'=>$serie,'numero'=>$leer_respuesta['numero'],'url'=>$leer_respuesta['enlace'],'tipo'=>'NB','venta'=>$venta_id,'tipo_doc'=>$tipo_doc,'doc'=>$ruc,'nombre'=>$r_social,'moneda'=>'PEN','tipo_cambio'=>'','grabada'=>$totalg,'igv'=>$totaligv,'total'=>$total,'fecha'=>$fecha,'state'=>'0');
     $configuracion->insert($data);
 
     $venta = Sdba::table('ventas');
@@ -189,12 +218,13 @@ if (isset($leer_respuesta['errors'])) {
     $data = array('estado'=>'1');
     $venta->update($data);
 
-    $numerof = Sdba::table('configuracion');
-    $numerof->where('parametro', 'boleta');
-    $dataf = array('valor'=>$facturan);
-    $numerof->update($dataf);
-
-    echo json_encode($respuesta);
+    echo json_encode([
+        'ok'             => true,
+        'numero'         => $leer_respuesta['numero'],
+        'enlace'         => $leer_respuesta['enlace'] ?? null,
+        'enlace_del_pdf' => $leer_respuesta['enlace_del_pdf'] ?? null,
+        'aviso'          => $aviso,
+    ]);
 
 }
 ?>

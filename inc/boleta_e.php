@@ -1,8 +1,9 @@
 ﻿<?php
 include('sdba/sdba.php');
 include('config_facturacion.php');
+include('nubefact_correlativo.php');
 session_start();
-$usuario = $_SESSION['usuario']; 
+$usuario = $_SESSION['usuario'];
 
 //OBTENEMOS LOS PRODUCTOS
 if ($_POST['placa']) {
@@ -90,6 +91,25 @@ $totalg   = round($total_gravada - $totaligv, 2);
 // RUTA y TOKEN configurados en Configuración > Facturación Electrónica
 $ruta = get_config('nubefact_ruta');
 $token = get_config('nubefact_token');
+$serie = get_config('serie_boleta', 'BV03');
+
+// Verificar contra Nubefact cuál es el siguiente correlativo realmente libre para esta
+// serie, en vez de mandar "numero": null (el manual de Nubefact indica que es obligatorio,
+// y confiar en su auto-asignación es lo que probablemente causó el correlativo faltante).
+$conn_corr = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
+$conn_corr->set_charset('utf8');
+$numero_esperado = numero_esperado($conn_corr, 'B', $serie);
+$conn_corr->close();
+
+$verificacion = siguiente_numero_verificado($ruta, $token, 2, $serie, $numero_esperado);
+if (!$verificacion['ok']) {
+    echo json_encode(['ok' => false, 'mensaje' => $verificacion['mensaje']]);
+    exit;
+}
+$numero = $verificacion['numero'];
+$aviso  = $verificacion['salto']
+    ? "Se detectó un desfase con Nubefact: se saltó del correlativo $numero_esperado esperado al $numero real. Revisa que no falte un comprobante anterior de la serie $serie."
+    : null;
 
 /*
 #########################################################
@@ -103,8 +123,8 @@ $token = get_config('nubefact_token');
 $data = array(
     "operacion"				=> "generar_comprobante",
     "tipo_de_comprobante"               => "2",
-    "serie"                             => "BV03",
-    "numero"				=> null,
+    "serie"                             => $serie,
+    "numero"				=> $numero,
     "sunat_transaction"			=> "1",
     "cliente_tipo_de_documento"		=> $tipo_doc,
     "cliente_numero_de_documento"	=> $ruc,
@@ -203,7 +223,7 @@ if (!is_array($leer_respuesta) || isset($leer_respuesta['errors']) || empty($lee
 } else {
     $fecha = date("Y-m-d", strtotime($fechita));
 	$configuracion = Sdba::table('comprobantes');
-    $data = array('id_comprobante'=>'','serie'=>'BV03','numero'=>$leer_respuesta['numero'],'url'=>$leer_respuesta['enlace'],'tipo'=>'B','venta'=>$venta_ids[0],'tipo_doc'=>$tipo_doc,'doc'=>$ruc,'nombre'=>$r_social,'moneda'=>'PEN','tipo_cambio'=>'','grabada'=>$totalg,'igv'=>$totaligv,'total'=>$total,'fecha'=>$fecha,'state'=>'0');
+    $data = array('id_comprobante'=>'','serie'=>$serie,'numero'=>$leer_respuesta['numero'],'url'=>$leer_respuesta['enlace'],'tipo'=>'B','venta'=>$venta_ids[0],'tipo_doc'=>$tipo_doc,'doc'=>$ruc,'nombre'=>$r_social,'moneda'=>'PEN','tipo_cambio'=>'','grabada'=>$totalg,'igv'=>$totaligv,'total'=>$total,'fecha'=>$fecha,'state'=>'0');
     $configuracion->insert($data);
     $comprobante_id = $configuracion->insert_id();
 
@@ -216,16 +236,12 @@ if (!is_array($leer_respuesta) || isset($leer_respuesta['errors']) || empty($lee
         $venta->update(array('estado'=>'1'));
     }
 
-    $numerof = Sdba::table('configuracion');
-    $numerof->where('parametro', 'boleta');
-    $dataf = array('valor'=>$facturan);
-    $numerof->update($dataf);
-
     echo json_encode([
         'ok'             => true,
         'numero'         => $leer_respuesta['numero'],
         'enlace'         => $leer_respuesta['enlace'] ?? null,
         'enlace_del_pdf' => $leer_respuesta['enlace_del_pdf'] ?? null,
+        'aviso'          => $aviso,
     ]);
 
 }

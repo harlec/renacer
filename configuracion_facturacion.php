@@ -9,6 +9,11 @@ $nubefact_token  = get_config('nubefact_token');
 $nubefact_activo = get_config('nubefact_activo', '0');
 $migo_token      = get_config('migo_token');
 $monto_maximo_proforma_diario = get_config('monto_maximo_proforma_diario', '0');
+
+$serie_boleta               = get_config('serie_boleta', 'BV03');
+$serie_factura              = get_config('serie_factura', 'F003');
+$serie_nota_credito_boleta  = get_config('serie_nota_credito_boleta', 'BC03');
+$serie_nota_credito_factura = get_config('serie_nota_credito_factura', 'FC03');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -66,6 +71,47 @@ $monto_maximo_proforma_diario = get_config('monto_maximo_proforma_diario', '0');
                 </div>
                 <button class="btn btn-default" id="btn-probar-nubefact"><i class="fas fa-plug"></i> Probar conexión</button>
                 <button class="btn btn-success" id="btn-guardar" style="float:right"><i class="fas fa-save"></i> Guardar</button>
+            </div>
+        </div>
+
+        <div class="panel panel-default">
+            <div class="panel-heading"><b>Series de comprobantes</b></div>
+            <div class="panel-body">
+                <p class="help-block">
+                    Serie con la que se emite cada tipo de comprobante. Debe tener 4 caracteres:
+                    empieza con <b>B</b> para boletas y sus notas asociadas, con <b>F</b> para facturas y las suyas.
+                </p>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label>Boleta</label>
+                            <input type="text" class="form-control" id="serie_boleta" maxlength="4" style="text-transform:uppercase" value="<?php echo htmlspecialchars($serie_boleta); ?>">
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label>Factura</label>
+                            <input type="text" class="form-control" id="serie_factura" maxlength="4" style="text-transform:uppercase" value="<?php echo htmlspecialchars($serie_factura); ?>">
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label>Nota de crédito (de boleta)</label>
+                            <input type="text" class="form-control" id="serie_nota_credito_boleta" maxlength="4" style="text-transform:uppercase" value="<?php echo htmlspecialchars($serie_nota_credito_boleta); ?>">
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label>Nota de crédito (de factura)</label>
+                            <input type="text" class="form-control" id="serie_nota_credito_factura" maxlength="4" style="text-transform:uppercase" value="<?php echo htmlspecialchars($serie_nota_credito_factura); ?>">
+                        </div>
+                    </div>
+                </div>
+                <p class="help-block" style="margin-bottom:0">
+                    Antes de emitir, el sistema verifica contra Nubefact que el siguiente correlativo de cada serie
+                    esté realmente libre (no confía solo en su propio contador) — si detecta un desfase, salta
+                    automáticamente al primer número libre y avisa.
+                </p>
             </div>
         </div>
 
@@ -128,7 +174,11 @@ $('#btn-guardar').on('click', function(){
         nubefact_token: $('#nubefact_token').val(),
         nubefact_activo: $('#nubefact_activo').is(':checked') ? '1' : '0',
         migo_token: $('#migo_token').val(),
-        monto_maximo_proforma_diario: $('#monto_maximo_proforma_diario').val()
+        monto_maximo_proforma_diario: $('#monto_maximo_proforma_diario').val(),
+        serie_boleta: $('#serie_boleta').val(),
+        serie_factura: $('#serie_factura').val(),
+        serie_nota_credito_boleta: $('#serie_nota_credito_boleta').val(),
+        serie_nota_credito_factura: $('#serie_nota_credito_factura').val()
     }, function(d){
         showAlert(d.ok ? 'Configuración guardada.' : 'Error al guardar.', d.ok ? 'success' : 'danger');
     }, 'json').fail(function(xhr){

@@ -387,6 +387,7 @@ $facturan = 0;
 						if (response && response.ok) {
 							window.open(response.enlace_del_pdf, '_blank');
 							$btn.text('✓ Factura generada');
+							if (response.aviso) alert(response.aviso);
 						} else {
 							alert(response && response.mensaje ? response.mensaje : 'No se pudo generar la factura.');
 							$btn.prop('disabled', false);
