@@ -1,5 +1,12 @@
 <?php
 include('inc/control.php');
+include('inc/sdba/sdba.php');
+
+$unidades_db = Sdba::table('unidades')->get();
+$unidades = [];
+foreach ($unidades_db as $u) {
+    $unidades[] = ['codigo' => $u['codigo'], 'nombre' => $u['nombre']];
+}
 ?>
 
 
@@ -13,7 +20,11 @@ include('inc/control.php');
     <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
     <style>
+        #tbl-fs-lineas td{ vertical-align:middle; }
+        #tbl-fs-lineas input{ width:100%; }
+        .select2-container{ z-index:2000; }
         :root { --c-navy: #1e3a4c; --c-orange: #ff5023; }
         .resumen-row { display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:20px; }
         .resumen-card { background:#fff; border-radius:12px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
@@ -106,6 +117,9 @@ include('inc/control.php');
 										<input type="number" class="form-control" id="ag-max" value="600" step="0.01" min="0">
 									</div>
 									<button type="button" class="btn btn-primary" id="btn-agrupar">Buscar combinación</button>
+
+									<span style="flex:1"></span>
+									<button type="button" class="btn btn-default" id="btn-factura-simple"><i class="fas fa-pen"></i> Factura simple</button>
 								</div>
 							</div>
 							<div class="panel panel-default">
@@ -171,8 +185,81 @@ include('inc/control.php');
 		</div>
 	</div>
 
+	<!-- ── Modal Factura simple ─────────────────────────────── -->
+	<div class="modal fade" id="modal-factura-simple" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title"><i class="fas fa-pen"></i> Factura simple</h4>
+					<p class="help-block" style="margin:4px 0 0">
+						Arma una factura eligiendo productos directamente, sin partir de una nota de venta. No descuenta stock.
+					</p>
+				</div>
+				<div class="modal-body">
+					<div class="row" style="margin-bottom:14px">
+						<div class="col-sm-6">
+							<label>Producto</label>
+							<select class="form-control" id="fs-producto" style="width:100%"></select>
+						</div>
+						<div class="col-sm-2">
+							<label>Unidad</label>
+							<select class="form-control" id="fs-unidad">
+								<?php foreach ($unidades as $u): ?>
+								<option value="<?= htmlspecialchars($u['codigo']) ?>"><?= htmlspecialchars($u['nombre']) ?> (<?= htmlspecialchars($u['codigo']) ?>)</option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div class="col-sm-2">
+							<label>Cantidad</label>
+							<input type="number" class="form-control" id="fs-cantidad" value="1" min="0" step="0.01">
+						</div>
+						<div class="col-sm-2">
+							<label>Precio unit.</label>
+							<input type="number" class="form-control" id="fs-precio" value="0" min="0" step="0.01">
+						</div>
+					</div>
+					<div class="text-right" style="margin-bottom:14px">
+						<span style="margin-right:14px">Subtotal: <b id="fs-subtotal-preview">S/ 0.00</b></span>
+						<span style="margin-right:14px">Total: <b id="fs-total-preview">S/ 0.00</b></span>
+						<button type="button" class="btn btn-primary btn-sm" id="btn-fs-agregar"><i class="fas fa-plus"></i> Agregar línea</button>
+					</div>
+
+					<table class="table table-bordered" id="tbl-fs-lineas">
+						<thead>
+							<tr>
+								<th>Producto</th>
+								<th style="width:90px">Unidad</th>
+								<th style="width:90px">Cantidad</th>
+								<th style="width:110px">Precio</th>
+								<th style="width:110px">Subtotal</th>
+								<th style="width:110px">Total</th>
+								<th style="width:36px"></th>
+							</tr>
+						</thead>
+						<tbody id="fs-lineas-body">
+							<tr id="fs-sin-lineas"><td colspan="7" style="text-align:center;color:#888">Sin líneas agregadas</td></tr>
+						</tbody>
+						<tfoot>
+							<tr>
+								<th colspan="5" style="text-align:right">Total general:</th>
+								<th id="fs-total-general">S/ 0.00</th>
+								<th></th>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+					<button type="button" class="btn btn-success" id="btn-fs-generar" disabled><i class="fas fa-file-invoice-dollar"></i> Generar factura</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 	<script>
 	(function () {
 		let items = [];
@@ -393,6 +480,146 @@ include('inc/control.php');
 		document.getElementById('btn-factura-nv').addEventListener('click', function () {
 			if (!seleccionados.size) return;
 			window.location.href = 'factura.php?ids=' + Array.from(seleccionados).join(',');
+		});
+
+		// ── Factura simple (líneas armadas a mano, sin nota de venta) ────
+		let fsLineas = [];
+		let fsProductoSel = null;
+
+		$('#fs-producto').select2({
+			dropdownParent: $('#modal-factura-simple'),
+			placeholder: 'Buscar producto...',
+			minimumInputLength: 2,
+			ajax: {
+				url: 'inc/buscar_producto_vp.php',
+				dataType: 'json',
+				delay: 250,
+				data: function (params) { return { term: params.term }; },
+				processResults: function (data) { return data; }
+			}
+		});
+
+		$('#fs-producto').on('select2:select', function (e) {
+			const data = e.params.data;
+			fsProductoSel = data;
+			$('#fs-unidad').val(data.unidad_codigo || 'NIU');
+			$('#fs-precio').val((data.precio || 0).toFixed(2));
+			actualizarPreviewFs();
+		});
+		$('#fs-producto').on('select2:clear', function () {
+			fsProductoSel = null;
+		});
+
+		function actualizarPreviewFs() {
+			const cant = parseFloat($('#fs-cantidad').val()) || 0;
+			const precio = parseFloat($('#fs-precio').val()) || 0;
+			const total = cant * precio;
+			const subtotal = total / 1.18;
+			$('#fs-total-preview').text(money(total));
+			$('#fs-subtotal-preview').text(money(subtotal));
+		}
+		$('#fs-cantidad, #fs-precio').on('input', actualizarPreviewFs);
+
+		function renderLineasFs() {
+			const $body = $('#fs-lineas-body');
+			if (!fsLineas.length) {
+				$body.html('<tr id="fs-sin-lineas"><td colspan="7" style="text-align:center;color:#888">Sin líneas agregadas</td></tr>');
+				$('#fs-total-general').text(money(0));
+				$('#btn-fs-generar').prop('disabled', true);
+				return;
+			}
+			let total_general = 0;
+			$body.html(fsLineas.map(function (l, i) {
+				total_general += l.total;
+				return '<tr>' +
+					'<td>' + l.nombre + '</td>' +
+					'<td>' + l.unidad + '</td>' +
+					'<td>' + l.cantidad + '</td>' +
+					'<td>' + money(l.precio) + '</td>' +
+					'<td>' + money(l.total / 1.18) + '</td>' +
+					'<td>' + money(l.total) + '</td>' +
+					'<td><button type="button" class="btn btn-danger btn-xs fs-borrar" data-i="' + i + '"><i class="fa fa-trash"></i></button></td>' +
+					'</tr>';
+			}).join(''));
+			$('#fs-total-general').text(money(total_general));
+			$('#btn-fs-generar').prop('disabled', false);
+		}
+
+		$('#btn-fs-agregar').on('click', function () {
+			if (!fsProductoSel) { alert('Selecciona un producto.'); return; }
+			const cant = parseFloat($('#fs-cantidad').val()) || 0;
+			const precio = parseFloat($('#fs-precio').val()) || 0;
+			if (cant <= 0) { alert('Ingresa una cantidad válida.'); return; }
+			if (precio <= 0) { alert('Ingresa un precio válido.'); return; }
+
+			fsLineas.push({
+				id_vp: fsProductoSel.id,
+				prod_id: fsProductoSel.prod_id,
+				nombre: fsProductoSel.text,
+				unidad: $('#fs-unidad').val(),
+				cantidad: cant,
+				precio: precio,
+				total: +(cant * precio).toFixed(2)
+			});
+			renderLineasFs();
+
+			// Reset del formulario de línea para agregar la siguiente
+			$('#fs-producto').val(null).trigger('change');
+			fsProductoSel = null;
+			$('#fs-cantidad').val(1);
+			$('#fs-precio').val(0);
+			actualizarPreviewFs();
+		});
+
+		$('#fs-lineas-body').on('click', '.fs-borrar', function () {
+			const i = parseInt($(this).data('i'), 10);
+			fsLineas.splice(i, 1);
+			renderLineasFs();
+		});
+
+		$('#btn-factura-simple').on('click', function () {
+			fsLineas = [];
+			fsProductoSel = null;
+			$('#fs-producto').val(null).trigger('change');
+			$('#fs-cantidad').val(1);
+			$('#fs-precio').val(0);
+			actualizarPreviewFs();
+			renderLineasFs();
+			$('#modal-factura-simple').modal('show');
+		});
+
+		$('#btn-fs-generar').on('click', function () {
+			if (!fsLineas.length) return;
+			const $btn = $(this).prop('disabled', true);
+
+			const body = new URLSearchParams();
+			const hoy = new Date().toISOString().slice(0, 10);
+			let total1 = 0;
+			body.append('fecha', hoy);
+			fsLineas.forEach(function (l) {
+				total1 += l.total;
+				body.append('id_pro[]', l.prod_id);
+				body.append('id_vp[]', l.id_vp);
+				body.append('cantidad[]', l.cantidad);
+				body.append('precio[]', l.precio.toFixed(2));
+				body.append('total_pre[]', l.total.toFixed(2));
+			});
+			body.append('total1', total1.toFixed(2));
+
+			fetch('inc/registrar_venta_manual.php', { method: 'POST', body: body })
+				.then(function (r) { return r.json(); })
+				.then(function (data) {
+					if (data.respuesta) {
+						window.location.href = 'factura.php?ids=' + data.venta_id;
+					} else {
+						alert(data.mensaje || 'No se pudo crear la factura simple.');
+						$btn.prop('disabled', false);
+					}
+				})
+				.catch(function () {
+					alert('Error de conexión.');
+					$btn.prop('disabled', false);
+				});
 		});
 	})();
 	</script>
