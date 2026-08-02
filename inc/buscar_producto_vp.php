@@ -31,13 +31,17 @@ $r = $conn->query("
            v.variante,
            u.codigo AS unidad_codigo, u.nombre AS unidad_nombre
     FROM variante_p vp
-    LEFT JOIN productos p ON p.id_producto = vp.id_producto
-    LEFT JOIN variantes v ON v.id_variante = vp.id_variante
+    LEFT JOIN productos p ON p.id_producto = vp.producto_vp
+    LEFT JOIN variantes v ON v.id_variante = vp.variante_vp
     LEFT JOIN unidades  u ON u.id_unidad = p.unidad_prod
     WHERE p.nom_prod LIKE '%$termino_safe%'
     ORDER BY p.nom_prod
     LIMIT 30
 ");
+
+if (!$r) {
+    error_log('buscar_producto_vp.php: ' . $conn->error);
+}
 
 $results = [];
 if ($r) {
