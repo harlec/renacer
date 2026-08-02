@@ -108,6 +108,9 @@ $facturan = 0;
 	      		<li class="active">
 	      			<a href="notas_venta.php">Facturar</a>
 	      		</li>
+	      		<li>
+	      			<a href="comprobantes.php">Comprobantes</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>

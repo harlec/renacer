@@ -149,25 +149,30 @@ include('inc/sdba/sdba.php'); // include main file
 			event: "blur",rules: {'motivo': "required"},
 			submitHandler: function(form){
 	            $("#loading").show();
-	            $('#anulaa').fadeOut('slow');
-	            //$("#alert").html("<img src='images/ajax-loader.gif' style='vertical-align:middle;margin:0 10px 0 0' /><strong>Enviando mensaje...</strong>");
-	            setTimeout(function() {
-	                $('#loading').fadeOut('slow');
-	            }, 5000);
+	            var $btn = $('#anular').prop('disabled', true);
 	            var str2 = $('#anulaa').serialize();
-	            //alert(str2);
 	            $.ajax({
 	                type: "POST",
-	                url:"inc/anular.php",
+	                url: "inc/anular.php",
+	                dataType: "json",
 	                data: str2,
-	                success: function(msg){
-
-	                    $("#respuesta").html(msg);
-	                    $('#respuesta').show();
-	                    setTimeout(function() {
-	                    $('#respuesta').fadeOut('slow');
-	                    }, 5000);
-	 
+	                success: function(response){
+	                    $("#loading").hide();
+	                    if (response && response.ok) {
+	                        $('#anulaa').fadeOut('slow');
+	                        $("#respuesta").removeClass('alert-danger').addClass('alert-success')
+	                            .html(response.mensaje).show();
+	                    } else {
+	                        $btn.prop('disabled', false);
+	                        $("#respuesta").removeClass('alert-success').addClass('alert-danger')
+	                            .html(response && response.mensaje ? response.mensaje : 'No se pudo comunicar la baja.').show();
+	                    }
+	                },
+	                error: function(){
+	                    $("#loading").hide();
+	                    $btn.prop('disabled', false);
+	                    $("#respuesta").removeClass('alert-success').addClass('alert-danger')
+	                        .html('Error de conexión al comunicar la baja. Intenta de nuevo.').show();
 	                }
 	            });
 	        }

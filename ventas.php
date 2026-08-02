@@ -48,6 +48,9 @@ $conn_tmp->close();
 	      		<li>
 	      			<a href="notas_venta.php">Facturar</a>
 	      		</li>
+	      		<li>
+	      			<a href="comprobantes.php">Comprobantes</a>
+	      		</li>
 	      		<!-- <li>
 	      			<a href="ventap.php">Proforma</a>
 	      		</li>

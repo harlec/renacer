@@ -48,6 +48,7 @@ foreach ($ventas_list as $value) {
     <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/10.5.0/sweetalert2.min.css" integrity="sha512-YpZXdiMhuP3woCdvg0ou2UPj6l4KQUuf3gbMXTNMgtqTakMInX7h+64CTh+UIvYdA7ctBU2BAA/h4eEhoMEmsg==" crossorigin="anonymous" />
     </head>
 
 <body class="mobile dashboard">
@@ -72,6 +73,12 @@ foreach ($ventas_list as $value) {
 	      		</li>
 	      		<li >
 	      			<a href="ventas.php">Listar ventas</a>
+	      		</li>
+	      		<li>
+	      			<a href="notas_venta.php">Facturar</a>
+	      		</li>
+	      		<li>
+	      			<a href="comprobantes.php">Comprobantes</a>
 	      		</li>
 	      	</ul>
 	      </div>
@@ -109,6 +116,8 @@ foreach ($ventas_list as $value) {
 											    <center>
 											    	
 												    <a target="_blank" class="btn btn-primary btn-lg <?php echo $ocultar;?>" href="recibo.php?id=<?php echo $id; ?>">Recibo</a>
+												    <button type="button" class="btn btn-success btn-lg <?php echo $ocultar;?>" id="btn-ver-factura" data-href="factura.php?ids=<?php echo $id; ?>"><i class="fas fa-file-invoice-dollar"></i> Factura</button>
+												    <button type="button" class="btn btn-danger btn-lg <?php echo $ocultar;?>" id="btn-ver-boleta" data-href="boleta.php?ids=<?php echo $id; ?>"><i class="fab fa-bitcoin"></i> Boleta</button>
 												</center>
 											</div>
 										</div>
@@ -127,10 +136,30 @@ foreach ($ventas_list as $value) {
 	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="assets/js/sweetalert2.all.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/10.5.0/sweetalert2.min.js" integrity="sha512-V9JHp52ZkrbVVjJqNz/XXYMUOyUfzaGKEGrcD2Ual7n39+UR1yJK0numAHZqkhhGTAH/Klj0KUe4btAZXccw9w==" crossorigin="anonymous"></script>
 	<script >
 	// A $( document ).ready() block.
-	$(document ).ready(function() {	
+	$(document ).ready(function() {
 	    console.log( "ready!" );
+
+	    $('#btn-ver-factura, #btn-ver-boleta').on('click', function () {
+	    	var url = $(this).data('href');
+	    	Swal.fire({
+	    	  title: 'Emitir comprobante',
+	    	  text: 'Está a punto de emitir un comprobante de pago, esto tiene implicaciones legales.',
+	    	  icon: 'warning',
+	    	  showCancelButton: true,
+	    	  confirmButtonColor: '#3085d6',
+	    	  cancelButtonColor: '#d33',
+	    	  confirmButtonText: 'Sí, continuar',
+	    	  cancelButtonText: 'Cancelar'
+	    	}).then((result) => {
+	    	  if (result.isConfirmed) {
+	    	    window.location.href = url;
+	    	  }
+	    	});
+	    });
 
 	});
 		

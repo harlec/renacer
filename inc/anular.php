@@ -2,7 +2,7 @@
 include('sdba/sdba.php');
 include('config_facturacion.php');
 session_start();
-
+header('Content-Type: application/json');
 
 $id = $_POST['id'];
 $serie =$_POST['serie'];
@@ -84,20 +84,22 @@ curl_close($ch);
  */
 
 $leer_respuesta = json_decode($respuesta, true);
-if (isset($leer_respuesta['errors'])) {
-	//Mostramos los errores si los hay
-    echo json_encode($leer_respuesta['errors']);
+
+// Cualquier respuesta que no sea un JSON válido (Nubefact caído, timeout, HTML de
+// error, etc.) se trata como error — nunca se marca el comprobante como "de baja"
+// sin certeza de que Nubefact recibió la comunicación.
+if (!is_array($leer_respuesta) || isset($leer_respuesta['errors'])) {
+    $mensaje = 'No se pudo comunicar la baja (respuesta inválida de Nubefact).';
+    if (is_array($leer_respuesta) && isset($leer_respuesta['errors'])) {
+        $mensaje = is_array($leer_respuesta['errors']) ? implode(' ', $leer_respuesta['errors']) : $leer_respuesta['errors'];
+    }
+    echo json_encode(['ok' => false, 'mensaje' => $mensaje]);
 } else {
-    $fecha1 = date("Y-m-d", strtotime($_POST['fecha']));
 	$configuracion = Sdba::table('comprobantes');
     $configuracion->where('id_comprobante', $id);
     $dataf = array('state'=>'1');
     $configuracion->update($dataf);
 
-
-    $salidaJson = array('id' => 'Comunicado de baja');
-
-    echo json_encode('Comprobante Comunicado de baja');
-
+    echo json_encode(['ok' => true, 'mensaje' => 'Comprobante comunicado de baja. Verifica su aceptación en unos minutos.']);
 }
 ?>
