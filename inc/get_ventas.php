@@ -47,12 +47,12 @@ $where_search = !empty($search_safe)
     ? "AND (v.id_venta LIKE '%{$search_safe}%' OR v.fecha LIKE '%{$search_safe}%')"
     : "";
 
-// Total sin filtro
-$r     = $conn->query("SELECT COUNT(*) as c FROM ventas v WHERE v.estado != '2' $where_user");
+// Total sin filtro (las anuladas también se listan, marcadas — no se ocultan)
+$r     = $conn->query("SELECT COUNT(*) as c FROM ventas v WHERE 1=1 $where_user");
 $total = $r ? $r->fetch_assoc()['c'] : 0;
 
 // Total con búsqueda
-$r        = $conn->query("SELECT COUNT(*) as c FROM ventas v WHERE v.estado != '2' $where_user $where_search");
+$r        = $conn->query("SELECT COUNT(*) as c FROM ventas v WHERE 1=1 $where_user $where_search");
 $filtered = $r ? $r->fetch_assoc()['c'] : 0;
 
 // Query principal
@@ -77,7 +77,7 @@ $sql = "
         SELECT venta, GROUP_CONCAT(CONCAT(metodo, ':', monto) SEPARATOR '|') AS pagos_raw, SUM(monto) AS pagado
         FROM venta_pagos GROUP BY venta
     ) vp ON vp.venta = v.id_venta
-    WHERE v.estado != '2' $where_user $where_search
+    WHERE 1=1 $where_user $where_search
     GROUP BY v.id_venta
     ORDER BY $order_by
     LIMIT $length OFFSET $start
@@ -119,19 +119,26 @@ while ($row = $result->fetch_assoc()) {
 
     $boton_editar = '';
     $boton_facturar = '';
+    $boton_borrar = '';
     if ($row['estado'] == '0') {
         $boton_editar = ' <a title="Editar venta" class="btn btn-warning btn-sm" href="editar_venta.php?id=' . $row['id_venta'] . '"><i class="fas fa-edit"></i></a>';
         $boton_facturar = ' <a title="Factura electrónica" class="btn btn-success btn-sm" href="factura.php?ids=' . $row['id_venta'] . '"><i class="fas fa-file-invoice-dollar"></i></a>'
                          . ' <a title="Boleta electrónica" class="btn btn-danger btn-sm" href="boleta.php?ids=' . $row['id_venta'] . '"><i class="fab fa-bitcoin"></i></a>';
+        $boton_borrar = ' <button class="btn-custom btn-borrar" value="' . $row['id_venta'] . '" title="Anular venta"><img src="/assets/img/trash.png" /></button>';
     }
 
     $opciones = '<a title="Ver venta" class="btn btn-primary btn-sm" href="ver_venta.php?id=' . $row['id_venta'] . '"><i class="fas fa-eye"></i></a>'
               . $boton_editar
               . $boton_facturar
-              . ' <button class="btn-custom btn-borrar" value="' . $row['id_venta'] . '" title="borrar"><img src="/assets/img/trash.png" /></button>';
+              . $boton_borrar;
+
+    $venta_label = 'v-' . $row['id_venta'];
+    if ($row['estado'] == '2') {
+        $venta_label .= ' <span style="background:#f8d7da;color:#a71d2a;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;text-transform:uppercase">Anulada</span>';
+    }
 
     $data[] = [
-        'v-' . $row['id_venta'],
+        $venta_label,
         $row['nombre_usuario'] ?: '-',
         $cliente_venta,
         $forma,

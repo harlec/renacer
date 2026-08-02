@@ -1,85 +1,77 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 session_start();
+if (empty($_SESSION['ingress'])) {
+    echo json_encode(['respuesta' => false, 'mensaje' => 'Sin sesión']);
+    exit;
+}
 
-include('sdba/sdba.php'); // include main file
+include('sdba/sdba.php');
+ob_start();
+ini_set('display_errors', '0');
 
-$respuestaOk = false;
-$mensajeError = 'hasta aca bien';
-//$usuario = $_SESSION['id_usr'];
+$respuestaOk  = false;
+$mensajeError = 'Error en el proceso';
 
-//if (isset($_POST) && !empty($_POST)) {
-	$id = $_GET['id'];
-	$respuestaOk = true;
-	$fecha = date("Y-m-d");
+$id = intval($_GET['id'] ?? 0);
 
-	$venta = Sdba::table('ventas');
-	$venta->where('id_venta',$id);
-	$vl = $venta->get_one();
-	$tienda = $vl['tienda'];
+if ($id > 0) {
+    $venta = Sdba::table('ventas');
+    $venta->where('id_venta', $id);
+    $vl = $venta->get_one();
 
-	$deventa = Sdba::table('stock');
-	$deventa->where('motivo','v-'.$id);
-	$vdl = $deventa->get();
-	foreach ($vdl as $value) {
-		$producto = $value['producto'];
-		$fv = $value['fv'];
+    if (!$vl) {
+        $mensajeError = 'La venta no existe.';
+    } elseif ($vl['estado'] == '2') {
+        $mensajeError = 'Esta venta ya estaba anulada.';
+    } elseif ($vl['estado'] != '0') {
+        $mensajeError = 'Esta venta ya fue facturada — no se puede anular directamente. Primero anula el comprobante emitido.';
+    } else {
+        $fecha = date("Y-m-d");
 
-		$stock = Sdba::table('stock');
-		$stock->where('producto',$producto);
-		$stock->order_by('id_stock','desc');
-		$stockl = $stock->get_one();
-		$cstock = $stockl['stockt'];
-		$nstockt = $cstock + $value['egreso']; //stock total x producto
-		$motivo = 'EV-'.$id;
+        // Revierte el stock que se descontó al registrar la venta.
+        $deventa = Sdba::table('stock');
+        $deventa->where('motivo', 'v-' . $id);
+        $vdl = $deventa->get();
 
-		//obtenemos el stock del producto x lote
-		$stock->reset();
-		$stock->where('producto',$producto)->and_where('fv =',$fv);
-		$stock->order_by('id_stock','desc');
-		$stockl = $stock->get_one();
-		$cstock = $stockl['stock'];
-		$nstock = $cstock + $value['egreso'];
+        foreach ($vdl as $value) {
+            $producto = $value['producto'];
+            $fv       = $value['fv'];
+            $egreso   = (float)($value['egreso'] ?? 0);
+            if (!$producto) continue;
 
+            $stock  = Sdba::table('stock');
+            $stock->where('producto', $producto);
+            $stock->order_by('id_stock', 'desc');
+            $stockl = $stock->get_one();
+            $stockt_actual = (float)($stockl['stockt'] ?? 0);
+            $nstockt = $stockt_actual + $egreso;
+            $motivo  = 'EV-' . $id;
 
-		$datas = array('id_stock'=>'','producto'=>$producto,'ingreso'=>$value['egreso'],'motivo'=>$motivo,'stock'=>$nstock,'fv'=>$fv,'stockt'=>$nstockt,'fecha'=>$fecha, 'estado'=>'0');
-		$stock->insert($datas);
+            $stock->reset();
+            $stock->where('producto', $producto)->and_where('fv =', $fv);
+            $stock->order_by('id_stock', 'desc');
+            $stockl = $stock->get_one();
+            $stock_actual = (float)($stockl['stock'] ?? 0);
+            $nstock = $stock_actual + $egreso;
 
+            $stock->insert(array('id_stock'=>'','producto'=>$producto,'ingreso'=>$egreso,'motivo'=>$motivo,'stock'=>$nstock,'fv'=>$fv,'stockt'=>$nstockt,'fecha'=>$fecha,'estado'=>'0'));
 
-		//actualizamos la variacion
-		$variacion = Sdba::table('variantes');
-		$variacion->where('producto',$producto)->and_where('variante',$fv);
-		$vr = $variacion->get_one();
-		$idvr = $vr['id_variante'];
-		$datava = array('id_variante'=>$idvr,'producto'=>$producto,'variante'=>$fv, 'stock'=>$nstock);
-		$variacion->set($datava);
+            // Actualiza el stock de la variante (si existe esa combinación producto+variante)
+            $variacion = Sdba::table('variantes');
+            $variacion->where('producto', $producto)->and_where('variante', $fv);
+            $vr = $variacion->get_one();
+            if ($vr) {
+                $variacion->set(array('id_variante'=>$vr['id_variante'],'producto'=>$producto,'variante'=>$fv,'stock'=>$nstock));
+            }
+        }
 
-		
-	}
+        $venta->where('id_venta', $id);
+        $venta->update(array('estado' => '2'));
 
-	//regresamos el stock de la venta
-	
+        $respuestaOk  = true;
+        $mensajeError = 'ok';
+    }
+}
 
-			
-			$ventas = Sdba::table('ventas');
-			$ventas->where('id_venta',$id);
-			$data = array('estado'=>'2');
-			$ventas->update($data);
-			
-				$respuestaOk = true;
-				$mensajeError = 'entro';
-
-
-		
-
-//}		
-
-		$salidaJson = array('respuesta' => $respuestaOk,
-							'mensaje' => $mensajeError);
-
-		echo json_encode($salidaJson);
-
-
-?>
+ob_clean();
+echo json_encode(['respuesta' => $respuestaOk, 'mensaje' => $mensajeError]);

@@ -153,13 +153,13 @@ $conn_tmp->close();
 		$('body').on('click', ".btn-borrar", function() {
 			var id = $(this).val();
 			Swal.fire({
-			  title: 'Seguro de borrar?',
-			  text: "Tu no puedes revertir esto!",
+			  title: 'Seguro de anular esta venta?',
+			  text: "Se revierte el stock y no se puede deshacer.",
 			  icon: 'warning',
 			  showCancelButton: true,
 			  confirmButtonColor: '#3085d6',
 			  cancelButtonColor: '#d33',
-			  confirmButtonText: 'Si, borrar!'
+			  confirmButtonText: 'Si, anular'
 			}).then((result) => {
 			  if (result.isConfirmed) {
 				$.ajax({
@@ -169,9 +169,16 @@ $conn_tmp->close();
 					data: 'id=' + id,
 					success: function(data1) {
 						$('#datos').DataTable().ajax.reload();
+						if (data1 && data1.respuesta) {
+							Swal.fire('Anulada', 'La venta fue anulada correctamente.', 'success');
+						} else {
+							Swal.fire('No se pudo anular', (data1 && data1.mensaje) ? data1.mensaje : 'Error desconocido.', 'error');
+						}
+					},
+					error: function() {
+						Swal.fire('Error de conexión', 'No se pudo anular la venta. Intenta de nuevo.', 'error');
 					}
 				});
-			    Swal.fire('Borrado!', 'El registro fue borrado correctamente.', 'success');
 			  }
 			});
 		});
