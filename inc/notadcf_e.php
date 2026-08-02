@@ -29,7 +29,6 @@ $cantidad = $_POST['cantidad'];
 $precio = $_POST['precio'];
 $exonerada = $_POST['exonerada'];
 $totalp = $_POST['totalp'];
-$total = $_POST['total'];
 $forma = $_POST['forma'];
 
 
@@ -37,19 +36,29 @@ $detalle = array();
 $igvtot = 0;
 $total_gravada = 0;
 $total_exonerada = 0;
+$total = 0;
 for ($i=0; $i < count($platos); $i++) {
-    $totalp_i = round((float)$totalp[$i], 2);
+    $cantidad_i = (float)$cantidad[$i];
+    $precio_i   = (float)$precio[$i];
+    // El total de línea se recalcula desde precio×cantidad — NO se usa el totalp[]
+    // guardado tal cual. Si la venta es antigua o por peso, ese total guardado puede
+    // no coincidir exactamente con precio×cantidad (redondeos históricos), y esa
+    // diferencia se le cargaría entera al IGV de esa línea, dando un valor absurdo
+    // que Nubefact rechaza al pre-validar.
+    $totalp_i = round($precio_i * $cantidad_i, 2);
+    $total    = round($total + $totalp_i, 2);
+
     if ($exonerada[$i]=='no') {
-        $valor_unitario = $precio[$i]/1.18;
-        $subtotal = round($valor_unitario*$cantidad[$i], 2);
+        $valor_unitario = $precio_i/1.18;
+        $subtotal = round($valor_unitario*$cantidad_i, 2);
         $igv = round($totalp_i - $subtotal, 2);
         $igvtot = round($igvtot + $igv, 2);
         $tipo_igv = '1';
         $total_gravada = round($total_gravada + $totalp_i, 2);
     }
     else{
-        $valor_unitario = $precio[$i];
-        $subtotal = round($valor_unitario*$cantidad[$i], 2);
+        $valor_unitario = $precio_i;
+        $subtotal = round($valor_unitario*$cantidad_i, 2);
         $igv = 0;
         $tipo_igv = '8';
         $total_exonerada = round($total_exonerada + $totalp_i, 2);
@@ -59,9 +68,9 @@ for ($i=0; $i < count($platos); $i++) {
         "unidad_de_medida"          => $unidad[$i],
         "codigo"                    => $codigo[$i],
         "descripcion"               => $platos[$i],
-        "cantidad"                  => $cantidad[$i],
+        "cantidad"                  => $cantidad_i,
         "valor_unitario"            => $valor_unitario,
-        "precio_unitario"           => $precio[$i],
+        "precio_unitario"           => $precio_i,
         "descuento"                 => "",
         "subtotal"                  => $subtotal,
         "tipo_de_igv"               => $tipo_igv,
