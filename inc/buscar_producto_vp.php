@@ -47,16 +47,18 @@ $results = [];
 if ($r) {
     while ($row = $r->fetch_assoc()) {
         $cantidad_vp = (float)$row['cantidad_vp'];
-        $precio_unit = $cantidad_vp > 0 ? round((float)$row['precio_vp'] / $cantidad_vp, 4) : (float)$row['precio_vp'];
 
         $variante = trim((string)$row['variante']);
         $texto = $row['nom_prod'] . ($variante && $variante !== '0000-00-00' ? ' – ' . $variante : '');
+        if ($cantidad_vp > 1) $texto .= ' (x' . rtrim(rtrim(number_format($cantidad_vp, 2), '0'), '.') . ')';
 
         $results[] = [
             'id'            => (int)$row['id_vp'],
             'text'          => $texto,
             'prod_id'       => (int)$row['id_producto'],
-            'precio'        => $precio_unit,
+            // Precio de ESTA presentación tal cual (ej. la caja completa), no dividido
+            // entre cantidad_vp — cada resultado ya es la unidad de venta a facturar.
+            'precio'        => round((float)$row['precio_vp'], 2),
             'unidad_codigo' => $row['unidad_codigo'] ?: 'NIU',
         ];
     }
