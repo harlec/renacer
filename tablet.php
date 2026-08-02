@@ -955,7 +955,7 @@ function pagoListoHuevos(){
   const efectivo = montoEfectivo(), tarjeta = montoTarjeta();
   if(efectivo<=0 && tarjeta<=0) return false;
   const diferencia = +((efectivo+tarjeta) - totalCarrito()).toFixed(2);
-  if(diferencia < -0.01) return false;
+  if(diferencia < 0) return false;
   if(diferencia > 0.01 && (efectivo<=0 || diferencia>0.09)) return false;
   return true;
 }
@@ -982,7 +982,7 @@ function actualizarPagoUI(){
     const suma = montoEfectivo() + montoTarjeta();
     const diferencia = +(totalCarrito() - suma).toFixed(2);
     status.style.display = suma>0 ? 'block' : 'none';
-    if(diferencia > 0.01){
+    if(diferencia > 0){
       status.textContent = 'Falta S/' + diferencia.toFixed(2);
       status.className = 'pay-status falta';
     } else if(diferencia < -0.09){
@@ -1072,8 +1072,12 @@ function selectProduct(item, btn){
   selectedProduct = item;
 
   // precio por unidad base: igual que venta.php → precio_vp / cantidad_vp
+  // Sin redondear aquí: si se redondea antes de multiplicar por la cantidad, ese
+  // resto de céntimo se amplifica con cantidades grandes (ej. 180 unidades) y el
+  // total termina en el céntimo equivocado (ej. 73.01 en vez de 73.00). Se redondea
+  // una sola vez, al final, cuando se calcula el total de la línea.
   selectedProduct.unit_price = item.qty_per > 0
-    ? +(item.price / item.qty_per).toFixed(4)
+    ? item.price / item.qty_per
     : item.price;
 
   // pre-llenar con qty_per para edición rápida (ej: 0.5 para ½kg)

@@ -53,7 +53,7 @@ if (!empty($_POST)) {
                 $suma_pagos   = round(array_sum(array_column($pagos, 'monto')), 2);
                 $hay_efectivo = in_array('efectivo', array_column($pagos, 'metodo'), true);
                 $diferencia   = round($suma_pagos - $total, 2);
-                if ($diferencia < -0.01) {
+                if ($diferencia < 0) {
                     throw new Exception("El pago (S/ $suma_pagos) no cubre el total (S/ $total).");
                 }
                 if ($diferencia > 0.01 && (!$hay_efectivo || $diferencia > 0.09)) {
