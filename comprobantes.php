@@ -193,14 +193,14 @@ $meses = [
 				{ data: null, orderable: false, render: function (row) {
 					var acciones = '';
 					if (row.url_pdf) {
-						acciones += '<a href="' + row.url_pdf + '" target="_blank" class="btn btn-primary btn-xs" title="Ver PDF"><i class="fas fa-eye"></i></a> ';
+						acciones += '<a href="' + row.url_pdf + '" target="_blank" class="btn btn-primary btn-xs" title="Ver PDF"><i class="fas fa-eye"></i> Ver</a> ';
 					}
 					if (row.state === '0') {
-						acciones += '<a href="anular_comprobante.php?id=' + row.id_comprobante + '" class="btn btn-danger btn-xs" title="Anular / comunicar baja"><i class="fas fa-ban"></i></a> ';
+						acciones += '<a href="anular_comprobante.php?id=' + row.id_comprobante + '" class="btn btn-danger btn-xs" title="Anular / comunicar baja"><i class="fas fa-ban"></i> Anular</a> ';
 					}
 					if ((row.tipo === 'B' || row.tipo === 'F') && row.state !== '2') {
 						var url = row.tipo === 'F' ? 'generar_nota_credito_f.php' : 'generar_nota_credito_b.php';
-						acciones += '<a href="' + url + '?id=' + row.id_comprobante + '" class="btn btn-warning btn-xs" title="Generar nota de crédito"><i class="fas fa-file-invoice"></i></a>';
+						acciones += '<a href="' + url + '?id=' + row.id_comprobante + '" class="btn btn-warning btn-xs" title="Generar nota de crédito"><i class="fas fa-file-invoice"></i> N. Créd.</a>';
 					}
 					return acciones;
 				} }
