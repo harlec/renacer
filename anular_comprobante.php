@@ -95,17 +95,13 @@ include('inc/sdba/sdba.php'); // include main file
 											    <BR>
 											    <div class="loader text-center" id="loading"></div>
 											    <?php echo $comunicado; ?>
-											    <div style="display:none" id="respuesta" class="alert alert-success alert-dismissible" role="alert">
-												  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-												  <strong>Warning!</strong> Better check yourself, you're not looking too good.
-												</div>
-											    <form <?php echo $ocultar; ?> id="anulaa" method="POST" action="inc/anular.php">
+											    <form <?php echo $ocultar; ?> id="anulaa">
 											    	<input type="hidden" name="id" value="<?php echo $id; ?>">
 											    	<input type="hidden" name="serie" value="<?php echo $ventas_l1['serie']; ?>">
 											    	<input type="hidden" name="numero" value="<?php echo $ventas_l1['numero']; ?>">
 											    	<input type="hidden" name="tipo" value="<?php echo $tipo; ?>">
 											    	<input class="form-control" name="motivo" type="text" placeholder="Ingrese motivo de eliminación" required><br>
-											    	<button id="anular" class="btn btn-danger btn-block btn-lg">Anular o comunicar baja</button>
+											    	<button type="button" id="anular" class="btn btn-danger btn-block btn-lg">Anular o comunicar baja</button>
 											    </form>
 											</div>
 										</div>
@@ -138,46 +134,59 @@ include('inc/sdba/sdba.php'); // include main file
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 	<script src="assets/js/sweetalert2.all.min.js"></script>
-	<script src="assets/js/jquery.form.js" type="text/javascript"></script>
-	<script src="assets/js/jquery.validate.js" type="text/javascript"></script>
 
 	<script >
 	// A $( document ).ready() block.
 	$(document ).ready(function() {
 
-		$('#anulaa').validate({
-			event: "blur",rules: {'motivo': "required"},
-			submitHandler: function(form){
-	            $("#loading").show();
-	            var $btn = $('#anular').prop('disabled', true);
-	            var str2 = $('#anulaa').serialize();
-	            $.ajax({
-	                type: "POST",
-	                url: "inc/anular.php",
-	                dataType: "json",
-	                data: str2,
-	                success: function(response){
-	                    $("#loading").hide();
-	                    if (response && response.ok) {
-	                        $('#anulaa').fadeOut('slow');
-	                        $("#respuesta").removeClass('alert-danger').addClass('alert-success')
-	                            .html(response.mensaje).show();
-	                    } else {
-	                        $btn.prop('disabled', false);
-	                        $("#respuesta").removeClass('alert-success').addClass('alert-danger')
-	                            .html(response && response.mensaje ? response.mensaje : 'No se pudo comunicar la baja.').show();
-	                    }
-	                },
-	                error: function(){
-	                    $("#loading").hide();
-	                    $btn.prop('disabled', false);
-	                    $("#respuesta").removeClass('alert-success').addClass('alert-danger')
-	                        .html('Error de conexión al comunicar la baja. Intenta de nuevo.').show();
-	                }
-	            });
-	        }
+		// Manejado directo por click (no por submit del <form>) para no depender del
+		// plugin jquery.validate — si ese plugin no se engancha por cualquier motivo,
+		// el botón haría un submit normal del navegador y te sacaría de la página
+		// mostrando el JSON crudo de inc/anular.php en vez de quedarte aquí con SweetAlert.
+		$('#anular').on('click', function () {
+			var $btn = $(this);
+			var motivo = $.trim($('input[name="motivo"]').val());
+			if (!motivo) {
+				Swal.fire('Falta el motivo', 'Ingresa el motivo de la anulación.', 'warning');
+				return;
+			}
 
+			Swal.fire({
+				title: 'Confirmar anulación',
+				text: 'Está a punto de anular o comunicar la baja de este comprobante, esto tiene implicaciones legales.',
+				icon: 'warning',
+				showCancelButton: true,
+				confirmButtonColor: '#d33',
+				cancelButtonColor: '#3085d6',
+				confirmButtonText: 'Sí, anular',
+				cancelButtonText: 'Cancelar'
+			}).then((result) => {
+				if (!result.isConfirmed) return;
 
+				$btn.prop('disabled', true);
+				$('#loading').show();
+				$.ajax({
+					type: 'POST',
+					url: 'inc/anular.php',
+					dataType: 'json',
+					data: $('#anulaa').serialize(),
+					success: function (response) {
+						$('#loading').hide();
+						if (response && response.ok) {
+							$('#anulaa').fadeOut('slow');
+							Swal.fire('Listo', response.mensaje, 'success');
+						} else {
+							$btn.prop('disabled', false);
+							Swal.fire('No se pudo anular', response && response.mensaje ? response.mensaje : 'Intenta de nuevo.', 'error');
+						}
+					},
+					error: function () {
+						$('#loading').hide();
+						$btn.prop('disabled', false);
+						Swal.fire('Error de conexión', 'No se pudo comunicar la baja. Intenta de nuevo.', 'error');
+					}
+				});
+			});
 		});
 	    console.log( "ready!" );
 	});
