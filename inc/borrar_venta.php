@@ -5,9 +5,13 @@ if (empty($_SESSION['ingress'])) {
     exit;
 }
 
-include('sdba/sdba.php');
+// ob_start() va ANTES de tocar Sdba: si alguna consulta falla, Sdba::error() imprime
+// un <div> de error HTML directo al output (no lanza excepción) — sin el buffer abierto
+// desde antes, ese HTML se cuela delante del JSON final y el navegador ya no puede
+// interpretar la respuesta ("Error de conexión" aunque el servidor sí haya respondido).
 ob_start();
 ini_set('display_errors', '0');
+include('sdba/sdba.php');
 
 $respuestaOk  = false;
 $mensajeError = 'Error en el proceso';
@@ -61,7 +65,8 @@ if ($id > 0) {
             $variacion->where('producto', $producto)->and_where('variante', $fv);
             $vr = $variacion->get_one();
             if ($vr) {
-                $variacion->set(array('id_variante'=>$vr['id_variante'],'producto'=>$producto,'variante'=>$fv,'stock'=>$nstock));
+                $variacion->where('id_variante', $vr['id_variante']);
+                $variacion->update(array('stock' => $nstock));
             }
         }
 
