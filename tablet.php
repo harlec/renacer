@@ -1167,8 +1167,7 @@ function setTotalButtons(grand){
   const hasItems  = grand>0;
   const pagoListo = pagoListoHuevos();
   document.getElementById('btn-save').disabled  = !hasItems || !pagoListo;
-  document.getElementById('btn-pay').disabled   = !hasItems;
-  document.getElementById('btn-print').disabled = !hasItems;
+  // btn-pay / btn-print están comentados en el HTML (sin usar) — no se referencian aquí.
 }
 
 function removeItem(uid){
