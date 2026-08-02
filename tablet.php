@@ -530,28 +530,51 @@ body{
   color:#fff;
 }
 .total-amount small{font-size:14px;color:var(--muted);margin-right:3px}
-.pay-method-row{display:none;gap:6px;margin-bottom:8px}
+.pay-method-row{display:none;gap:6px;margin-bottom:4px}
 .pay-method-row.show{display:flex}
-.pay-method-btn{
+.pay-input-box{
   flex:1;
-  padding:10px 6px;
+  display:flex;
+  align-items:center;
+  gap:4px;
   background:var(--surface);
   border:2px solid var(--border);
   border-radius:var(--r);
-  font-family:'Barlow Condensed',sans-serif;
-  font-size:15px;
-  font-weight:700;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  color:var(--muted);
+  padding:4px 6px;
+}
+.pay-input-box:focus-within{border-color:var(--accent)}
+.pay-quick-btn{
+  background:none;
+  border:none;
+  font-size:20px;
+  line-height:1;
+  padding:4px;
   cursor:pointer;
-  transition:all .15s;
+  flex-shrink:0;
 }
-.pay-method-btn.active{
-  border-color:var(--accent);
-  color:var(--accent);
-  background:var(--accent-bg,rgba(245,166,35,.12));
+.pay-input{
+  flex:1;
+  min-width:0;
+  background:none;
+  border:none;
+  color:var(--text);
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:16px;
+  font-weight:700;
+  text-align:right;
+  padding:4px 2px;
 }
+.pay-input:focus{outline:none}
+.pay-status{
+  display:none;
+  font-size:12px;
+  font-weight:700;
+  text-align:right;
+  margin-bottom:8px;
+  letter-spacing:.5px;
+}
+.pay-status.falta{color:var(--red)}
+.pay-status.ok{color:var(--green)}
 .action-row{display:flex;gap:6px}
 .btn-save{
   flex:1;
@@ -774,9 +797,16 @@ body{
           <span class="total-amount"><small>S/</small><span id="total-val">0.00</span></span>
         </div>
         <div class="pay-method-row" id="pay-method-row">
-          <button class="pay-method-btn" id="pm-efectivo" onclick="selectMetodoPago('efectivo')">💵 Efectivo</button>
-          <button class="pay-method-btn" id="pm-tarjeta" onclick="selectMetodoPago('tarjeta')">💳 Tarjeta</button>
+          <div class="pay-input-box">
+            <button type="button" class="pay-quick-btn" onclick="pagoSoloUnMetodo('efectivo')" title="Todo en efectivo">💵</button>
+            <input type="number" inputmode="decimal" class="pay-input" id="pm-monto-efectivo" placeholder="0.00" step="0.01" min="0" oninput="actualizarPagoUI()">
+          </div>
+          <div class="pay-input-box">
+            <button type="button" class="pay-quick-btn" onclick="pagoSoloUnMetodo('tarjeta')" title="Todo con tarjeta">💳</button>
+            <input type="number" inputmode="decimal" class="pay-input" id="pm-monto-tarjeta" placeholder="0.00" step="0.01" min="0" oninput="actualizarPagoUI()">
+          </div>
         </div>
+        <div class="pay-status" id="pay-status"></div>
         <div class="action-row">
           <button class="btn-save" id="btn-save" onclick="saveAndPrint()" disabled>💾 Guardar</button>
           <!--<button class="btn-pay" id="btn-pay" onclick="openTicket()" disabled>🧾 Cobrar</button>
@@ -849,7 +879,6 @@ let currentCatId    = null;
 let selectedProduct = null;
 let numBuf          = '0';
 let cart            = [];
-let metodoPago      = null;
 
 // ── ¿La pestaña actual requiere método de pago? ─────────────
 function isHuevosTab(tabKey){
@@ -893,7 +922,7 @@ function switchTab(key){
   currentTab      = key;
   selectedProduct = null;
   numBuf          = '0';
-  metodoPago      = null;
+  limpiarPago();
 
   // Colores dinámicos
   const cfg = TABS_DATA[key].config;
@@ -910,21 +939,64 @@ function switchTab(key){
   // Categorías
   buildCatStrip(key);
   updateNumDisplay();
-  updatePayMethodUI();
+  actualizarPagoUI();
 }
 
-// ── Método de pago (solo pestaña Huevos) ────────────────────
-function updatePayMethodUI(){
-  const row = document.getElementById('pay-method-row');
-  row.classList.toggle('show', isHuevosTab(currentTab));
-  document.getElementById('pm-efectivo').classList.toggle('active', metodoPago==='efectivo');
-  document.getElementById('pm-tarjeta').classList.toggle('active', metodoPago==='tarjeta');
-  setTotalButtons(cart.reduce((s,i)=>s+i.total,0));
+// ── Método de pago (solo pestaña Huevos) — permite pago mixto ─
+// (parte efectivo + parte tarjeta, o solo uno de los dos)
+function montoEfectivo(){ return parseFloat(document.getElementById('pm-monto-efectivo').value)||0; }
+function montoTarjeta(){ return parseFloat(document.getElementById('pm-monto-tarjeta').value)||0; }
+function totalCarrito(){ return cart.reduce((s,i)=>s+i.total,0); }
+
+// Redondeo comercial: en efectivo se permite cobrar hasta 9 céntimos de más
+// (no hay monedas de 1-5 céntimos para dar el vuelto exacto), igual que en caja_pagos.php.
+function pagoListoHuevos(){
+  if(!isHuevosTab(currentTab)) return true;
+  const efectivo = montoEfectivo(), tarjeta = montoTarjeta();
+  if(efectivo<=0 && tarjeta<=0) return false;
+  const diferencia = +((efectivo+tarjeta) - totalCarrito()).toFixed(2);
+  if(diferencia < -0.01) return false;
+  if(diferencia > 0.01 && (efectivo<=0 || diferencia>0.09)) return false;
+  return true;
 }
 
-function selectMetodoPago(m){
-  metodoPago = m;
-  updatePayMethodUI();
+function limpiarPago(){
+  document.getElementById('pm-monto-efectivo').value = '';
+  document.getElementById('pm-monto-tarjeta').value = '';
+  actualizarPagoUI();
+}
+
+function pagoSoloUnMetodo(m){
+  const total = totalCarrito();
+  document.getElementById('pm-monto-efectivo').value = m==='efectivo' ? total.toFixed(2) : '';
+  document.getElementById('pm-monto-tarjeta').value  = m==='tarjeta'  ? total.toFixed(2) : '';
+  actualizarPagoUI();
+}
+
+function actualizarPagoUI(){
+  const esHuevos = isHuevosTab(currentTab);
+  document.getElementById('pay-method-row').classList.toggle('show', esHuevos);
+
+  const status = document.getElementById('pay-status');
+  if(esHuevos){
+    const suma = montoEfectivo() + montoTarjeta();
+    const diferencia = +(totalCarrito() - suma).toFixed(2);
+    status.style.display = suma>0 ? 'block' : 'none';
+    if(diferencia > 0.01){
+      status.textContent = 'Falta S/' + diferencia.toFixed(2);
+      status.className = 'pay-status falta';
+    } else if(diferencia < -0.09){
+      status.textContent = 'Sobra S/' + Math.abs(diferencia).toFixed(2);
+      status.className = 'pay-status falta';
+    } else {
+      status.textContent = '✓ Pago completo';
+      status.className = 'pay-status ok';
+    }
+  } else {
+    status.style.display = 'none';
+  }
+
+  setTotalButtons(totalCarrito());
 }
 
 // ── Barra de categorías ────────────────────────────────────
@@ -1093,7 +1165,7 @@ function renderCart(){
 function setTotalButtons(grand){
   document.getElementById('total-val').textContent = grand.toFixed(2);
   const hasItems  = grand>0;
-  const pagoListo = !isHuevosTab(currentTab) || !!metodoPago;
+  const pagoListo = pagoListoHuevos();
   document.getElementById('btn-save').disabled  = !hasItems || !pagoListo;
   document.getElementById('btn-pay').disabled   = !hasItems;
   document.getElementById('btn-print').disabled = !hasItems;
@@ -1108,8 +1180,7 @@ function clearCart(){
   if(!cart.length) return;
   if(!confirm('¿Limpiar el pedido?')) return;
   cart=[];
-  metodoPago=null;
-  updatePayMethodUI();
+  limpiarPago();
   renderCart();
 }
 
@@ -1276,7 +1347,7 @@ function toast(msg, type='ok'){
 // ── Guardar venta y imprimir ───────────────────────────────
 function saveAndPrint(){
   if(!cart.length){ toast('El pedido está vacío','err'); return; }
-  if(isHuevosTab(currentTab) && !metodoPago){ toast('Selecciona un método de pago','err'); return; }
+  if(isHuevosTab(currentTab) && !pagoListoHuevos()){ toast('El pago no cuadra con el total','err'); return; }
 
   const btn = document.getElementById('btn-save');
   btn.disabled = true;
@@ -1291,7 +1362,10 @@ function saveAndPrint(){
   body.append('fecha',   fecha);
   body.append('total1',  cart.reduce((s,i)=>s+i.total,0).toFixed(2));
   if(id_cliente) body.append('id_cliente', id_cliente);
-  if(isHuevosTab(currentTab) && metodoPago) body.append('metodo_pago', metodoPago);
+  if(isHuevosTab(currentTab)){
+    if(montoEfectivo()>0){ body.append('metodo_pago[]', 'efectivo'); body.append('monto_pago[]', montoEfectivo().toFixed(2)); }
+    if(montoTarjeta()>0){ body.append('metodo_pago[]', 'tarjeta');  body.append('monto_pago[]', montoTarjeta().toFixed(2)); }
+  }
 
   cart.forEach(ci=>{
     body.append('id_pro[]',     ci.prod_id);
@@ -1310,8 +1384,7 @@ function saveAndPrint(){
     if(data.respuesta){
       printTicket();
       cart=[];
-      metodoPago=null;
-      updatePayMethodUI();
+      limpiarPago();
       renderCart();
       toast('Venta guardada ✓');
     } else {

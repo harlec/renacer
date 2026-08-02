@@ -27,9 +27,18 @@ if (!empty($_POST)) {
     $total_pre  = $_POST['total_pre']  ?? [];
     $total      = floatval($_POST['total1'] ?? 0);
 
+    // Pago mixto: puede venir efectivo, tarjeta, o ambos a la vez (parte y parte).
     $metodos_validos = ['efectivo', 'tarjeta'];
-    $metodo_pago     = $_POST['metodo_pago'] ?? '';
-    $metodo_pago     = in_array($metodo_pago, $metodos_validos, true) ? $metodo_pago : null;
+    $metodo_pago_arr = $_POST['metodo_pago'] ?? [];
+    $monto_pago_arr  = $_POST['monto_pago']  ?? [];
+    $pagos = [];
+    for ($i = 0; $i < count($metodo_pago_arr); $i++) {
+        $m = $metodo_pago_arr[$i] ?? '';
+        $v = round(floatval($monto_pago_arr[$i] ?? 0), 2);
+        if (in_array($m, $metodos_validos, true) && $v > 0) {
+            $pagos[] = ['metodo' => $m, 'monto' => $v];
+        }
+    }
 
     if (!empty($fecha) && !empty($id_p) && !empty($total_pre)) {
 
@@ -38,6 +47,20 @@ if (!empty($_POST)) {
         $conn->begin_transaction();
 
         try {
+            // Si vienen pagos (pestañas que los piden, ej. Huevos), la suma debe cuadrar
+            // con el total — mismo margen de redondeo en efectivo que usa caja_pagos.php.
+            if (!empty($pagos)) {
+                $suma_pagos   = round(array_sum(array_column($pagos, 'monto')), 2);
+                $hay_efectivo = in_array('efectivo', array_column($pagos, 'metodo'), true);
+                $diferencia   = round($suma_pagos - $total, 2);
+                if ($diferencia < -0.01) {
+                    throw new Exception("El pago (S/ $suma_pagos) no cubre el total (S/ $total).");
+                }
+                if ($diferencia > 0.01 && (!$hay_efectivo || $diferencia > 0.09)) {
+                    throw new Exception("El pago (S/ $suma_pagos) supera el total (S/ $total) más del margen de redondeo permitido.");
+                }
+            }
+
             // Pre-validar stock
             for ($i = 0; $i < count($id_p); $i++) {
                 $pid  = intval($id_p[$i]);
@@ -73,10 +96,11 @@ if (!empty($_POST)) {
             $venta_id = $conn->insert_id;
             if (!$venta_id) throw new Exception("No se pudo crear la venta");
 
-            // Pago (efectivo/tarjeta) — solo pestañas que lo envían, ej. Huevos
-            if ($metodo_pago && $total > 0) {
+            // Pago (efectivo/tarjeta/mixto) — solo pestañas que lo envían, ej. Huevos
+            foreach ($pagos as $p) {
+                $metodo_safe = $conn->real_escape_string($p['metodo']);
                 $conn->query("INSERT INTO venta_pagos (venta, metodo, monto, usuario, fecha)
-                              VALUES ($venta_id, '$metodo_pago', $total, $id_usuario, '$fecha_ope')");
+                              VALUES ($venta_id, '$metodo_safe', {$p['monto']}, $id_usuario, '$fecha_ope')");
             }
 
             // Detalle + stock
