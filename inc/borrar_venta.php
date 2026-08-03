@@ -5,6 +5,23 @@ if (empty($_SESSION['ingress'])) {
     exit;
 }
 
+// Si el script muere con un error fatal (500), esto evita que el navegador reciba una
+// respuesta vacía/rota — captura el error real y lo manda como JSON legible, para poder
+// diagnosticarlo sin acceso a los logs del servidor. TEMPORAL: una vez identificado el
+// problema real, esto se puede simplificar de vuelta a un mensaje genérico.
+register_shutdown_function(function () {
+    $error = error_get_last();
+    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+        if (ob_get_level() > 0) { ob_end_clean(); }
+        http_response_code(200);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'respuesta' => false,
+            'mensaje'   => 'Error interno (línea ' . $error['line'] . '): ' . $error['message'],
+        ]);
+    }
+});
+
 // ob_start() va ANTES de tocar Sdba: si alguna consulta falla, Sdba::error() imprime
 // un <div> de error HTML directo al output (no lanza excepción) — sin el buffer abierto
 // desde antes, ese HTML se cuela delante del JSON final y el navegador ya no puede
