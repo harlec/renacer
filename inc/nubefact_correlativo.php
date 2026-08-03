@@ -14,7 +14,10 @@ function numero_esperado($conn, $tipo, $serie)
 {
     $tipo_esc  = $conn->real_escape_string($tipo);
     $serie_esc = $conn->real_escape_string($serie);
-    $r = $conn->query("SELECT MAX(numero) AS ultimo FROM comprobantes WHERE tipo = '$tipo_esc' AND serie = '$serie_esc'");
+    // numero está guardado como texto en la tabla, así que MAX(numero) sin más
+    // compara alfabéticamente (p.ej. "9" > "29") y devuelve el máximo equivocado.
+    // Se castea a entero para que la comparación sea numérica de verdad.
+    $r = $conn->query("SELECT MAX(CAST(numero AS UNSIGNED)) AS ultimo FROM comprobantes WHERE tipo = '$tipo_esc' AND serie = '$serie_esc'");
     $row = $r ? $r->fetch_assoc() : null;
     $ultimo = ($row && $row['ultimo'] !== null) ? (int)$row['ultimo'] : 0;
     return $ultimo + 1;
