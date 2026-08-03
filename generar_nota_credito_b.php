@@ -135,6 +135,7 @@ $facturan = 0;
 									  		<input type="hidden" name="fechita" name="fechita" value="<?php echo $fechita; ?>">
 									  		<input type="hidden" name="venta_id" name="venta_id" value="<?php echo $id; ?>">
 									  		<input class="form-control" type="hidden" name="facturan" value="<?php echo $num_compro; ?>">
+								  		<input type="hidden" name="id_comprobante_original" value="<?php echo $id; ?>">
 									  	<div class="table-responsive">
 									  		<table class="table">
 										    	<thead>

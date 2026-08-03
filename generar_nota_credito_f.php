@@ -148,6 +148,7 @@ $facturan = 0;
 												  		<input type="hidden" name="forma" name="forma" value="<?php echo $forma_pl; ?>">
 												  		<input type="hidden" name="venta_id" name="venta_id" value="<?php echo $id; ?>">
 												  		<input class="form-control" type="hidden" name="facturan" value="<?php echo $num_compro; ?>">
+											  		<input type="hidden" name="id_comprobante_original" value="<?php echo $id; ?>">
 												  			  	
 													<br>
 												  	<div class="table-responsive">

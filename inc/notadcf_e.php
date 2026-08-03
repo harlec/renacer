@@ -16,6 +16,7 @@ $venta_id = $_POST['venta_id'];
 $fechac = $_POST['fechac'];
 $montoc = $_POST['montoc'];
 $numero_compro = $_POST['numero_compro'];
+$id_comprobante_original = intval($_POST['id_comprobante_original'] ?? 0) ?: null;
 
 $user = $_POST['user'];
 $ruc =$_POST['ruc'];
@@ -246,7 +247,7 @@ if (!is_array($leer_respuesta) || isset($leer_respuesta['errors']) || empty($lee
 } else {
     $fecha = date("Y-m-d", strtotime($fechita));
 	$configuracion = Sdba::table('comprobantes');
-    $data = array('id_comprobante'=>'','serie'=>$serie,'numero'=>$leer_respuesta['numero'],'url'=>$leer_respuesta['enlace'],'tipo'=>'FC','venta'=>$venta_id,'tipo_doc'=>'6','doc'=>$ruc,'nombre'=>$r_social,'moneda'=>'PEN','tipo_cambio'=>'','grabada'=>$totalg,'igv'=>$totaligv,'total'=>$total,'fecha'=>$fecha,'state'=>'0');
+    $data = array('id_comprobante'=>'','serie'=>$serie,'numero'=>$leer_respuesta['numero'],'url'=>$leer_respuesta['enlace'],'tipo'=>'FC','venta'=>$venta_id,'tipo_doc'=>'6','doc'=>$ruc,'nombre'=>$r_social,'moneda'=>'PEN','tipo_cambio'=>'','grabada'=>$totalg,'igv'=>$totaligv,'total'=>$total,'fecha'=>$fecha,'state'=>'0','comprobante_modificado'=>$id_comprobante_original);
     $configuracion->insert($data);
 
     $venta = Sdba::table('ventas');

@@ -24,18 +24,20 @@ $meses = [
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.6.4/css/buttons.dataTables.min.css">
     <style>
         :root { --c-navy: #1e3a4c; --c-orange: #ff5023; }
-        .resumen-row { display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:20px; }
+        .resumen-row { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom:20px; }
         .resumen-card { background:#fff; border-radius:12px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
         .resumen-card .rc-label { font-size:12px; color:#888; font-weight:600; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
         .resumen-card .rc-valor { font-size:24px; font-weight:800; color:var(--c-navy); margin-top:6px; }
         .resumen-card.total { background:var(--c-navy); }
         .resumen-card.total .rc-label { color:#bcd; }
         .resumen-card.total .rc-valor { color:#fff; }
+        .resumen-card.anuladas .rc-valor { color:#a71d2a; }
         @media (max-width: 700px) { .resumen-row { grid-template-columns: 1fr; } }
         .estado-badge{ padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; text-transform:uppercase; }
         .estado-0{ background:#e6f4ea; color:#1e7e34; }
         .estado-1{ background:#fff3cd; color:#8a6100; }
         .estado-2{ background:#f8d7da; color:#a71d2a; }
+        .ref-cruzada{ display:block; font-size:11px; color:#888; margin-top:2px; }
     </style>
     </head>
 
@@ -110,6 +112,10 @@ $meses = [
 									<div class="rc-label"><i class="fas fa-file-invoice-dollar"></i> Facturas</div>
 									<div class="rc-valor" id="resFacturas">S/ 0.00</div>
 								</div>
+								<div class="resumen-card anuladas">
+									<div class="rc-label"><i class="fas fa-ban"></i> Anuladas</div>
+									<div class="rc-valor" id="resAnuladas">S/ 0.00</div>
+								</div>
 								<div class="resumen-card total">
 									<div class="rc-label"><i class="fas fa-cash-register"></i> Total del período</div>
 									<div class="rc-valor" id="resTotal">S/ 0.00</div>
@@ -163,6 +169,7 @@ $meses = [
 			r = r || {};
 			document.getElementById('resBoletas').textContent = money(r.boletas);
 			document.getElementById('resFacturas').textContent = money(r.facturas);
+			document.getElementById('resAnuladas').textContent = money(r.anuladas);
 			document.getElementById('resTotal').textContent = money(r.total);
 		}
 
@@ -183,7 +190,12 @@ $meses = [
 			columns: [
 				{ data: 'fecha', render: function (d) { return formatFecha(d); } },
 				{ data: 'tipo_label' },
-				{ data: null, render: function (row) { return row.serie + '-' + row.numero; } },
+				{ data: null, render: function (row) {
+					var txt = row.serie + '-' + row.numero;
+					if (row.aplica_a) txt += '<span class="ref-cruzada">Aplica a: ' + row.aplica_a + '</span>';
+					if (row.anulado_por) txt += '<span class="ref-cruzada">Anulado por N.C. ' + row.anulado_por + '</span>';
+					return txt;
+				} },
 				{ data: 'cliente' },
 				{ data: 'total', render: function (d) { return money(d); } },
 				{ data: null, orderable: false, render: function (row) {
