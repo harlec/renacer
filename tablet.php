@@ -575,6 +575,33 @@ body{
 }
 .pay-status.falta{color:var(--red)}
 .pay-status.ok{color:var(--green)}
+.venta-guardada{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  background:rgba(39,174,96,.15);
+  border:2px solid var(--green);
+  border-radius:var(--r);
+  padding:8px 10px;
+  margin-bottom:8px;
+  font-size:13px;
+  font-weight:700;
+  color:var(--green);
+}
+.venta-guardada.show{display:flex}
+.venta-guardada button{
+  background:var(--green);
+  border:none;
+  border-radius:8px;
+  padding:8px 12px;
+  color:#fff;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  flex-shrink:0;
+}
 .action-row{display:flex;gap:6px}
 .btn-save{
   flex:1;
@@ -807,6 +834,10 @@ body{
           </div>
         </div>
         <div class="pay-status" id="pay-status"></div>
+        <div class="venta-guardada" id="venta-guardada">
+          <span id="vg-texto"></span>
+          <button type="button" onclick="reimprimirUltimoTicket()">🖨️ Reimprimir</button>
+        </div>
         <div class="action-row">
           <button class="btn-save" id="btn-save" onclick="saveAndPrint()" disabled>💾 Guardar</button>
           <!--<button class="btn-pay" id="btn-pay" onclick="openTicket()" disabled>🧾 Cobrar</button>
@@ -1142,6 +1173,7 @@ function addToCart(){
   updateNumDisplay();
   renderCart();
   toast('Agregado ✓');
+  ocultarVentaGuardada(); // están armando un pedido nuevo, ya no aplica reimprimir el anterior
 }
 
 // ── Renderizar carrito ─────────────────────────────────────
@@ -1243,13 +1275,40 @@ function numeroALetras(num){
 }
 
 // ── Imprimir ───────────────────────────────────────────────
+// Guarda el último ticket construido para poder reimprimirlo sin depender del
+// carrito actual (que ya se vació tras guardar) — así un fallo al imprimir no
+// obliga a re-ingresar y re-guardar el pedido para intentarlo de nuevo.
+let lastTicketText = null;
+
 function printTicket(){
   if(!cart.length) return;
+  lastTicketText = buildTicketText(cart);
+  showPrintButton(null, lastTicketText);
+}
 
+function reimprimirUltimoTicket(){
+  if(!lastTicketText){ toast('No hay ningún ticket guardado para reimprimir','err'); return; }
+  showPrintButton(null, lastTicketText);
+}
+
+// Banner persistente tras guardar — se queda a la vista (a diferencia del toast, que
+// desaparece solo en 2s) hasta que se empieza un pedido nuevo, para que el botón
+// "Reimprimir" siga a mano si el ticket no salió a la primera.
+function mostrarVentaGuardada(ventaId, total){
+  const el = document.getElementById('venta-guardada');
+  document.getElementById('vg-texto').textContent = '✓ Venta v-' + ventaId + ' guardada — S/' + total.toFixed(2);
+  el.classList.add('show');
+}
+
+function ocultarVentaGuardada(){
+  document.getElementById('venta-guardada').classList.remove('show');
+}
+
+function buildTicketText(items){
   const now   = new Date();
   const fecha = now.toLocaleString('es-PE',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const vendedor = <?= json_encode($user_name) ?>;
-  const grand = cart.reduce((s,i)=>s+i.total, 0);
+  const grand = items.reduce((s,i)=>s+i.total, 0);
   const clienteNombre = USER_CLIENT_NAME[USER_ID] ?? '';
 
   // Comandos ESC/POS codificados como %XX
@@ -1295,7 +1354,7 @@ function printTicket(){
   t += SEP;
 
   // ── Items ──
-  cart.forEach(ci => {
+  items.forEach(ci => {
     const tot  = 'S/' + ci.total.toFixed(2);
     const name = asc(ci.name.replace(/\s*[–—]\s*/g,' ').replace(/×/g,'x')).trim();
     // pad() trunca el nombre para que el precio siempre quepa en la misma línea
@@ -1324,16 +1383,22 @@ function printTicket(){
   // ── Corte de papel ──
   t += CT;
 
-  showPrintButton(null, t);
+  return t;
 }
 
 // ── Botón imprimir con RawBT ───────────────────────────────
+let _rawbtHideTO;
 function showPrintButton(url, text) {
   const ov = document.getElementById('rawbt-overlay');
   const lk = document.getElementById('rawbt-link');
   lk.href = text ? 'rawbt:' + text : 'rawbt:' + url;
   ov.style.display = 'flex';
-  setTimeout(()=>{ ov.style.display='none'; }, 20000);
+  // 20s alcanzaba muy poco — si el cajero se distrae un momento, el aviso
+  // desaparece solo y parece que "no pasó nada", llevando a re-guardar el pedido
+  // completo solo para volver a ver el botón de imprimir. El banner "Reimprimir"
+  // que queda abajo del carrito es la forma normal de reintentar sin duplicar la venta.
+  clearTimeout(_rawbtHideTO);
+  _rawbtHideTO = setTimeout(()=>{ ov.style.display='none'; }, 90000);
 }
 
 // ── Toast ──────────────────────────────────────────────────
@@ -1385,11 +1450,13 @@ function saveAndPrint(){
   .then(r=>r.json())
   .then(data=>{
     if(data.respuesta){
+      const grand = cart.reduce((s,i)=>s+i.total,0);
       printTicket();
       cart=[];
       limpiarPago();
       renderCart();
       toast('Venta guardada ✓');
+      mostrarVentaGuardada(data.venta_id, grand);
     } else {
       toast(data.mensaje||'Error al guardar','err');
     }
