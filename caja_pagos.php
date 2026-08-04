@@ -84,7 +84,7 @@ include('inc/control.php');
     .linea-pago { display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; border-radius:8px; padding:6px 10px; margin-top:6px; font-size:13px; }
     .linea-pago .lp-metodo { font-weight:600; color:var(--c-navy); }
     .linea-pago .lp-editar { color:#888; background:none; border:none; padding:0 4px; }
-    .linea-pago select { font-size:12px; padding:2px 4px; border-radius:6px; border:1px solid #ddd; }
+    .linea-pago select, .linea-pago input { font-size:12px; padding:2px 4px; border-radius:6px; border:1px solid #ddd; }
     .linea-pago .lp-guardar { font-size:11px; font-weight:700; color:#fff; background:var(--c-orange); border:none; border-radius:6px; padding:3px 8px; }
 
     .overlay {
@@ -671,9 +671,9 @@ include('inc/control.php');
         }
         pagadasGrid.innerHTML = items.map(function (v) {
             const lineas = v.pagos.map(function (p) {
-                return '<div class="linea-pago" data-id-pago="' + p.id_pago + '">' +
+                return '<div class="linea-pago" data-id-pago="' + p.id_pago + '" data-metodo="' + p.metodo + '" data-monto="' + p.monto.toFixed(2) + '">' +
                     '<span class="lp-metodo">' + (metodosLabel[p.metodo] || p.metodo) + ': ' + money(p.monto) + ' <small style="color:#aaa">(' + p.hora + ')</small></span>' +
-                    '<button class="lp-editar" data-accion="editar" title="Cambiar método"><i class="fas fa-pen"></i></button>' +
+                    '<button class="lp-editar" data-accion="editar" title="Editar pago"><i class="fas fa-pen"></i></button>' +
                 '</div>';
             }).join('');
             return '<div class="pagada-item" data-venta="' + v.id_venta + '">' +
@@ -708,24 +708,27 @@ include('inc/control.php');
         const btnEditar = e.target.closest('[data-accion="editar"]');
         if (btnEditar) {
             const linea = btnEditar.closest('.linea-pago');
-            const idPago = linea.dataset.idPago;
-            const metodoActual = linea.querySelector('.lp-metodo').textContent.split(':')[0].trim();
-            const claveActual = Object.keys(metodosLabel).find(k => metodosLabel[k].toLowerCase() === metodoActual.toLowerCase()) || 'efectivo';
+            const claveActual = linea.dataset.metodo;
+            const montoActual = linea.dataset.monto;
             const opciones = metodosOrden.map(m => '<option value="' + m + '"' + (m === claveActual ? ' selected' : '') + '>' + metodosLabel[m] + '</option>').join('');
-            linea.innerHTML = '<select>' + opciones + '</select><button class="lp-guardar" data-accion="guardar">Guardar</button>';
+            linea.innerHTML = '<select class="ed-metodo">' + opciones + '</select>' +
+                '<input type="number" step="0.01" min="0.01" class="ed-monto" value="' + montoActual + '" style="width:80px">' +
+                '<button class="lp-guardar" data-accion="guardar">Guardar</button>';
             return;
         }
         const btnGuardar = e.target.closest('[data-accion="guardar"]');
         if (btnGuardar) {
             const linea = btnGuardar.closest('.linea-pago');
             const idPago = linea.dataset.idPago;
-            const metodoNuevo = linea.querySelector('select').value;
+            const metodoNuevo = linea.querySelector('.ed-metodo').value;
+            const montoNuevo = parseFloat(linea.querySelector('.ed-monto').value) || 0;
+            if (montoNuevo <= 0) { alert('Monto inválido'); return; }
             btnGuardar.disabled = true;
             btnGuardar.textContent = '...';
             fetch('inc/editar_metodo_pago.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'id_pago=' + encodeURIComponent(idPago) + '&metodo=' + encodeURIComponent(metodoNuevo)
+                body: 'id_pago=' + encodeURIComponent(idPago) + '&metodo=' + encodeURIComponent(metodoNuevo) + '&monto=' + encodeURIComponent(montoNuevo)
             })
             .then(r => r.json())
             .then(data => {
@@ -733,10 +736,16 @@ include('inc/control.php');
                     cargarPagadas();
                     cargarCola();
                 } else {
-                    alert(data.mensaje || 'No se pudo actualizar el método de pago');
+                    alert(data.mensaje || 'No se pudo actualizar el pago');
+                    btnGuardar.disabled = false;
+                    btnGuardar.textContent = 'Guardar';
                 }
             })
-            .catch(() => alert('Error de conexión'));
+            .catch(() => {
+                alert('Error de conexión');
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = 'Guardar';
+            });
         }
     });
 })();
