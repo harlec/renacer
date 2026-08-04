@@ -83,7 +83,8 @@ include('inc/control.php');
     .pagada-item .pi-estado { font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:10px; background:#eee; color:#777; }
     .linea-pago { display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; border-radius:8px; padding:6px 10px; margin-top:6px; font-size:13px; }
     .linea-pago .lp-metodo { font-weight:600; color:var(--c-navy); }
-    .linea-pago .lp-editar { color:#888; background:none; border:none; padding:0 4px; }
+    .linea-pago .lp-editar { color:#555; background:#fff; border:1px solid #ddd; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; }
+    .linea-pago .lp-editar:active { background:#eee; }
     .linea-pago select, .linea-pago input { font-size:12px; padding:2px 4px; border-radius:6px; border:1px solid #ddd; }
     .linea-pago .lp-guardar { font-size:11px; font-weight:700; color:#fff; background:var(--c-orange); border:none; border-radius:6px; padding:3px 8px; }
 
@@ -673,7 +674,7 @@ include('inc/control.php');
             const lineas = v.pagos.map(function (p) {
                 return '<div class="linea-pago" data-id-pago="' + p.id_pago + '" data-metodo="' + p.metodo + '" data-monto="' + p.monto.toFixed(2) + '">' +
                     '<span class="lp-metodo">' + (metodosLabel[p.metodo] || p.metodo) + ': ' + money(p.monto) + ' <small style="color:#aaa">(' + p.hora + ')</small></span>' +
-                    '<button class="lp-editar" data-accion="editar" title="Editar pago"><i class="fas fa-pen"></i></button>' +
+                    '<button class="lp-editar" data-accion="editar" title="Editar pago"><i class="fas fa-pen"></i> Editar</button>' +
                 '</div>';
             }).join('');
             return '<div class="pagada-item" data-venta="' + v.id_venta + '">' +
