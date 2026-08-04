@@ -70,6 +70,23 @@ include('inc/control.php');
     .cola-item .ci-saldo { font-size:11px; color:#c0392b; }
     .vacio { text-align:center; color:#aaa; padding:60px 0; grid-column:1/-1; font-size:15px; }
 
+    .tabs-caja { display:flex; gap:8px; margin-bottom:18px; }
+    .tab-caja { border:none; background:#fff; color:#888; font-weight:700; font-size:14px; padding:10px 20px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+    .tab-caja.activo { background:var(--c-navy); color:#fff; }
+
+    .pagada-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .pagada-item { background:#fff; border-radius:12px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+    .pagada-item .pi-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .pagada-item .pi-num { font-weight:700; color:var(--c-navy); }
+    .pagada-item .pi-cliente { font-size:12px; color:#888; text-transform:uppercase; }
+    .pagada-item .pi-total { font-size:16px; font-weight:700; color:var(--c-orange); }
+    .pagada-item .pi-estado { font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:10px; background:#eee; color:#777; }
+    .linea-pago { display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; border-radius:8px; padding:6px 10px; margin-top:6px; font-size:13px; }
+    .linea-pago .lp-metodo { font-weight:600; color:var(--c-navy); }
+    .linea-pago .lp-editar { color:#888; background:none; border:none; padding:0 4px; }
+    .linea-pago select { font-size:12px; padding:2px 4px; border-radius:6px; border:1px solid #ddd; }
+    .linea-pago .lp-guardar { font-size:11px; font-weight:700; color:#fff; background:var(--c-orange); border:none; border-radius:6px; padding:3px 8px; }
+
     .overlay {
         display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100;
         align-items:center; justify-content:center;
@@ -176,14 +193,32 @@ include('inc/control.php');
         </div>
     </div>
 
-    <div class="caja-titulo">
-        Pagos pendientes hoy
-        <span class="contador" id="contador">0</span>
-        <button class="btn-seleccionar" id="btnModoSeleccion">Cobrar varias juntas</button>
+    <div class="tabs-caja">
+        <button class="tab-caja activo" id="tabPendientes">Pagos pendientes</button>
+        <button class="tab-caja" id="tabPagadas">Ventas pagadas hoy</button>
     </div>
 
-    <div class="cola-grid" id="cola">
-        <div class="vacio">Cargando...</div>
+    <div id="vistaPendientes">
+        <div class="caja-titulo">
+            Pagos pendientes hoy
+            <span class="contador" id="contador">0</span>
+            <button class="btn-seleccionar" id="btnModoSeleccion">Cobrar varias juntas</button>
+        </div>
+
+        <div class="cola-grid" id="cola">
+            <div class="vacio">Cargando...</div>
+        </div>
+    </div>
+
+    <div id="vistaPagadas" style="display:none">
+        <div class="caja-titulo">
+            Ventas pagadas hoy
+            <span class="contador" id="contadorPagadas">0</span>
+        </div>
+
+        <div class="pagada-grid" id="pagadas">
+            <div class="vacio">Cargando...</div>
+        </div>
     </div>
 </div>
 
@@ -615,6 +650,94 @@ include('inc/control.php');
         const items = Array.from(cola.querySelectorAll('.cola-item')).filter(el => seleccionados.has(parseInt(el.dataset.venta)));
         if (items.length < 2) return;
         abrirPanel(items);
+    });
+
+    // ── Tab "Ventas pagadas" ──────────────────────────────
+    const tabPendientes = document.getElementById('tabPendientes');
+    const tabPagadas = document.getElementById('tabPagadas');
+    const vistaPendientes = document.getElementById('vistaPendientes');
+    const vistaPagadas = document.getElementById('vistaPagadas');
+    const pagadasGrid = document.getElementById('pagadas');
+    const contadorPagadas = document.getElementById('contadorPagadas');
+
+    const metodosLabel = { efectivo: 'Efectivo', yape: 'Yape', plin: 'Plin', bbva: 'BBVA', yape_susan: 'Yape Susan', tarjeta: 'Tarjeta' };
+    const metodosOrden = ['efectivo', 'yape', 'plin', 'bbva', 'yape_susan', 'tarjeta'];
+
+    function renderPagadas(items) {
+        contadorPagadas.textContent = items.length;
+        if (items.length === 0) {
+            pagadasGrid.innerHTML = '<div class="vacio">No hay ventas pagadas hoy</div>';
+            return;
+        }
+        pagadasGrid.innerHTML = items.map(function (v) {
+            const lineas = v.pagos.map(function (p) {
+                return '<div class="linea-pago" data-id-pago="' + p.id_pago + '">' +
+                    '<span class="lp-metodo">' + (metodosLabel[p.metodo] || p.metodo) + ': ' + money(p.monto) + ' <small style="color:#aaa">(' + p.hora + ')</small></span>' +
+                    '<button class="lp-editar" data-accion="editar" title="Cambiar método"><i class="fas fa-pen"></i></button>' +
+                '</div>';
+            }).join('');
+            return '<div class="pagada-item" data-venta="' + v.id_venta + '">' +
+                '<div class="pi-head">' +
+                    '<div><div class="pi-num">v-' + v.id_venta + '</div><div class="pi-cliente">' + v.cliente + '</div></div>' +
+                    '<div style="text-align:right"><div class="pi-total">' + money(v.total) + '</div><span class="pi-estado">' + v.estado_label + '</span></div>' +
+                '</div>' +
+                lineas +
+            '</div>';
+        }).join('');
+    }
+
+    function cargarPagadas() {
+        fetch('inc/get_pagos_realizados.php')
+            .then(r => r.json())
+            .then(res => { if (res.ok) renderPagadas(res.data); })
+            .catch(() => {});
+    }
+
+    function mostrarTab(nombre) {
+        const esPendientes = nombre === 'pendientes';
+        vistaPendientes.style.display = esPendientes ? '' : 'none';
+        vistaPagadas.style.display = esPendientes ? 'none' : '';
+        tabPendientes.classList.toggle('activo', esPendientes);
+        tabPagadas.classList.toggle('activo', !esPendientes);
+        if (!esPendientes) cargarPagadas();
+    }
+    tabPendientes.addEventListener('click', () => mostrarTab('pendientes'));
+    tabPagadas.addEventListener('click', () => mostrarTab('pagadas'));
+
+    pagadasGrid.addEventListener('click', function (e) {
+        const btnEditar = e.target.closest('[data-accion="editar"]');
+        if (btnEditar) {
+            const linea = btnEditar.closest('.linea-pago');
+            const idPago = linea.dataset.idPago;
+            const metodoActual = linea.querySelector('.lp-metodo').textContent.split(':')[0].trim();
+            const claveActual = Object.keys(metodosLabel).find(k => metodosLabel[k].toLowerCase() === metodoActual.toLowerCase()) || 'efectivo';
+            const opciones = metodosOrden.map(m => '<option value="' + m + '"' + (m === claveActual ? ' selected' : '') + '>' + metodosLabel[m] + '</option>').join('');
+            linea.innerHTML = '<select>' + opciones + '</select><button class="lp-guardar" data-accion="guardar">Guardar</button>';
+            return;
+        }
+        const btnGuardar = e.target.closest('[data-accion="guardar"]');
+        if (btnGuardar) {
+            const linea = btnGuardar.closest('.linea-pago');
+            const idPago = linea.dataset.idPago;
+            const metodoNuevo = linea.querySelector('select').value;
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = '...';
+            fetch('inc/editar_metodo_pago.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id_pago=' + encodeURIComponent(idPago) + '&metodo=' + encodeURIComponent(metodoNuevo)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    cargarPagadas();
+                    cargarCola();
+                } else {
+                    alert(data.mensaje || 'No se pudo actualizar el método de pago');
+                }
+            })
+            .catch(() => alert('Error de conexión'));
+        }
     });
 })();
 </script>
