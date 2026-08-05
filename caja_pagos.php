@@ -88,6 +88,27 @@ include('inc/control.php');
     .linea-pago select, .linea-pago input { font-size:12px; padding:2px 4px; border-radius:6px; border:1px solid #ddd; }
     .linea-pago .lp-guardar { font-size:11px; font-weight:700; color:#fff; background:var(--c-orange); border:none; border-radius:6px; padding:3px 8px; }
 
+    .credito-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .credito-item { background:#fff; border-radius:12px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:2px solid transparent; }
+    .credito-item.vencida { border-color:#c0392b; }
+    .credito-item .ci-head { display:flex; justify-content:space-between; align-items:center; }
+    .credito-item .ci-num { font-weight:700; color:var(--c-navy); }
+    .credito-item .ci-cliente { font-size:12px; color:#888; text-transform:uppercase; }
+    .credito-item .ci-monto { font-size:18px; font-weight:700; color:var(--c-orange); }
+    .credito-item .ci-fecha { font-size:12px; font-weight:700; margin-top:8px; color:#555; }
+    .credito-item .ci-fecha.vencida { color:#c0392b; }
+    .credito-item .ci-acciones { display:flex; gap:8px; margin-top:10px; }
+    .credito-item .ci-acciones button { flex:1; font-size:12px; font-weight:700; border-radius:8px; padding:7px 4px; border:none; }
+    .credito-item .btn-cobrar-ahora { background:var(--c-orange); color:#fff; }
+    .credito-item .btn-quitar-credito { background:#eee; color:#555; }
+
+    .credito-link { text-align:center; margin-top:10px; }
+    .credito-link a { font-size:13px; color:#888; text-decoration:underline; cursor:pointer; }
+    .credito-form { display:none; margin-top:10px; background:#f7f7f7; border-radius:10px; padding:12px; }
+    .credito-form label { font-size:12px; color:#888; font-weight:600; }
+    .credito-form input[type="date"] { width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; margin:6px 0 10px; }
+    .credito-form button { width:100%; padding:10px; border-radius:8px; border:none; background:var(--c-navy); color:#fff; font-weight:700; }
+
     .overlay {
         display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100;
         align-items:center; justify-content:center;
@@ -197,6 +218,7 @@ include('inc/control.php');
     <div class="tabs-caja">
         <button class="tab-caja activo" id="tabPendientes">Pagos pendientes</button>
         <button class="tab-caja" id="tabPagadas">Ventas pagadas hoy</button>
+        <button class="tab-caja" id="tabCredito">Crédito</button>
     </div>
 
     <div id="vistaPendientes">
@@ -218,6 +240,17 @@ include('inc/control.php');
         </div>
 
         <div class="pagada-grid" id="pagadas">
+            <div class="vacio">Cargando...</div>
+        </div>
+    </div>
+
+    <div id="vistaCredito" style="display:none">
+        <div class="caja-titulo">
+            Ventas a crédito
+            <span class="contador" id="contadorCredito">0</span>
+        </div>
+
+        <div class="credito-grid" id="credito">
             <div class="vacio">Cargando...</div>
         </div>
     </div>
@@ -269,6 +302,15 @@ include('inc/control.php');
                 <div class="lineas-agregadas" id="lineasAgregadas"></div>
 
                 <button class="btn-cobrar" id="btnConfirmar" disabled>Cobrar</button>
+
+                <div class="credito-link" id="creditoLink">
+                    <a id="abrirFormCredito">¿Paga después? Dejar a crédito</a>
+                </div>
+                <div class="credito-form" id="creditoForm">
+                    <label>Fecha en que se compromete a pagar</label>
+                    <input type="date" id="inputFechaCredito">
+                    <button type="button" id="btnConfirmarCredito">Dejar a crédito</button>
+                </div>
             </div>
 
             <div class="pp-right" id="editorTeclado" style="display:none">
@@ -303,6 +345,11 @@ include('inc/control.php');
     const btnAgregarLinea = document.getElementById('btnAgregarLinea');
     const btnConfirmar = document.getElementById('btnConfirmar');
     const labelMonto = document.getElementById('labelMonto');
+    const creditoLink = document.getElementById('creditoLink');
+    const creditoForm = document.getElementById('creditoForm');
+    const abrirFormCredito = document.getElementById('abrirFormCredito');
+    const inputFechaCredito = document.getElementById('inputFechaCredito');
+    const btnConfirmarCredito = document.getElementById('btnConfirmarCredito');
 
     let ventasActuales = []; // ventas incluidas en el panel de pago abierto (1 o varias)
     let saldoRestante = 0;
@@ -408,6 +455,9 @@ include('inc/control.php');
         metodoBtns.forEach(b => b.classList.remove('activo'));
         btnConfirmar.disabled = true;
         btnConfirmar.textContent = 'Cobrar';
+        creditoForm.style.display = 'none';
+        inputFechaCredito.value = '';
+        creditoLink.style.display = items.length === 1 ? 'block' : 'none';
         overlay.classList.add('abierto');
         panelAbierto = true;
     }
@@ -653,13 +703,17 @@ include('inc/control.php');
         abrirPanel(items);
     });
 
-    // ── Tab "Ventas pagadas" ──────────────────────────────
+    // ── Tabs "Ventas pagadas" / "Crédito" ────────────────
     const tabPendientes = document.getElementById('tabPendientes');
     const tabPagadas = document.getElementById('tabPagadas');
+    const tabCredito = document.getElementById('tabCredito');
     const vistaPendientes = document.getElementById('vistaPendientes');
     const vistaPagadas = document.getElementById('vistaPagadas');
+    const vistaCredito = document.getElementById('vistaCredito');
     const pagadasGrid = document.getElementById('pagadas');
     const contadorPagadas = document.getElementById('contadorPagadas');
+    const creditoGrid = document.getElementById('credito');
+    const contadorCredito = document.getElementById('contadorCredito');
 
     const metodosLabel = { efectivo: 'Efectivo', yape: 'Yape', plin: 'Plin', bbva: 'BBVA', yape_susan: 'Yape Susan', tarjeta: 'Tarjeta' };
     const metodosOrden = ['efectivo', 'yape', 'plin', 'bbva', 'yape_susan', 'tarjeta'];
@@ -695,15 +749,18 @@ include('inc/control.php');
     }
 
     function mostrarTab(nombre) {
-        const esPendientes = nombre === 'pendientes';
-        vistaPendientes.style.display = esPendientes ? '' : 'none';
-        vistaPagadas.style.display = esPendientes ? 'none' : '';
-        tabPendientes.classList.toggle('activo', esPendientes);
-        tabPagadas.classList.toggle('activo', !esPendientes);
-        if (!esPendientes) cargarPagadas();
+        vistaPendientes.style.display = nombre === 'pendientes' ? '' : 'none';
+        vistaPagadas.style.display = nombre === 'pagadas' ? '' : 'none';
+        vistaCredito.style.display = nombre === 'credito' ? '' : 'none';
+        tabPendientes.classList.toggle('activo', nombre === 'pendientes');
+        tabPagadas.classList.toggle('activo', nombre === 'pagadas');
+        tabCredito.classList.toggle('activo', nombre === 'credito');
+        if (nombre === 'pagadas') cargarPagadas();
+        if (nombre === 'credito') cargarCredito();
     }
     tabPendientes.addEventListener('click', () => mostrarTab('pendientes'));
     tabPagadas.addEventListener('click', () => mostrarTab('pagadas'));
+    tabCredito.addEventListener('click', () => mostrarTab('credito'));
 
     pagadasGrid.addEventListener('click', function (e) {
         const btnEditar = e.target.closest('[data-accion="editar"]');
@@ -748,6 +805,109 @@ include('inc/control.php');
                 btnGuardar.textContent = 'Guardar';
             });
         }
+    });
+
+    // ── Tab "Crédito" ─────────────────────────────────────
+    function formatFecha(f) {
+        if (!f) return '-';
+        const p = f.substring(0, 10).split('-');
+        return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : f;
+    }
+
+    function renderCredito(items) {
+        contadorCredito.textContent = items.length;
+        if (items.length === 0) {
+            creditoGrid.innerHTML = '<div class="vacio">No hay ventas a crédito</div>';
+            return;
+        }
+        creditoGrid.innerHTML = items.map(function (v) {
+            return '<div class="credito-item' + (v.vencida ? ' vencida' : '') + '" data-venta="' + v.id_venta + '" data-total="' + v.total.toFixed(2) + '" data-saldo="' + v.saldo.toFixed(2) + '">' +
+                '<div class="ci-head">' +
+                    '<div><div class="ci-num">v-' + v.id_venta + '</div><div class="ci-cliente">' + v.cliente + '</div></div>' +
+                    '<div class="ci-monto">' + money(v.saldo) + '</div>' +
+                '</div>' +
+                '<div class="ci-fecha' + (v.vencida ? ' vencida' : '') + '">' + (v.vencida ? 'Venció el ' : 'Paga el ') + formatFecha(v.fecha) + '</div>' +
+                '<div class="ci-acciones">' +
+                    '<button class="btn-cobrar-ahora" data-accion="cobrar-ahora">Cobrar ahora</button>' +
+                    '<button class="btn-quitar-credito" data-accion="quitar-credito">Quitar de crédito</button>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    function cargarCredito() {
+        fetch('inc/get_ventas_credito.php')
+            .then(r => r.json())
+            .then(res => { if (res.ok) renderCredito(res.data); })
+            .catch(() => {});
+    }
+
+    creditoGrid.addEventListener('click', function (e) {
+        const item = e.target.closest('.credito-item');
+        if (!item) return;
+
+        if (e.target.closest('[data-accion="cobrar-ahora"]')) {
+            abrirPanel([item]);
+            return;
+        }
+
+        if (e.target.closest('[data-accion="quitar-credito"]')) {
+            fetch('inc/marcar_credito.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id_venta=' + encodeURIComponent(item.dataset.venta) + '&accion=quitar'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    cargarCredito();
+                    cargarCola();
+                } else {
+                    alert(data.mensaje || 'No se pudo quitar de crédito');
+                }
+            })
+            .catch(() => alert('Error de conexión'));
+        }
+    });
+
+    // ── "Dejar a crédito" desde el panel de pago (solo venta única) ──
+    abrirFormCredito.addEventListener('click', function () {
+        if (!inputFechaCredito.value) {
+            const manana = new Date();
+            manana.setDate(manana.getDate() + 1);
+            inputFechaCredito.value = manana.toISOString().substring(0, 10);
+        }
+        creditoForm.style.display = creditoForm.style.display === 'block' ? 'none' : 'block';
+    });
+
+    btnConfirmarCredito.addEventListener('click', function () {
+        if (!inputFechaCredito.value) {
+            alert('Elige una fecha');
+            return;
+        }
+        if (ventasActuales.length !== 1) return;
+        btnConfirmarCredito.disabled = true;
+        btnConfirmarCredito.textContent = 'Guardando...';
+        fetch('inc/marcar_credito.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id_venta=' + encodeURIComponent(ventasActuales[0]) + '&accion=marcar&fecha=' + encodeURIComponent(inputFechaCredito.value)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                cerrarPanel();
+                cargarCola();
+                cargarCredito();
+            } else {
+                alert(data.mensaje || 'No se pudo dejar a crédito');
+            }
+        })
+        .catch(() => alert('Error de conexión'))
+        .finally(() => {
+            btnConfirmarCredito.disabled = false;
+            btnConfirmarCredito.textContent = 'Dejar a crédito';
+        });
     });
 })();
 </script>
