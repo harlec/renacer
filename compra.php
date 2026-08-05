@@ -159,6 +159,23 @@ foreach ($proveedoresl as $key) {
 															 </div>
 											    		</div>
 											    	</div>
+											    	<div class="row">
+											    		<div class="col-md-3">
+											    			<div class="form-group">
+													    <label>Forma de pago</label>
+													    <select class="form-control" name="forma_pago" id="forma_pago">
+													    	<option value="contado">Contado (pagada al registrar)</option>
+													    	<option value="credito">Crédito (queda pendiente)</option>
+													    </select>
+													 </div>
+											    		</div>
+											    		<div class="col-md-3" id="col_fecha_compromiso" style="display:none">
+											    			<div class="form-group">
+													    <label>Fecha compromiso de pago</label>
+													    <input type="date" class="form-control" name="fecha_compromiso_pago" id="fecha_compromiso_pago" value="">
+													 </div>
+											    		</div>
+											    	</div>
 											    		<div class="col-md-12">
 											    			<h3 class="text-center">Items</h3>
 											    		</div>
@@ -238,6 +255,10 @@ foreach ($proveedoresl as $key) {
 	// A $( document ).ready() block.
 	$(document ).ready(function() {
 		$('#proveedor').select2();
+
+		$('#forma_pago').on('change', function () {
+			$('#col_fecha_compromiso').toggle($(this).val() === 'credito');
+		});
 
 		$.extend( true, $.fn.dataTable.defaults, {
 		    "language": {

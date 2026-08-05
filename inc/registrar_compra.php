@@ -21,6 +21,8 @@ if (isset($_POST) && !empty($_POST)) {
 	$moneda = $_POST['moneda'];
 	$observaciones = $_POST['observaciones'];
 	$exonerada = $_POST['exonerada'];
+	$forma_pago = in_array($_POST['forma_pago'] ?? '', ['contado', 'credito'], true) ? $_POST['forma_pago'] : 'contado';
+	$fecha_compromiso_pago = ($forma_pago === 'credito' && !empty($_POST['fecha_compromiso_pago'])) ? $_POST['fecha_compromiso_pago'] : null;
 	//item
 	$id_p = $_POST['id_pro'];
 	$unidad= $_POST['unidad'];
@@ -38,12 +40,19 @@ if (isset($_POST) && !empty($_POST)) {
 	
 			
 			$ventas = Sdba::table('compras');
-			$data = array('id_compra'=>'','fecha'=> $fecha,'fecha_ingreso'=>$fecha_ingreso,'fecha_despacho'=>$fecha_despacho,'guia'=>$guia,'serie_f'=>$serie,'numero_f'=>$numero,'total'=>$total,'moneda'=>$moneda,'proveedor'=>$proveedor,'usuario'=>$id_usuario,'observacion'=>$observaciones,'exonerada'=>$exonerada,'estado'=>'0');
+			$data = array('id_compra'=>'','fecha'=> $fecha,'fecha_ingreso'=>$fecha_ingreso,'fecha_despacho'=>$fecha_despacho,'guia'=>$guia,'serie_f'=>$serie,'numero_f'=>$numero,'total'=>$total,'moneda'=>$moneda,'proveedor'=>$proveedor,'usuario'=>$id_usuario,'observacion'=>$observaciones,'exonerada'=>$exonerada,'estado'=>'0','forma_pago'=>$forma_pago,'fecha_compromiso_pago'=>$fecha_compromiso_pago);
 			$ventas->insert($data);
 			$venta_id = $ventas->insert_id();
 			if ($venta_id) {
 				$respuestaOk = true;
 				$mensajeError = 'entro';
+
+				// Una compra "al contado" se asume pagada en el momento: se registra de una
+				// vez el abono por el total, para que no quede pendiente en Cuentas x pagar.
+				if ($forma_pago === 'contado' && floatval($total) > 0) {
+					$pago = Sdba::table('compra_pagos');
+					$pago->insert(array('id_pago'=>'','compra'=>$venta_id,'monto'=>$total,'metodo'=>'efectivo','usuario'=>$id_usuario,'fecha'=>date('Y-m-d H:i:s')));
+				}
 			}
 			//guardamos en tabla detalle de compra
 			for ($i=0; $i < count($id_p) ; $i++) { 
