@@ -6,20 +6,23 @@ if ($_SESSION['type']=='operador') {
 
 include('inc/sdba/sdba.php'); // include main file
 $ventas = Sdba::table('proveedores');
-//$ventas->left_join('unidad_prod','unidades','id_unidad'); // creating table object
-$ventas_list = $ventas->get(); 
+$ventas->where('estado !=', '0');
+$ventas_list = $ventas->get();
 
 $datos = '';
 $i = 1;
 foreach ($ventas_list as $value) {
 
-	$datos .='<tr><td>'.$value['id_proveedor'].'</td> 
-				<td id ="'.$value['doc_identidad'].'" class="doc">'.$value['doc_identidad'].'</td> 
-    			<td id ="'.$value['proveedor'].'" class="proveedor">'.$value['proveedor'].'</td> 
-    			<td id ="'.$value['direccion'].'" class="direccion">'.$value['direccion'].'</td> 
-    			<td id ="'.$value['telefono'].'" class="telefono">'.$value['telefono'].'</td> 
-    			<td id ="'.$value['email'].'" class="email">'.$value['email'].'</td> 
-    			<td><button class="editar_c btn-custom" alt="editar" value="'.$value['id_proveedor'].'"><img src="assets/img/edit.png"/></button></td> 
+	$datos .='<tr><td>'.$value['id_proveedor'].'</td>
+				<td id ="'.$value['doc_identidad'].'" class="doc">'.$value['doc_identidad'].'</td>
+    			<td id ="'.$value['proveedor'].'" class="proveedor">'.$value['proveedor'].'</td>
+    			<td id ="'.$value['direccion'].'" class="direccion">'.$value['direccion'].'</td>
+    			<td id ="'.$value['telefono'].'" class="telefono">'.$value['telefono'].'</td>
+    			<td id ="'.$value['email'].'" class="email">'.$value['email'].'</td>
+    			<td>
+    				<button class="editar_c btn-custom" alt="editar" value="'.$value['id_proveedor'].'"><img src="assets/img/edit.png"/></button>
+    				<button class="borrar_prov btn-custom" alt="borrar" value="'.$value['id_proveedor'].'"><img src="assets/img/trash.png"/></button>
+    			</td>
     		  </tr>';
     $i++;
 }
@@ -170,6 +173,7 @@ foreach ($ventas_list as $value) {
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.17.0/dist/jquery.validate.min.js"></script>
 	<script src="//cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/10.5.0/sweetalert2.min.js" integrity="sha512-V9JHp52ZkrbVVjJqNz/XXYMUOyUfzaGKEGrcD2Ual7n39+UR1yJK0numAHZqkhhGTAH/Klj0KUe4btAZXccw9w==" crossorigin="anonymous"></script>
 	<script >
 	// A $( document ).ready() block.
 	$(document ).ready(function() {
@@ -226,41 +230,45 @@ foreach ($ventas_list as $value) {
 	    console.log( "ready!" );
 
 	    $('body').on('click',"#guardar_cate", function() {
+	    	var $btn = $(this);
+	    	if ($btn.prop('disabled')) return; // evita doble/triple envío si hacen varios clics seguidos
+
 	    	var ruc = $('#ruc').val();
 	    	var denominacion = $('#denominacion').val();
 	    	var direccion = $('#direccion').val();
 	    	var telefono = $('#celular').val();
 	    	var email = $('#email').val();
-	    	var opcion = $(this).val();
+	    	var opcion = $btn.val();
 	    	var id_ca = $('#id').val();
-	    	//alert(categoria);
 	    	var str1 = 'ruc=' + ruc +'&denominacion=' + denominacion + '&direccion=' + direccion +'&accion=' + opcion+'&id=' + id_ca+'&telefono=' + telefono+'&email=' + email;
-	    	alert(str1);
-		  	$.ajax({	
+
+	    	$btn.prop('disabled', true);
+		  	$.ajax({
 		    	type: "POST",
 				dataType: 'json',
 			  	url: '/inc/registrar_proveedor.php',
 			  	data: str1,
 			  	success: function(data1) {
-			   	 	console.log('guardado');
-			   	 	$('#categoria').val('');
-			   	 	var row_id = data1.id;
 			   	 	if (data1.accion =='nuevo') {
+			   	 		var botones = '<button class="editar_c btn-custom" alt="editar" value="'+data1.id+'"><img src="assets/img/edit.png"/></button> ' +
+				   	 		'<button class="borrar_prov btn-custom" alt="borrar" value="'+data1.id+'"><img src="assets/img/trash.png"/></button>';
 				   	 	table1.rows.add(
-					       [[ data1.id, data1.ruc, data1.denominacion, data1.direccion,'<button class="editar_c btn-custom" alt="editar" value="'+data1.id+'"><img src="assets/img/edit.png"/></button>' ]]
+					       [[ data1.id, data1.ruc, data1.denominacion, data1.direccion, telefono, email, botones ]]
 					    ).draw();
 			   	 	}
 			   	 	else{
-			   	 		table1.cell($('#' + row_id)).data(data1.categoria).draw();
-			   	 	}	
+			   	 		// Editar cambia varias celdas de la fila a la vez; más simple y confiable
+			   	 		// recargar que ir parcheando celda por celda con la API de DataTables.
+			   	 		document.location.reload();
+			   	 	}
 			  	},
-			  	error: function(reponse1){
-						alert(reponse1);
-						console.log(response1);
-					}
+			  	error: function(){
+						alert('Error general del sistema');
+					},
+			  	complete: function() {
+			  		$btn.prop('disabled', false);
+			  	}
 			});
-
-	    	 
 	   	});
 
 	   	$('body').on('click',".editar_c", function() {
@@ -281,8 +289,42 @@ foreach ($ventas_list as $value) {
 	    	$('#guardar_cate').val('editar');
 	    	$('#id').val(id_proveedor);
 
-	    	 
+
 	   	});
+
+	   	$('body').on('click', ".borrar_prov", function() {
+	   		var $btn = $(this);
+	   		var id = $btn.val();
+	   		var proveedor = $btn.closest('tr').find('.proveedor').text();
+	   		Swal.fire({
+	   			title: 'Eliminar proveedor',
+	   			text: '¿Seguro de eliminar a "' + proveedor + '"? Las compras ya registradas con este proveedor no se ven afectadas.',
+	   			icon: 'warning',
+	   			showCancelButton: true,
+	   			confirmButtonColor: '#3085d6',
+	   			cancelButtonColor: '#d33',
+	   			confirmButtonText: 'Sí, eliminar'
+	   		}).then(function (result) {
+	   			if (!result.isConfirmed) return;
+	   			$.ajax({
+	   				type: 'GET',
+	   				dataType: 'json',
+	   				url: '/inc/borrar_proveedor.php',
+	   				data: 'id=' + id,
+	   				success: function (data1) {
+	   					if (data1.ok) {
+	   						table1.row($btn.closest('tr')).remove().draw();
+	   					} else {
+	   						Swal.fire('Advertencia', data1.mensaje || 'No se pudo eliminar', 'warning');
+	   					}
+	   				},
+	   				error: function () {
+	   					Swal.fire('Advertencia', 'Error general del sistema', 'warning');
+	   				}
+	   			});
+	   		});
+	   	});
+
 	   	$('body').on('click',"#addnew", function() {
 	    	$('#tituc').text('Nuevo proveedor');
 	    	$('#ruc').val("");
