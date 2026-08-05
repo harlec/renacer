@@ -23,6 +23,8 @@ if (isset($_POST) && !empty($_POST)) {
 	$exonerada = $_POST['exonerada'];
 	$forma_pago = in_array($_POST['forma_pago'] ?? '', ['contado', 'credito'], true) ? $_POST['forma_pago'] : 'contado';
 	$fecha_compromiso_pago = ($forma_pago === 'credito' && !empty($_POST['fecha_compromiso_pago'])) ? $_POST['fecha_compromiso_pago'] : null;
+	$metodos_pago_validos = ['efectivo', 'transferencia', 'deposito', 'cheque', 'otro'];
+	$metodo_pago = in_array($_POST['metodo_pago'] ?? '', $metodos_pago_validos, true) ? $_POST['metodo_pago'] : 'efectivo';
 	//item
 	$id_p = $_POST['id_pro'];
 	$unidad= $_POST['unidad'];
@@ -51,7 +53,7 @@ if (isset($_POST) && !empty($_POST)) {
 				// vez el abono por el total, para que no quede pendiente en Cuentas x pagar.
 				if ($forma_pago === 'contado' && floatval($total) > 0) {
 					$pago = Sdba::table('compra_pagos');
-					$pago->insert(array('id_pago'=>'','compra'=>$venta_id,'monto'=>$total,'metodo'=>'efectivo','usuario'=>$id_usuario,'fecha'=>date('Y-m-d H:i:s')));
+					$pago->insert(array('id_pago'=>'','compra'=>$venta_id,'monto'=>$total,'metodo'=>$metodo_pago,'usuario'=>$id_usuario,'fecha'=>date('Y-m-d H:i:s')));
 				}
 			}
 			//guardamos en tabla detalle de compra
