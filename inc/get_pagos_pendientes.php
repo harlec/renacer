@@ -34,6 +34,7 @@ $r = $conn->query("
     ) vp ON vp.venta = v.id_venta
     WHERE v.estado != '2'
       AND DATE(v.fecha_ope) = CURDATE()
+      AND (c.cliente IS NULL OR UPPER(TRIM(c.cliente)) != 'FACTURA MANUAL')
     GROUP BY v.id_venta
     HAVING total_real - pagado > 0.01
     ORDER BY v.fecha_ope DESC
