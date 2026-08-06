@@ -85,7 +85,12 @@ foreach ($pagos as $p) {
 }
 $diferencia = round($suma_nueva - $saldo_combinado, 2);
 
-if ($diferencia < -0.01) {
+// "parcial=1": se usa cuando el cajero deja un abono y pasa el resto del saldo a
+// crédito (ver inc/marcar_credito.php) — en ese caso es esperado que el pago no
+// cubra el total, así que no se rechaza por quedar corto.
+$permitir_parcial = !empty($_POST['parcial']);
+
+if (!$permitir_parcial && $diferencia < -0.01) {
     echo json_encode(['ok' => false, 'mensaje' => 'La suma de los pagos (S/ ' . number_format($suma_nueva, 2) . ') no cubre el saldo pendiente (S/ ' . number_format($saldo_combinado, 2) . ')']);
     exit;
 }

@@ -457,7 +457,7 @@ include('inc/control.php');
         btnConfirmar.textContent = 'Cobrar';
         creditoForm.style.display = 'none';
         inputFechaCredito.value = '';
-        creditoLink.style.display = items.length === 1 ? 'block' : 'none';
+        actualizarVisibilidadCredito();
         overlay.classList.add('abierto');
         panelAbierto = true;
     }
@@ -470,6 +470,15 @@ include('inc/control.php');
 
     function renderSaldo() {
         ppSaldo.textContent = money(saldoRestante);
+    }
+
+    // El link "Dejar a crédito" solo tiene sentido para una venta única (no en cobros
+    // combinados) y mientras quede saldo por cubrir — si ya se completó el pago (por
+    // ejemplo, tras agregar líneas manualmente) no hay nada que dejar a crédito.
+    function actualizarVisibilidadCredito() {
+        const mostrar = ventasActuales.length === 1 && saldoRestante > 0.005;
+        creditoLink.style.display = mostrar ? 'block' : 'none';
+        if (!mostrar) creditoForm.style.display = 'none';
     }
 
     // Redondeo comercial: en efectivo no se puede dar vuelto en centavos chicos,
@@ -577,6 +586,7 @@ include('inc/control.php');
 
         saldoRestante = Math.max(0, Math.round((saldoRestante - monto) * 100) / 100);
         renderSaldo();
+        actualizarVisibilidadCredito();
 
         editorLinea.style.display = 'none';
         editorTeclado.style.display = 'none';
@@ -604,6 +614,7 @@ include('inc/control.php');
         lineas.splice(idx, 1);
         renderLineas();
         renderSaldo();
+        actualizarVisibilidadCredito();
         btnConfirmar.disabled = saldoRestante > 0.005;
         btnConfirmar.textContent = saldoRestante > 0.005 ? 'Falta ' + money(saldoRestante) : 'Confirmar pago';
     });
@@ -880,6 +891,14 @@ include('inc/control.php');
         creditoForm.style.display = creditoForm.style.display === 'block' ? 'none' : 'block';
     });
 
+    function marcarComoCredito() {
+        return fetch('inc/marcar_credito.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id_venta=' + encodeURIComponent(ventasActuales[0]) + '&accion=marcar&fecha=' + encodeURIComponent(inputFechaCredito.value)
+        }).then(r => r.json());
+    }
+
     btnConfirmarCredito.addEventListener('click', function () {
         if (!inputFechaCredito.value) {
             alert('Elige una fecha');
@@ -888,13 +907,39 @@ include('inc/control.php');
         if (ventasActuales.length !== 1) return;
         btnConfirmarCredito.disabled = true;
         btnConfirmarCredito.textContent = 'Guardando...';
-        fetch('inc/marcar_credito.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'id_venta=' + encodeURIComponent(ventasActuales[0]) + '&accion=marcar&fecha=' + encodeURIComponent(inputFechaCredito.value)
+
+        // Si ya se agregó algún abono parcial (por ejemplo, pagó una parte en efectivo),
+        // se registra primero ese pago y recién después se deja el saldo restante a
+        // crédito — así el abono no se pierde y "Cuentas x pagar"/crédito solo muestra
+        // lo que realmente falta cobrar.
+        var lineasParaEnviar = lineas.slice();
+
+        // Si el cajero eligió un método y tipeó un monto pero nunca tocó "Agregar línea"
+        // (fácil de olvidar), ese monto igual se toma como el abono a registrar — de lo
+        // contrario se pierde silenciosamente y la venta pasa a crédito por el total.
+        if (editorLinea.style.display !== 'none' && metodoSeleccionado) {
+            var montoSuelto = Math.round((parseFloat(inputMonto.value) || 0) * 100) / 100;
+            if (montoSuelto > 0) {
+                lineasParaEnviar.push({ metodo: metodoSeleccionado, monto: montoSuelto });
+            }
+        }
+
+        var registrarAbono = lineasParaEnviar.length > 0
+            ? fetch('inc/registrar_pago.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'ventas=' + encodeURIComponent(JSON.stringify(ventasActuales)) + '&pagos=' + encodeURIComponent(JSON.stringify(lineasParaEnviar)) + '&parcial=1'
+            }).then(r => r.json())
+            : Promise.resolve({ ok: true });
+
+        registrarAbono
+        .then(function (dataAbono) {
+            if (!dataAbono.ok) {
+                throw new Error(dataAbono.mensaje || 'No se pudo registrar el abono');
+            }
+            return marcarComoCredito();
         })
-        .then(r => r.json())
-        .then(data => {
+        .then(function (data) {
             if (data.ok) {
                 cerrarPanel();
                 cargarCola();
@@ -903,7 +948,9 @@ include('inc/control.php');
                 alert(data.mensaje || 'No se pudo dejar a crédito');
             }
         })
-        .catch(() => alert('Error de conexión'))
+        .catch(function (err) {
+            alert(err.message || 'Error de conexión');
+        })
         .finally(() => {
             btnConfirmarCredito.disabled = false;
             btnConfirmarCredito.textContent = 'Dejar a crédito';
