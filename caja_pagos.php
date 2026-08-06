@@ -81,6 +81,8 @@ include('inc/control.php');
     .pagada-item .pi-cliente { font-size:12px; color:#888; text-transform:uppercase; }
     .pagada-item .pi-total { font-size:16px; font-weight:700; color:var(--c-orange); }
     .pagada-item .pi-estado { font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:10px; background:#eee; color:#777; }
+    .pagada-item.fue-credito { background:#fff8f3; border:2px solid var(--c-orange); }
+    .pagada-item .pi-credito-badge { font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:10px; background:var(--c-orange); color:#fff; margin-left:6px; }
     .linea-pago { display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; border-radius:8px; padding:6px 10px; margin-top:6px; font-size:13px; }
     .linea-pago .lp-metodo { font-weight:600; color:var(--c-navy); }
     .linea-pago .lp-editar { color:#555; background:#fff; border:1px solid #ddd; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; }
@@ -759,9 +761,9 @@ include('inc/control.php');
                     '<button class="lp-editar" data-accion="editar" title="Editar pago"><i class="fas fa-pen"></i> Editar</button>' +
                 '</div>';
             }).join('');
-            return '<div class="pagada-item" data-venta="' + v.id_venta + '">' +
+            return '<div class="pagada-item' + (v.fue_credito ? ' fue-credito' : '') + '" data-venta="' + v.id_venta + '">' +
                 '<div class="pi-head">' +
-                    '<div><div class="pi-num">v-' + v.id_venta + '</div><div class="pi-cliente">' + v.cliente + '</div></div>' +
+                    '<div><div class="pi-num">v-' + v.id_venta + (v.fue_credito ? ' <span class="pi-credito-badge">Fue a crédito</span>' : '') + '</div><div class="pi-cliente">' + v.cliente + '</div></div>' +
                     '<div style="text-align:right"><div class="pi-total">' + money(v.total) + '</div><span class="pi-estado">' + v.estado_label + '</span></div>' +
                 '</div>' +
                 lineas +

@@ -24,7 +24,7 @@ $estados_label = ['0' => 'Pendiente', '1' => 'Facturada', '2' => 'Anulada'];
 // Ventas que tienen al menos un pago registrado hoy (aunque la venta en sí sea de otro día,
 // como el caso de una venta a crédito que recién hoy se termina de cobrar).
 $r = $conn->query("
-    SELECT v.id_venta, v.estado, c.cliente AS nombre_cliente,
+    SELECT v.id_venta, v.estado, v.fecha_compromiso_pago, c.cliente AS nombre_cliente,
            COALESCE(SUM(dv.total), 0) AS total_real
     FROM ventas v
     LEFT JOIN detalle_ventas dv ON dv.venta = v.id_venta
@@ -46,6 +46,10 @@ if ($r) {
             'total'        => round((float)$row['total_real'], 2),
             'estado'       => $row['estado'],
             'estado_label' => $estados_label[$row['estado']] ?? $row['estado'],
+            // fecha_compromiso_pago queda marcada aunque la venta ya se haya terminado de
+            // pagar (solo se limpia si la sacan de crédito desde caja_pagos.php) — sirve
+            // para saber que esta venta pasó por el flujo de crédito antes de completarse.
+            'fue_credito'  => !empty($row['fecha_compromiso_pago']),
             'pagos'        => [],
             'pagado'       => 0,
         ];
