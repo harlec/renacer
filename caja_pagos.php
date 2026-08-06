@@ -122,6 +122,7 @@ include('inc/control.php');
     .panel-pago .pp-num { font-weight:700; color:var(--c-navy); font-size:16px; }
     .panel-pago .pp-total { font-size:32px; font-weight:800; color:var(--c-navy); }
     .panel-pago .pp-saldo { font-size:14px; color:#c0392b; font-weight:600; margin-top:2px; }
+    .panel-pago .pp-pagado { font-size:13px; color:#27ae60; font-weight:600; margin-top:4px; background:#eafaf1; border-radius:8px; padding:6px 10px; display:inline-block; }
 
     .pp-body { display:grid; grid-template-columns: 1.15fr 1fr; gap:28px; align-items:start; }
     @media (max-width: 720px) {
@@ -269,6 +270,7 @@ include('inc/control.php');
         <button class="btn-cerrar" id="btnCerrar">&times;</button>
         <div class="pp-head">
             <div class="pp-num" id="ppNum"></div>
+            <div class="pp-pagado" id="ppPagadoInfo" style="display:none"></div>
             <div class="pp-total" id="ppSaldo"></div>
             <div class="pp-saldo" id="ppSaldoLabel">Saldo pendiente</div>
         </div>
@@ -333,6 +335,7 @@ include('inc/control.php');
     const cola = document.getElementById('cola');
     const contador = document.getElementById('contador');
     const ppNum = document.getElementById('ppNum');
+    const ppPagadoInfo = document.getElementById('ppPagadoInfo');
     const ppSaldo = document.getElementById('ppSaldo');
     const metodoBtns = document.querySelectorAll('.metodo-btn');
     const editorLinea = document.getElementById('editorLinea');
@@ -352,6 +355,7 @@ include('inc/control.php');
     const btnConfirmarCredito = document.getElementById('btnConfirmarCredito');
 
     let ventasActuales = []; // ventas incluidas en el panel de pago abierto (1 o varias)
+    let panelOrigen = 'pendientes'; // 'pendientes' o 'credito' — de dónde se abrió el panel actual
     let saldoRestante = 0;
     let lineas = [];
     let metodoSeleccionado = null;
@@ -416,8 +420,10 @@ include('inc/control.php');
                 if (!res.ok) return;
                 renderCola(res.data);
                 if (res.resumen) renderResumen(res.resumen);
-                // Si alguna venta que tengo abierta en el panel ya no está pendiente, la cobró alguien más
-                if (panelAbierto && ventasActuales.length > 0) {
+                // Si alguna venta que tengo abierta en el panel ya no está pendiente, la cobró alguien
+                // más — esto NO aplica a un panel abierto desde la pestaña "Crédito", porque esas ventas
+                // están excluidas de get_pagos_pendientes.php a propósito (no es que las hayan cobrado).
+                if (panelAbierto && panelOrigen === 'pendientes' && ventasActuales.length > 0) {
                     const idsPendientes = new Set(res.data.map(v => v.id_venta));
                     const faltaAlguna = ventasActuales.some(id => !idsPendientes.has(id));
                     if (faltaAlguna) {
@@ -438,16 +444,27 @@ include('inc/control.php');
     setInterval(cargarCola, 5000);
 
     // ── Panel de pago ────────────────────────────────────
-    // items: array de elementos .cola-item (1 = venta simple, 2+ = cobro combinado)
-    function abrirPanel(items) {
+    // items: array de elementos .cola-item/.credito-item (1 = venta simple, 2+ = cobro combinado)
+    // origen: 'pendientes' (default) o 'credito', para saber cómo interpretar su ausencia
+    // de get_pagos_pendientes.php mientras el panel está abierto (ver cargarCola).
+    function abrirPanel(items, origen) {
         ventasActuales = items.map(el => parseInt(el.dataset.venta));
+        panelOrigen = origen || 'pendientes';
         saldoRestante = items.reduce((acc, el) => acc + parseFloat(el.dataset.saldo), 0);
         saldoRestante = Math.round(saldoRestante * 100) / 100;
+        const totalActual = Math.round(items.reduce((acc, el) => acc + parseFloat(el.dataset.total || el.dataset.saldo), 0) * 100) / 100;
+        const yaPagado = Math.round((totalActual - saldoRestante) * 100) / 100;
         lineas = [];
         metodoSeleccionado = null;
         ppNum.textContent = items.length === 1
             ? 'v-' + ventasActuales[0]
             : items.length + ' ventas: ' + ventasActuales.map(id => 'v-' + id).join(', ');
+        if (yaPagado > 0.01) {
+            ppPagadoInfo.textContent = 'Total: ' + money(totalActual) + ' · Ya pagó: ' + money(yaPagado);
+            ppPagadoInfo.style.display = 'inline-block';
+        } else {
+            ppPagadoInfo.style.display = 'none';
+        }
         renderSaldo();
         lineasAgregadas.innerHTML = '';
         editorLinea.style.display = 'none';
@@ -858,7 +875,7 @@ include('inc/control.php');
         if (!item) return;
 
         if (e.target.closest('[data-accion="cobrar-ahora"]')) {
-            abrirPanel([item]);
+            abrirPanel([item], 'credito');
             return;
         }
 
