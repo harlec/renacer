@@ -3,6 +3,13 @@ include('inc/control.php');
 if ($_SESSION['type']=='operador') {
     header("Location: dashboard.php");
 }
+include('inc/sdba/sdba.php');
+$categorias = Sdba::table('categorias');
+$categorias_list = $categorias->get();
+$categorias_options = '';
+foreach ($categorias_list as $cat) {
+    $categorias_options .= '<option value="' . $cat['id_categoria'] . '">' . htmlspecialchars($cat['nom_cat'], ENT_QUOTES, 'UTF-8') . '</option>';
+}
 ?>
 
 <!DOCTYPE html>
@@ -76,6 +83,7 @@ if ($_SESSION['type']=='operador') {
                                                 <h3 class="">Ventas por Categoría</h3>
                                                 <div class="row" style="margin-bottom:16px">
                                                     <div class="col-md-3">
+                                                        <label style="font-size:12px;color:#888;font-weight:600">Período</label>
                                                         <select id="periodoSelect" class="form-control">
                                                             <option value="ultimo_dia">Último día</option>
                                                             <option value="ayer">Ayer</option>
@@ -85,6 +93,13 @@ if ($_SESSION['type']=='operador') {
                                                             <option value="ultimo_trimestre">Último trimestre</option>
                                                             <option value="todo_el_anio">Todo el año</option>
                                                             <option value="siempre">Siempre</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label style="font-size:12px;color:#888;font-weight:600">Ordenar por</label>
+                                                        <select id="ordenSelect" class="form-control">
+                                                            <option value="2">Monto (mayor a menor)</option>
+                                                            <option value="1">Unidades (mayor a menor)</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -118,6 +133,38 @@ if ($_SESSION['type']=='operador') {
                                                     </thead>
                                                     <tbody></tbody>
                                                 </table>
+                                                <br><br>
+
+                                                <h3 class="">Detalle de productos por categoría</h3>
+                                                <div class="row" style="margin-bottom:16px">
+                                                    <div class="col-md-4">
+                                                        <label style="font-size:12px;color:#888;font-weight:600">Categoría</label>
+                                                        <select id="categoriaSelect" class="form-control">
+                                                            <option value="">— Elige una categoría —</option>
+                                                            <?php echo $categorias_options; ?>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label style="font-size:12px;color:#888;font-weight:600">Ordenar por</label>
+                                                        <select id="ordenDetalleSelect" class="form-control">
+                                                            <option value="2">Monto (mayor a menor)</option>
+                                                            <option value="1">Unidades (mayor a menor)</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div id="detalleWrap" style="display:none">
+                                                    <table id="datosDetalle" class="table" style="width:100%">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Producto</th>
+                                                                <th>Unidades</th>
+                                                                <th>Monto (S/)</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                                <div id="detalleVacio" style="color:#888">Elige una categoría para ver el detalle de sus productos.</div>
                                                 <br><br>
                                             </div>
                                         </div>
@@ -210,6 +257,69 @@ if ($_SESSION['type']=='operador') {
 
         $('#periodoSelect').on('change', function () {
             tabla.ajax.reload();
+        });
+
+        $('#ordenSelect').on('change', function () {
+            tabla.order([parseInt($(this).val()), 'desc']).draw();
+        });
+
+        // ── Detalle de productos por categoría ───────────────
+        var tablaDetalle = null;
+        var categoriaSelect = $('#categoriaSelect');
+        var detalleWrap = $('#detalleWrap');
+        var detalleVacio = $('#detalleVacio');
+
+        function cargarDetalle() {
+            var categoria = categoriaSelect.val();
+            if (!categoria) {
+                detalleWrap.hide();
+                detalleVacio.show();
+                return;
+            }
+            detalleVacio.hide();
+            detalleWrap.show();
+
+            if (tablaDetalle) {
+                tablaDetalle.ajax.reload();
+                return;
+            }
+
+            tablaDetalle = $('#datosDetalle').DataTable({
+                dom: 'Bfrtip',
+                order: [[2, 'desc']],
+                ajax: {
+                    url: 'inc/get_detalle_categoria.php',
+                    data: function (d) {
+                        d.periodo = $('#periodoSelect').val();
+                        d.categoria = categoriaSelect.val();
+                    },
+                    dataSrc: function (json) {
+                        return json.ok ? json.data : [];
+                    }
+                },
+                columns: [
+                    { title: 'Producto' },
+                    { title: 'Unidades' },
+                    { title: 'Monto (S/)' }
+                ],
+                buttons: [
+                    'excel',
+                    'pdf',
+                    'print'
+                ]
+            });
+        }
+
+        categoriaSelect.on('change', cargarDetalle);
+
+        // El período y el orden de la tabla principal también afectan el detalle,
+        // si ya hay una categoría elegida.
+        $('#periodoSelect').on('change', function () {
+            if (tablaDetalle && categoriaSelect.val()) tablaDetalle.ajax.reload();
+        });
+
+        $('#ordenDetalleSelect').on('change', function () {
+            if (tablaDetalle) tablaDetalle.order([parseInt($(this).val()), 'desc']).draw();
         });
     });
     </script>
