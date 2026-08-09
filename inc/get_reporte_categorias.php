@@ -73,37 +73,66 @@ if ($desde !== null) {
 // Ventas agrupadas por categoría del producto. Los productos sin categoría asignada
 // se agrupan bajo "Sin categoría" en vez de desaparecer del reporte.
 $sql = "
-    SELECT COALESCE(c.nom_cat, 'Sin categoría') AS categoria,
+    SELECT p.categoria AS id_categoria,
            SUM(dv.cantidad) AS unidades,
            SUM(dv.total) AS monto
     FROM detalle_ventas dv
     JOIN ventas v ON v.id_venta = dv.venta
     LEFT JOIN productos p ON p.id_producto = dv.producto
-    LEFT JOIN categorias c ON c.id_categoria = p.categoria
     WHERE v.estado != '2' $where_fecha
-    GROUP BY categoria
+    GROUP BY p.categoria
     ORDER BY monto DESC
 ";
 
 $result = $conn->query($sql);
 
-$data = [];
+// El nombre de la categoría se resuelve DESPUÉS de sumar, con un mapa aparte, en vez de
+// unir con "categorias" antes del SUM — si esa tabla tiene filas duplicadas para el mismo
+// id_categoria (visto en producción: la suma se disparaba a cifras absurdas), unirla antes
+// de agregar multiplica cada venta una vez por cada fila duplicada.
+$nombres_categoria = [];
+$rc = $conn->query("SELECT DISTINCT id_categoria, nom_cat FROM categorias");
+if ($rc) {
+    while ($rowc = $rc->fetch_assoc()) {
+        $nombres_categoria[$rowc['id_categoria']] = $rowc['nom_cat'];
+    }
+}
+
+// Se reagrupa por NOMBRE (no solo por id_categoria) porque también puede haber varias
+// filas de "categorias" con distinto id pero el mismo nom_cat (duplicados reales creados
+// por error) — sin esto, esas dos categorías con el mismo nombre saldrían como dos filas
+// separadas en vez de una sola.
+$por_nombre = [];
 $total_unidades = 0;
 $total_monto = 0;
-$categoria_top = null;
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $unidades = round((float)$row['unidades'], 2);
         $monto = round((float)$row['monto'], 2);
-        // Monto se manda como número crudo (no con comas de miles) para que DataTables
-        // lo ordene numéricamente; el formato con comas se aplica solo al mostrarlo (ver
-        // el render de la columna en reporte_mv.php).
-        $data[] = [$row['categoria'], $unidades, $monto];
+        $nombre_categoria = $row['id_categoria'] !== null && isset($nombres_categoria[$row['id_categoria']])
+            ? $nombres_categoria[$row['id_categoria']]
+            : 'Sin categoría';
+
+        if (!isset($por_nombre[$nombre_categoria])) {
+            $por_nombre[$nombre_categoria] = ['unidades' => 0, 'monto' => 0];
+        }
+        $por_nombre[$nombre_categoria]['unidades'] += $unidades;
+        $por_nombre[$nombre_categoria]['monto'] += $monto;
+
         $total_unidades += $unidades;
         $total_monto += $monto;
-        if ($categoria_top === null) $categoria_top = $row['categoria']; // ya viene ordenado por monto desc
     }
 }
+
+$data = [];
+foreach ($por_nombre as $nombre => $vals) {
+    // Monto se manda como número crudo (no con comas de miles) para que DataTables lo
+    // ordene numéricamente; el formato con comas se aplica solo al mostrarlo (ver el
+    // render de la columna en reporte_mv.php).
+    $data[] = [$nombre, round($vals['unidades'], 2), round($vals['monto'], 2)];
+}
+usort($data, fn($a, $b) => $b[2] <=> $a[2]);
+$categoria_top = count($data) ? $data[0][0] : null;
 
 $conn->close();
 
