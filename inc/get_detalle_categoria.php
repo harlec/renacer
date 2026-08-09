@@ -97,10 +97,12 @@ $result = $conn->query($sql);
 $data = [];
 if ($result) {
     while ($row = $result->fetch_assoc()) {
+        // Monto crudo (no con comas de miles) para que DataTables lo ordene numéricamente;
+        // el formato con comas se aplica solo al mostrarlo (render de columna en reporte_mv.php).
         $data[] = [
             strtoupper($row['nom_prod']),
             round((float)$row['unidades'], 2),
-            number_format((float)$row['monto'], 2),
+            round((float)$row['monto'], 2),
         ];
     }
 }

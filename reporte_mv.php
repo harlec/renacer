@@ -222,6 +222,14 @@ foreach ($categorias_list as $cat) {
 
         function money(n) { return 'S/ ' + (parseFloat(n) || 0).toFixed(2); }
 
+        // El dato que llega del backend es numérico crudo (para que DataTables ordene bien);
+        // esto solo lo formatea con comas de miles al mostrarlo, sin tocar el valor real
+        // que se usa para ordenar/filtrar/exportar.
+        function renderMonto(data, type) {
+            if (type !== 'display') return data;
+            return (parseFloat(data) || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
         function renderResumen(r) {
             r = r || {};
             document.getElementById('resCategorias').textContent = r.categorias || 0;
@@ -246,7 +254,7 @@ foreach ($categorias_list as $cat) {
             columns: [
                 { title: 'Categoría' },
                 { title: 'Unidades' },
-                { title: 'Monto (S/)' }
+                { title: 'Monto (S/)', render: renderMonto }
             ],
             buttons: [
                 'excel',
@@ -300,7 +308,7 @@ foreach ($categorias_list as $cat) {
                 columns: [
                     { title: 'Producto' },
                     { title: 'Unidades' },
-                    { title: 'Monto (S/)' }
+                    { title: 'Monto (S/)', render: renderMonto }
                 ],
                 buttons: [
                     'excel',

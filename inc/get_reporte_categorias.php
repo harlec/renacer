@@ -95,7 +95,10 @@ if ($result) {
     while ($row = $result->fetch_assoc()) {
         $unidades = round((float)$row['unidades'], 2);
         $monto = round((float)$row['monto'], 2);
-        $data[] = [$row['categoria'], $unidades, number_format($monto, 2)];
+        // Monto se manda como número crudo (no con comas de miles) para que DataTables
+        // lo ordene numéricamente; el formato con comas se aplica solo al mostrarlo (ver
+        // el render de la columna en reporte_mv.php).
+        $data[] = [$row['categoria'], $unidades, $monto];
         $total_unidades += $unidades;
         $total_monto += $monto;
         if ($categoria_top === null) $categoria_top = $row['categoria']; // ya viene ordenado por monto desc
