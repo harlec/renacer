@@ -56,7 +56,7 @@ $fecha = date("Y-m-d");
 	      			<a href="reporte_kardex.php">Reporte Kardex</a>
 	      		</li>
 	      		<li>
-	      			<a href="reporte_mv.php">Reporte Mas vendido</a>
+	      			<a href="reporte_mv.php">Ventas por categoría</a>
 	      		</li>
 			<li>
 				<a href="reporte_prediccion_stock.php">Predicción de Stock</a>

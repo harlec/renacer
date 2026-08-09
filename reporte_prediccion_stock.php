@@ -101,7 +101,7 @@ foreach ($prediccion_data['sin_movimiento'] as $prod) {
                     <a href="reporte_kardex.php">Reporte Kardex</a>
                 </li>
                 <li>
-                    <a href="reporte_mv.php">Reporte Mas vendido</a>
+                    <a href="reporte_mv.php">Ventas por categoría</a>
                 </li>
                 <li class="active">
                     <a href="reporte_prediccion_stock.php">Predicción de Stock</a>

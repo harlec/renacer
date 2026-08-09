@@ -107,9 +107,21 @@ function obtener_prediccion_stock($ventana_dias = 30, $umbral_urgente = 7, $umbr
 }
 
 /**
- * Convierte días restantes (float) en una frase corta y accionable.
+ * Convierte días restantes (float) en una frase corta y accionable, tomando en cuenta
+ * el horario de atención de la tienda (7:00am - 1:00pm): si todavía se está vendiendo
+ * hoy, el mensaje habla de "hoy"; si ya se cerró el turno, deja de importar si alcanza
+ * para lo que resta del día y pasa a hablar de "mañana" (igual que antes de este cambio).
  */
-function formatear_dias_restantes($dias) {
+function formatear_dias_restantes($dias, $hora_actual = null) {
+    $hora_actual = $hora_actual !== null ? (int)$hora_actual : (int)date('G');
+    $tienda_abierta = $hora_actual >= 7 && $hora_actual < 13;
+
+    if ($tienda_abierta) {
+        if ($dias < 1) return 'No alcanza para hoy';
+        if ($dias < 2) return 'Alcanza para hoy';
+        return 'Te queda para ' . (int)floor($dias) . ' días';
+    }
+
     if ($dias < 1) return 'No alcanza para mañana';
     if ($dias < 2) return 'Alcanza solo para mañana';
     return 'Te queda para ' . (int)floor($dias) . ' días';
