@@ -238,6 +238,14 @@ foreach ($categorias_list as $cat) {
             document.getElementById('resTotal').textContent = money(r.total_monto);
         }
 
+        function periodoLabel() {
+            return $('#periodoSelect option:selected').text();
+        }
+
+        function periodoSlug() {
+            return $('#periodoSelect').val();
+        }
+
         var tabla = $('#datos').DataTable({
             dom: 'Bfrtip',
             order: [[2, 'desc']],
@@ -257,9 +265,9 @@ foreach ($categorias_list as $cat) {
                 { title: 'Monto (S/)', render: renderMonto }
             ],
             buttons: [
-                'excel',
-                'pdf',
-                'print'
+                { extend: 'excel', title: function () { return 'Ventas por Categoría - ' + periodoLabel(); }, filename: function () { return 'ventas_por_categoria_' + periodoSlug(); } },
+                { extend: 'pdf', title: function () { return 'Ventas por Categoría - ' + periodoLabel(); }, filename: function () { return 'ventas_por_categoria_' + periodoSlug(); } },
+                { extend: 'print', title: function () { return 'Ventas por Categoría - ' + periodoLabel(); } }
             ]
         });
 
@@ -311,9 +319,9 @@ foreach ($categorias_list as $cat) {
                     { title: 'Monto (S/)', render: renderMonto }
                 ],
                 buttons: [
-                    'excel',
-                    'pdf',
-                    'print'
+                    { extend: 'excel', title: function () { return 'Detalle ' + categoriaSelect.find('option:selected').text() + ' - ' + periodoLabel(); }, filename: function () { return 'detalle_categoria_' + categoriaSelect.val() + '_' + periodoSlug(); } },
+                    { extend: 'pdf', title: function () { return 'Detalle ' + categoriaSelect.find('option:selected').text() + ' - ' + periodoLabel(); }, filename: function () { return 'detalle_categoria_' + categoriaSelect.val() + '_' + periodoSlug(); } },
+                    { extend: 'print', title: function () { return 'Detalle ' + categoriaSelect.find('option:selected').text() + ' - ' + periodoLabel(); } }
                 ]
             });
         }
