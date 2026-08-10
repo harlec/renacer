@@ -64,6 +64,7 @@ foreach ($categorias_list as $cat) {
                 <li class="active"><a href="reporte_mv.php">Ventas por categoría</a></li>
                 <li><a href="reporte_prediccion_stock.php">Predicción de Stock</a></li>
                 <li><a href="reporte_huevos.php">Reporte Huevos</a></li>
+                <li><a href="reporte_productos_sin_costo.php">Productos sin costo</a></li>
             </ul>
           </div>
         </nav>

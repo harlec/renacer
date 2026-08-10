@@ -64,6 +64,9 @@ $fecha = date("Y-m-d");
 			<li>
 				<a href="reporte_huevos.php">Reporte Huevos</a>
 			</li>
+			<li>
+				<a href="reporte_productos_sin_costo.php">Productos sin costo</a>
+			</li>
 	      	</ul>
 	      </div>
 	    </nav>
