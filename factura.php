@@ -32,16 +32,19 @@ $facturan = 0;
 	$venta->where('id_venta', $venta_ids[0]);
 	$venta_l = $venta->get_one();
 
-	// Si este cliente ya emitió un comprobante antes, su RUC quedó guardado en su ficha
-	// (ver inc/factura_e.php) — se prellena para no volver a pedírselo.
+	// Si este cliente ya emitió una factura antes, su RUC quedó guardado en su ficha (ver
+	// inc/factura_e.php) — se prellena solo el documento (no el nombre), y solo si lo
+	// guardado es un RUC de 11 dígitos: si lo que hay guardado es un DNI de 8 (de una
+	// boleta anterior a este mismo cliente), no aplica para factura.
 	$doc_guardado = '';
-	$nombre_guardado = '';
 	if (!empty($venta_l['cliente'])) {
 		$cliente_q = Sdba::table('clientes');
 		$cliente_q->where('id_cliente', $venta_l['cliente']);
 		$cliente_data = $cliente_q->get_one();
-		$doc_guardado = trim($cliente_data['doc_identidad'] ?? '');
-		$nombre_guardado = trim($cliente_data['cliente'] ?? '');
+		$doc_crudo = trim($cliente_data['doc_identidad'] ?? '');
+		if ($doc_crudo !== '' && strlen($doc_crudo) === 11 && ctype_digit($doc_crudo)) {
+			$doc_guardado = $doc_crudo;
+		}
 	}
 
 	$tipo = $venta_l['tipo'];
@@ -236,7 +239,7 @@ $facturan = 0;
 					  			<input class="form-control" type="text" name="ruc" id="ruc" value="<?php echo htmlspecialchars($doc_guardado, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Ingrese Ruc"><br>
 					  		</div>
 						  	<div class="col-sm-12">
-						  		<input class="form-control" type="text" name="r_social" id="r_social" value="<?php echo htmlspecialchars($nombre_guardado, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Razon social(automática)"><br>
+						  		<input class="form-control" type="text" name="r_social" id="r_social" placeholder="Razon social(automática)"><br>
 						  	</div>
 						  	<div class="col-sm-12">
 						  		<textarea class="form-control" name="direccion" id="direccion">
@@ -324,6 +327,13 @@ $facturan = 0;
 				}, 'text');
 			}
 		});
+
+		// Si el RUC ya vino prellenado desde el servidor (cliente que ya facturó antes),
+		// consulta la razón social a la API de Migo de una vez, sin esperar a que el
+		// cajero toque el campo.
+		if ($('#ruc').val().length == 11) {
+			$('#ruc').trigger('change');
+		}
 
 //borrar item
 		    $("body").on('click', '.borrar', function () {

@@ -31,16 +31,19 @@ $facturan = 0;
 	$venta->where('id_venta', $venta_ids[0]);
 	$venta_l = $venta->get_one();
 
-	// Si este cliente ya emitió un comprobante antes, su documento quedó guardado en su
-	// ficha (ver inc/boleta_e.php) — se prellena para no volver a pedírselo.
+	// Si este cliente ya emitió una boleta antes, su DNI quedó guardado en su ficha (ver
+	// inc/boleta_e.php) — se prellena solo el documento (no el nombre), y solo si lo
+	// guardado es un DNI de 8 dígitos: si lo que hay guardado es un RUC de 11 (de una
+	// factura anterior a este mismo cliente), no aplica para boleta.
 	$doc_guardado = '';
-	$nombre_guardado = '';
 	if (!empty($venta_l['cliente'])) {
 		$cliente_q = Sdba::table('clientes');
 		$cliente_q->where('id_cliente', $venta_l['cliente']);
 		$cliente_data = $cliente_q->get_one();
-		$doc_guardado = trim($cliente_data['doc_identidad'] ?? '');
-		$nombre_guardado = trim($cliente_data['cliente'] ?? '');
+		$doc_crudo = trim($cliente_data['doc_identidad'] ?? '');
+		if ($doc_crudo !== '' && strlen($doc_crudo) === 8 && ctype_digit($doc_crudo)) {
+			$doc_guardado = $doc_crudo;
+		}
 	}
 
 	// La fecha de emisión del comprobante siempre es HOY, sin importar cuándo se hizo la
@@ -213,7 +216,7 @@ $facturan = 0;
 				  				<input class="form-control" type="text" name="ruc" id="ruc" value="<?php echo $doc_guardado !== '' ? htmlspecialchars($doc_guardado, ENT_QUOTES, 'UTF-8') : '-'; ?>" placeholder=""><br>
 				  			</div>
 				  			<div class="col-sm-12">
-				  				<input class="form-control" type="text" name="r_social" value="<?php echo $doc_guardado !== '' ? htmlspecialchars($nombre_guardado, ENT_QUOTES, 'UTF-8') : 'VARIOS'; ?>" id="r_social"><br>
+				  				<input class="form-control" type="text" name="r_social" value="VARIOS" id="r_social"><br>
 				  			</div>
 				  			<div class="col-sm-12">
 				  				<input class="form-control" type="text" name="direccion" id="direccion" placeholder="Dirección opcional"><br>
@@ -294,6 +297,13 @@ $facturan = 0;
 				$('#r_social').val(nombres);
 			}, 'text');
 		});
+
+		// Si el DNI ya vino prellenado desde el servidor (cliente que ya facturó antes),
+		// consulta la razón social a la API de Migo de una vez, sin esperar a que el
+		// cajero toque el campo.
+		if ($('#ruc').val() && $('#ruc').val() !== '-') {
+			$('#ruc').trigger('change');
+		}
 
 //borrar item
 		    $("body").on('click', '.borrar', function () {
