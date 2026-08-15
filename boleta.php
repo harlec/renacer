@@ -31,6 +31,18 @@ $facturan = 0;
 	$venta->where('id_venta', $venta_ids[0]);
 	$venta_l = $venta->get_one();
 
+	// Si este cliente ya emitió un comprobante antes, su documento quedó guardado en su
+	// ficha (ver inc/boleta_e.php) — se prellena para no volver a pedírselo.
+	$doc_guardado = '';
+	$nombre_guardado = '';
+	if (!empty($venta_l['cliente'])) {
+		$cliente_q = Sdba::table('clientes');
+		$cliente_q->where('id_cliente', $venta_l['cliente']);
+		$cliente_data = $cliente_q->get_one();
+		$doc_guardado = trim($cliente_data['doc_identidad'] ?? '');
+		$nombre_guardado = trim($cliente_data['cliente'] ?? '');
+	}
+
 	// La fecha de emisión del comprobante siempre es HOY, sin importar cuándo se hizo la
 	// venta — SUNAT/Nubefact rechaza comprobantes con fecha de emisión atrasada. La fecha
 	// original de la venta queda intacta en la tabla ventas para el registro interno.
@@ -198,10 +210,10 @@ $facturan = 0;
 						  		</select><br>
 				  			</div>
 				  			<div class="col-sm-12">
-				  				<input class="form-control" type="text" name="ruc" id="ruc" value="-" placeholder=""><br>
+				  				<input class="form-control" type="text" name="ruc" id="ruc" value="<?php echo $doc_guardado !== '' ? htmlspecialchars($doc_guardado, ENT_QUOTES, 'UTF-8') : '-'; ?>" placeholder=""><br>
 				  			</div>
 				  			<div class="col-sm-12">
-				  				<input class="form-control" type="text" name="r_social" value="VARIOS" id="r_social"><br>
+				  				<input class="form-control" type="text" name="r_social" value="<?php echo $doc_guardado !== '' ? htmlspecialchars($nombre_guardado, ENT_QUOTES, 'UTF-8') : 'VARIOS'; ?>" id="r_social"><br>
 				  			</div>
 				  			<div class="col-sm-12">
 				  				<input class="form-control" type="text" name="direccion" id="direccion" placeholder="Dirección opcional"><br>

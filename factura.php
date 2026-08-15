@@ -32,6 +32,18 @@ $facturan = 0;
 	$venta->where('id_venta', $venta_ids[0]);
 	$venta_l = $venta->get_one();
 
+	// Si este cliente ya emitió un comprobante antes, su RUC quedó guardado en su ficha
+	// (ver inc/factura_e.php) — se prellena para no volver a pedírselo.
+	$doc_guardado = '';
+	$nombre_guardado = '';
+	if (!empty($venta_l['cliente'])) {
+		$cliente_q = Sdba::table('clientes');
+		$cliente_q->where('id_cliente', $venta_l['cliente']);
+		$cliente_data = $cliente_q->get_one();
+		$doc_guardado = trim($cliente_data['doc_identidad'] ?? '');
+		$nombre_guardado = trim($cliente_data['cliente'] ?? '');
+	}
+
 	$tipo = $venta_l['tipo'];
 	if ($tipo == '1') {
 		$tipop = 'Contado';
@@ -221,10 +233,10 @@ $facturan = 0;
 						<div class="row">
 							<br>
 					  		<div class="col-sm-12">
-					  			<input class="form-control" type="text" name="ruc" id="ruc" placeholder="Ingrese Ruc"><br>
+					  			<input class="form-control" type="text" name="ruc" id="ruc" value="<?php echo htmlspecialchars($doc_guardado, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Ingrese Ruc"><br>
 					  		</div>
 						  	<div class="col-sm-12">
-						  		<input class="form-control" type="text" name="r_social" id="r_social" placeholder="Razon social(automática)"><br>
+						  		<input class="form-control" type="text" name="r_social" id="r_social" value="<?php echo htmlspecialchars($nombre_guardado, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Razon social(automática)"><br>
 						  	</div>
 						  	<div class="col-sm-12">
 						  		<textarea class="form-control" name="direccion" id="direccion">

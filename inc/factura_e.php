@@ -268,6 +268,20 @@ if (!is_array($leer_respuesta) || isset($leer_respuesta['errors']) || empty($lee
         $venta->update(array('estado'=>'1'));
     }
 
+    // Guarda el RUC en la ficha del cliente de esta venta, para no tener que volver a
+    // pedírselo la próxima vez que se le emita una factura.
+    $ruc_normalizado = trim($ruc);
+    if ($ruc_normalizado !== '') {
+        $venta_cliente_q = Sdba::table('ventas');
+        $venta_cliente_q->where('id_venta', $venta_ids[0]);
+        $venta_cliente_row = $venta_cliente_q->get_one();
+        if (!empty($venta_cliente_row['cliente'])) {
+            $cliente_upd = Sdba::table('clientes');
+            $cliente_upd->where('id_cliente', $venta_cliente_row['cliente']);
+            $cliente_upd->update(array('doc_identidad' => $ruc_normalizado));
+        }
+    }
+
     echo json_encode([
         'ok'             => true,
         'numero'         => $leer_respuesta['numero'],
