@@ -1,35 +1,30 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Borrado suave del producto (estado='0'), igual que proveedores/ventas/compras: nunca se
+// elimina físicamente para no romper el historial de ventas/compras que ya lo referencian
+// (y que antes fallaba en silencio por la restricción de llave foránea).
 session_start();
 
 include('sdba/sdba.php'); // include main file
 
 $respuestaOk = false;
 $mensajeError = 'hasta aca bien';
-//$usuario = $_SESSION['id_usr'];
 
-	$id = $_GET['id'];
-	$respuestaOk = true;
+$id = intval($_GET['id'] ?? 0);
 
-	// Eliminar variantes asociadas en variante_p para evitar variantes huérfanas
-	$varp = Sdba::table('variante_p');
-	$varp->where('id_producto', $id);
-	$varp->delete();
-
-	// Ahora eliminar el producto
-	$ventas = Sdba::table('productos');
-	$ventas->where('id_producto', $id);
-	$ventas->delete();
+if ($id > 0) {
+	$productos = Sdba::table('productos');
+	$productos->where('id_producto', $id);
+	$productos->update(array('estado' => '0'));
 
 	$respuestaOk = true;
-	$mensajeError = 'producto y variantes (si existían) eliminados';
+	$mensajeError = 'producto eliminado';
+} else {
+	$mensajeError = 'Falta indicar el producto';
+}
 
-		$salidaJson = array('respuesta' => $respuestaOk,
-							'mensaje' => $mensajeError);
+$salidaJson = array('respuesta' => $respuestaOk,
+					'mensaje' => $mensajeError);
 
-		echo json_encode($salidaJson);
-
+echo json_encode($salidaJson);
 
 ?>

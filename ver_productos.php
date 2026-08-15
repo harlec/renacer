@@ -6,14 +6,17 @@ if ($_SESSION['type']=='operador') {
 
 include('inc/sdba/sdba.php'); // include main file
 $ventas = Sdba::table('productos');
+$ventas->where('estado !=', '0');
 $ventas->left_join('categoria','categorias','id_categoria'); // creating table object
 //$ventas->left_join('marca','marca','id_marca');
 $ventas->left_join('unidad_prod','unidades','id_unidad');
-$ventas_list = $ventas->get(); 
+$ventas_list = $ventas->get();
 
 $datos = '';
 $i = 1;
 foreach ($ventas_list as $value) {
+	// Filas con nombre vacío (datos sueltos de antes de este fix) no aportan nada, se saltan.
+	if (trim((string)$value['nom_prod']) === '') continue;
 
 	// $marca = Sdba::table('marca');
 	// $marca->where('id_marca',$value['marca']);
