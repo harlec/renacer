@@ -31,7 +31,10 @@ $facturan = 0;
 	$venta->where('id_venta', $venta_ids[0]);
 	$venta_l = $venta->get_one();
 
-	$fechita = count($venta_ids) > 1 ? date('d-m-Y') : date("d-m-Y", strtotime($venta_l['fecha']));
+	// La fecha de emisión del comprobante siempre es HOY, sin importar cuándo se hizo la
+	// venta — SUNAT/Nubefact rechaza comprobantes con fecha de emisión atrasada. La fecha
+	// original de la venta queda intacta en la tabla ventas para el registro interno.
+	$fechita = date('d-m-Y');
 
 	$i=1;
 	$tot = 0;
