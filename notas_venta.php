@@ -251,7 +251,8 @@ foreach ($unidades_db as $u) {
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-					<button type="button" class="btn btn-success" id="btn-fs-generar" disabled><i class="fas fa-file-invoice-dollar"></i> Generar factura</button>
+					<button type="button" class="btn btn-danger" id="btn-fs-generar-boleta" disabled><i class="fab fa-bitcoin"></i> Generar boleta</button>
+					<button type="button" class="btn btn-success" id="btn-fs-generar-factura" disabled><i class="fas fa-file-invoice-dollar"></i> Generar factura</button>
 				</div>
 			</div>
 		</div>
@@ -525,7 +526,7 @@ foreach ($unidades_db as $u) {
 			if (!fsLineas.length) {
 				$body.html('<tr id="fs-sin-lineas"><td colspan="7" style="text-align:center;color:#888">Sin líneas agregadas</td></tr>');
 				$('#fs-total-general').text(money(0));
-				$('#btn-fs-generar').prop('disabled', true);
+				$('#btn-fs-generar-boleta, #btn-fs-generar-factura').prop('disabled', true);
 				return;
 			}
 			let total_general = 0;
@@ -542,7 +543,7 @@ foreach ($unidades_db as $u) {
 					'</tr>';
 			}).join(''));
 			$('#fs-total-general').text(money(total_general));
-			$('#btn-fs-generar').prop('disabled', false);
+			$('#btn-fs-generar-boleta, #btn-fs-generar-factura').prop('disabled', false);
 		}
 
 		$('#btn-fs-agregar').on('click', function () {
@@ -588,9 +589,9 @@ foreach ($unidades_db as $u) {
 			$('#modal-factura-simple').modal('show');
 		});
 
-		$('#btn-fs-generar').on('click', function () {
+		function generarComprobanteFs(tipo) {
 			if (!fsLineas.length) return;
-			const $btn = $(this).prop('disabled', true);
+			$('#btn-fs-generar-boleta, #btn-fs-generar-factura').prop('disabled', true);
 
 			const body = new URLSearchParams();
 			const hoy = new Date().toISOString().slice(0, 10);
@@ -610,17 +611,20 @@ foreach ($unidades_db as $u) {
 				.then(function (r) { return r.json(); })
 				.then(function (data) {
 					if (data.respuesta) {
-						window.location.href = 'factura.php?ids=' + data.venta_id;
+						window.location.href = (tipo === 'boleta' ? 'boleta.php' : 'factura.php') + '?ids=' + data.venta_id;
 					} else {
-						alert(data.mensaje || 'No se pudo crear la factura simple.');
-						$btn.prop('disabled', false);
+						alert(data.mensaje || 'No se pudo crear el comprobante.');
+						$('#btn-fs-generar-boleta, #btn-fs-generar-factura').prop('disabled', false);
 					}
 				})
 				.catch(function () {
 					alert('Error de conexión.');
-					$btn.prop('disabled', false);
+					$('#btn-fs-generar-boleta, #btn-fs-generar-factura').prop('disabled', false);
 				});
-		});
+		}
+
+		$('#btn-fs-generar-boleta').on('click', function () { generarComprobanteFs('boleta'); });
+		$('#btn-fs-generar-factura').on('click', function () { generarComprobanteFs('factura'); });
 	})();
 	</script>
 </body>
