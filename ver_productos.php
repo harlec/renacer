@@ -9,6 +9,9 @@ $ventas = Sdba::table('productos');
 $ventas->left_join('categoria','categorias','id_categoria'); // creating table object
 //$ventas->left_join('marca','marca','id_marca');
 $ventas->left_join('unidad_prod','unidades','id_unidad');
+// categorias también tiene columna 'estado': sin este alias, pisa productos.estado
+// en el array de resultado (mysqli se queda con la última columna del mismo nombre).
+$ventas->alias('estado', 'estado_categoria', 'categorias');
 $ventas_list = $ventas->get();
 
 $datos = '';
