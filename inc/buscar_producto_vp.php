@@ -35,6 +35,7 @@ $r = $conn->query("
     LEFT JOIN variantes v ON v.id_variante = vp.variante_vp
     LEFT JOIN unidades  u ON u.id_unidad = p.unidad_prod
     WHERE p.nom_prod LIKE '%$termino_safe%'
+      AND p.estado = '1'
     ORDER BY p.nom_prod
     LIMIT 30
 ");

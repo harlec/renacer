@@ -6,7 +6,6 @@ if ($_SESSION['type']=='operador') {
 
 include('inc/sdba/sdba.php'); // include main file
 $ventas = Sdba::table('productos');
-$ventas->where('estado !=', '0');
 $ventas->left_join('categoria','categorias','id_categoria'); // creating table object
 //$ventas->left_join('marca','marca','id_marca');
 $ventas->left_join('unidad_prod','unidades','id_unidad');
@@ -46,7 +45,12 @@ foreach ($ventas_list as $value) {
 	// $unidadn = $unidad1['nombre'];
 	$unidadn = $value['nombre'];
 
-	
+	$activo = $value['estado'] === '1';
+	$badge_estado = $activo
+		? '<span class="label label-success">Activo</span>'
+		: '<span class="label label-default">Inactivo</span>';
+	$btn_toggle_texto = $activo ? 'Desactivar' : 'Activar';
+	$btn_toggle_clase = $activo ? 'btn-custom toggle-estado' : 'btn-custom toggle-estado btn-inactivo';
 
 	$datos .='<tr '.$col.'><td>'.$value['id_producto'].'</td>
     			<td style="text-transform:uppercase;">'.$value['nom_prod'].'</td>
@@ -55,7 +59,8 @@ foreach ($ventas_list as $value) {
     			<td>'.number_format($stockt, 2).'</td>
     			<td>'.$value['precio_venta'].'</td>
     			<td>'.$value['precio_compra'].'</td>
-    			<td><a class="" alt="ver" href="editar_producto.php?id='.$value['id_producto'].'"><img src="assets/img/edit.png"/></a><button class="btn-custom" id="borrar" value="'.$value['id_producto'].'" alt="boleta"><img src="assets/img/trash.png" /></button></td> 
+    			<td data-estado-badge>'.$badge_estado.'</td>
+    			<td><a class="" alt="ver" href="editar_producto.php?id='.$value['id_producto'].'"><img src="assets/img/edit.png"/></a><button class="'.$btn_toggle_clase.'" value="'.$value['id_producto'].'" alt="activar/desactivar">'.$btn_toggle_texto.'</button></td>
     		  </tr>';
     $i++;
 }
@@ -130,9 +135,10 @@ foreach ($ventas_list as $value) {
 											    			<th>Unidad</th>
 											    			<th>Categoría</th>
 											    			<th>Stock</th>
-											    			<th>Precio</th> 
+											    			<th>Precio</th>
 											    			<th>P. Compra</th>
-											    			<th>Opciones</th> 
+											    			<th>Estado</th>
+											    			<th>Opciones</th>
 											    		</tr> 
 											    	</thead> 
 											    	<tbody> 
@@ -255,22 +261,29 @@ foreach ($ventas_list as $value) {
 		});
 	    console.log( "ready!" );
 
-	    $('body').on('click',"#borrar", function() {
-			var id = $(this).val();
+	    $('body').on('click',".toggle-estado", function() {
+			var $boton = $(this);
+			var $fila = $boton.closest('tr');
+			var id = $boton.val();
 			var str1 = 'id=' + id;
-		  	$.ajax({	
+		  	$.ajax({
 		    	type:'GET',
 				dataType: 'json',
-			  	url: '/inc/borrar_producto.php',
+			  	url: '/inc/toggle_producto.php',
 			  	data: str1,
 			  	success: function(data1) {
-			   	 	console.log('borrado');
-			   	 	document.location.href = "ver_productos.php";
-			   	 	
+			   	 	if (!data1.respuesta) {
+			   	 		alert(data1.mensaje);
+			   	 		return;
+			   	 	}
+			   	 	var activo = data1.estado === '1';
+			   	 	$fila.find('[data-estado-badge]').html(activo
+			   	 		? '<span class="label label-success">Activo</span>'
+			   	 		: '<span class="label label-default">Inactivo</span>');
+			   	 	$boton.text(activo ? 'Desactivar' : 'Activar');
+			   	 	$boton.toggleClass('btn-inactivo', !activo);
 			  	}
 			});
-			
-		  
 		});
 	});
 		

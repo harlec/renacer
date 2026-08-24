@@ -19,6 +19,7 @@ $variantes_p = Sdba::table('variante_p');
 $variantes_p->left_join('variante_vp','variantes','id_variante');
 $variantes_p->left_join('producto_vp','productos','id_producto');
 $variantes_p->left_join('producto_vp','marca','id_marca');
+$variantes_p->where('estado', '1', 'productos');
 $variantes_p_l = $variantes_p->get();
 
 $datos = '';

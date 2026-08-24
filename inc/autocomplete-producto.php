@@ -14,6 +14,7 @@ include('sdba/sdba.php'); // include main file
 	$clientes = Sdba::table('productos');
 	//$productos->where('cliente', $filtro);
 	//$clientes->distinct();
+	$clientes->where('estado', '1');
 	$clientes->like('nom_prod', $nombre);
 	//$clientes->distinct();
 	$clientes_list = $clientes->get();

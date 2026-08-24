@@ -15,6 +15,7 @@ include('sdba/sdba.php'); // include main file
 
 	$productos = Sdba::table('productos');
 	$productos->where('nom_prod', $producto);
+	$productos->where('estado', '1');
 	//$productos->like('name_product', $nombre);
 	$productos_list = $productos->get();
 

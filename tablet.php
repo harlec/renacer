@@ -46,6 +46,7 @@ $conn->close();
 $vp_raw = Sdba::table('variante_p');
 $vp_raw->left_join('variante_vp', 'variantes', 'id_variante');
 $vp_raw->left_join('producto_vp', 'productos',  'id_producto');
+$vp_raw->where('estado', '1', 'productos');
 $all_vp = $vp_raw->get();
 
 // Construir tabs_data para JS
