@@ -49,6 +49,12 @@ if ($_SESSION['type']=='operador') {
 	      		<li >
 	      			<a class="" href="ver_empleados.php">Listar colaboradores</a>
 	      		</li>
+	      		<li >
+	      			<a class="" href="asistencia.php">Asistencia</a>
+	      		</li>
+	      		<li >
+	      			<a class="" href="planillas.php">Planillas</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>
@@ -100,9 +106,32 @@ if ($_SESSION['type']=='operador') {
 															    	<option value="3">Trujillo</option>
 															    </select>
 															</div>
+															<div class="form-group">
+															    <label for="cargo">Cargo / Ocupación</label>
+															    <input type="text" class="form-control" name="cargo" id="cargo" placeholder="Ej. BOLETEADORA">
+															</div>
+															<div class="form-group">
+															    <label for="sueldo_mensual">Sueldo mensual (S/)</label>
+															    <input type="number" step="0.01" min="0" class="form-control" name="sueldo_mensual" id="sueldo_mensual" placeholder="0.00">
+															</div>
+															<div class="row">
+															    <div class="col-md-6">
+																    <div class="form-group">
+																	    <label for="hora_ingreso">Hora de ingreso</label>
+																	    <input type="time" class="form-control" name="hora_ingreso" id="hora_ingreso">
+																	</div>
+															    </div>
+															    <div class="col-md-6">
+																    <div class="form-group">
+																	    <label for="hora_salida">Hora de salida</label>
+																	    <input type="time" class="form-control" name="hora_salida" id="hora_salida">
+																	</div>
+															    </div>
+															</div>
+															<p class="help-block">Forma de pago: <strong>Quincenal</strong> (cada 15 días)</p>
 											    		</div>
 											    	</div>
-											    	
+
 												  <button type="button" id="guardar_venta" class="btn btn-success btn-block btn-lg">Registrar</button>
 												</form>
 			

@@ -19,9 +19,15 @@ if (isset($_POST) && !empty($_POST)) {
 	$celular = $_POST['celular'];
 	$ubicacion = $_POST['ubicacion'];
 	$direccion =$_POST['direccion'];
-			
+	$cargo = $_POST['cargo'];
+	// Sdba::insert() no soporta NULL (siempre castea a string entre comillas),
+	// por eso usamos '00:00:00' como "sin horario definido" en vez de NULL.
+	$hora_ingreso = $_POST['hora_ingreso'] ? $_POST['hora_ingreso'] : '00:00:00';
+	$hora_salida = $_POST['hora_salida'] ? $_POST['hora_salida'] : '00:00:00';
+	$sueldo_mensual = $_POST['sueldo_mensual'] ? $_POST['sueldo_mensual'] : 0;
+
 			$ventas = Sdba::table('empleados');
-			$data = array('id_empleado'=>'','dni'=>$dni,'nombres'=> $nombres,'apellidos'=>$apellidos,'email'=>$email,'celular'=>$celular,'direccion'=>$direccion,'ubicacion'=>$ubicacion,'estado'=>'1');
+			$data = array('id_empleado'=>'','dni'=>$dni,'nombres'=> $nombres,'apellidos'=>$apellidos,'email'=>$email,'celular'=>$celular,'direccion'=>$direccion,'ubicacion'=>$ubicacion,'cargo'=>$cargo,'hora_ingreso'=>$hora_ingreso,'hora_salida'=>$hora_salida,'sueldo_mensual'=>$sueldo_mensual,'estado'=>'1');
 			$ventas->insert($data);
 			$venta_id = $ventas->insert_id();
 			if ($venta_id) {

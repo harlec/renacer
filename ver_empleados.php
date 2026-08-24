@@ -22,16 +22,23 @@ foreach ($ventas_list as $value) {
 		$ubicacion = 'Trujillo';
 	}
 
-	$datos .='<tr><td>'.$value['id_empleado'].'</td> 
+	$horario = ($value['hora_ingreso'] && $value['hora_ingreso'] != '00:00:00')
+					? substr($value['hora_ingreso'],0,5).' - '.substr($value['hora_salida'],0,5)
+					: '-';
+
+	$datos .='<tr><td>'.$value['id_empleado'].'</td>
 				<td>'.$value['dni'].'</td>
     			<td>'.$value['nombres'].'</td>
     			<td>'.$value['apellidos'].'</td>
-    			<td>'.$value['email'].'</td> 
-    			<td>'.$value['celular'].'</td> 
-    			<td>'.$value['direccion'].'</td> 
-    			<td>'.$ubicacion.'</td> 
-    			<td>'.$value['puntos'].'</td> 
-    			<td><a title="Ver venta" class="" alt="ver" href="editar_empleado.php?id='.$value['id_empleado'].'"><img src="assets/img/edit.png" /> </a><button class="btn-custom" id="borrar" value="'.$value['id_empleado'].'" alt="borrar"><img src="assets/img/trash.png" /></button></td> 
+    			<td>'.$value['email'].'</td>
+    			<td>'.$value['celular'].'</td>
+    			<td>'.$value['direccion'].'</td>
+    			<td>'.$ubicacion.'</td>
+    			<td>'.$value['cargo'].'</td>
+    			<td>'.$horario.'</td>
+    			<td>S/ '.number_format((float)$value['sueldo_mensual'],2).'</td>
+    			<td>'.$value['puntos'].'</td>
+    			<td><a title="Ver venta" class="" alt="ver" href="editar_empleado.php?id='.$value['id_empleado'].'"><img src="assets/img/edit.png" /> </a><button class="btn-custom" id="borrar" value="'.$value['id_empleado'].'" alt="borrar"><img src="assets/img/trash.png" /></button></td>
     		  </tr>';
     $i++;
 }
@@ -82,6 +89,12 @@ foreach ($ventas_list as $value) {
 	      		<li class="active">
 	      			<a class="" href="ver_empleados.php">Listar colaboradores</a>
 	      		</li>
+	      		<li >
+	      			<a class="" href="asistencia.php">Asistencia</a>
+	      		</li>
+	      		<li >
+	      			<a class="" href="planillas.php">Planillas</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>
@@ -109,8 +122,11 @@ foreach ($ventas_list as $value) {
 											    			<th>Celular</th>
 											    			<th>Dirección</th>
 											    			<th>Ubicacion</th>
+											    			<th>Cargo</th>
+											    			<th>Horario</th>
+											    			<th>Sueldo</th>
 											    			<th>Puntos</th>
-											    			<th>Opciones</th> 
+											    			<th>Opciones</th>
 											    		</tr> 
 											    	</thead> 
 											    	<tbody> 
