@@ -4,12 +4,16 @@ if ($_SESSION['type'] !== 'admin') { header("Location: dashboard.php"); exit; }
 include('inc/sdba/sdba.php');
 include('inc/config_facturacion.php');
 
-$horario_lv_ingreso  = get_config('planilla_horario_lv_ingreso');
-$horario_lv_salida   = get_config('planilla_horario_lv_salida');
-$horario_sab_ingreso = get_config('planilla_horario_sab_ingreso');
-$horario_sab_salida  = get_config('planilla_horario_sab_salida');
-$horario_dom_ingreso = get_config('planilla_horario_dom_ingreso');
-$horario_dom_salida  = get_config('planilla_horario_dom_salida');
+function solo_hora_minuto($valor) {
+    return $valor ? substr($valor, 0, 5) : '';
+}
+
+$horario_lv_ingreso  = solo_hora_minuto(get_config('planilla_horario_lv_ingreso'));
+$horario_lv_salida   = solo_hora_minuto(get_config('planilla_horario_lv_salida'));
+$horario_sab_ingreso = solo_hora_minuto(get_config('planilla_horario_sab_ingreso'));
+$horario_sab_salida  = solo_hora_minuto(get_config('planilla_horario_sab_salida'));
+$horario_dom_ingreso = solo_hora_minuto(get_config('planilla_horario_dom_ingreso'));
+$horario_dom_salida  = solo_hora_minuto(get_config('planilla_horario_dom_salida'));
 $factor_tardanza      = get_config('planilla_factor_tardanza', '2');
 $dias_mes_referencia  = get_config('planilla_dias_mes_referencia', '30');
 ?>
