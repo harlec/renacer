@@ -254,11 +254,11 @@ $conn->close();
 				html:
 					'<div style="text-align:left">' +
 					'<label style="font-size:12px">Plantilla de periodo</label>' +
-					'<select id="swal-plantilla" class="swal2-input" style="display:block">' + opciones + '</select>' +
+					'<select id="swal-plantilla" class="swal2-select" style="display:block;width:90%">' + opciones + '</select>' +
 					'<label style="font-size:12px">Mes</label>' +
-					'<div style="display:flex;gap:8px">' +
-					'<select id="swal-mes" class="swal2-input" style="display:block;margin:0">' + opcionesMes + '</select>' +
-					'<select id="swal-anio" class="swal2-input" style="display:block;margin:0">' + opcionesAnio + '</select>' +
+					'<div style="display:flex;gap:8px;justify-content:center">' +
+					'<select id="swal-mes" class="swal2-select" style="display:block;margin:0;width:55%">' + opcionesMes + '</select>' +
+					'<select id="swal-anio" class="swal2-select" style="display:block;margin:0;width:35%">' + opcionesAnio + '</select>' +
 					'</div>' +
 					'</div>',
 				showCancelButton: true,
