@@ -91,11 +91,28 @@ if (isset($_POST) && !empty($_POST)) {
             }
 
             // Consumo de abarrotes de un empleado: se registra como movimiento pendiente
-            // para que se descuente automáticamente en la próxima planilla que cubra esta
-            // fecha (ver inc/registrar_planilla_periodo.php). No se cobra en caja.
+            // para que se descuente automáticamente de las próximas planillas que se
+            // generen (ver inc/registrar_planilla_periodo.php), en la cantidad de cuotas
+            // indicada (por defecto 1, en partes iguales). No se cobra en caja.
             if ($id_empleado > 0) {
-                $conn->query("INSERT INTO movimientos_empleado (id_empleado, tipo, fecha, importe, descripcion, usuario, id_venta)
-                              VALUES ($id_empleado, 'abarrotes', '$fecha_safe', $total_safe, 'Consumo abarrotes - venta #$venta_id', $id_usuario, $venta_id)");
+                $cuotas = intval($_POST['cuotas'] ?? 1);
+                if ($cuotas < 1) $cuotas = 1;
+                if ($cuotas > 24) $cuotas = 24;
+
+                $conn->query("INSERT INTO movimientos_empleado (id_empleado, tipo, fecha, importe, descripcion, usuario, id_venta, partes)
+                              VALUES ($id_empleado, 'abarrotes', '$fecha_safe', $total_safe, 'Consumo abarrotes - venta #$venta_id', $id_usuario, $venta_id, $cuotas)");
+                $id_movimiento = $conn->insert_id;
+
+                // Reparte el total en cuotas iguales; la última absorbe el redondeo para
+                // que la suma exacta siempre coincida con el total de la venta.
+                $base = floor(($total_safe / $cuotas) * 100) / 100;
+                $acumulado = 0;
+                for ($i = 1; $i < $cuotas; $i++) {
+                    $conn->query("INSERT INTO movimiento_cuotas (id_movimiento, numero_cuota, monto) VALUES ($id_movimiento, $i, $base)");
+                    $acumulado += $base;
+                }
+                $ultimo_monto = round($total_safe - $acumulado, 2);
+                $conn->query("INSERT INTO movimiento_cuotas (id_movimiento, numero_cuota, monto) VALUES ($id_movimiento, $cuotas, $ultimo_monto)");
             }
 
             $conn->commit();

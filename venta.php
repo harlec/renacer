@@ -207,6 +207,8 @@ foreach ($empleados_venta_l as $emp) {
 											    					<option value="">-- elegir --</option>
 											    					<?php echo $empleados_venta_opciones; ?>
 											    				</select>
+											    				<label for="cuotas" style="margin-top:8px">Descontar en cuotas (quincenas)</label>
+											    				<input type="number" class="form-control" id="cuotas" name="cuotas" min="1" max="24" value="1">
 											    			</div>
 											    		</div>
 											    	</div>
