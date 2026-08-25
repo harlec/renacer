@@ -185,7 +185,10 @@ table.dataTable tbody th, table.dataTable tbody td{
  padding:.5rem 0 0;
  margin:0 5px;
  list-style:none;
- overflow:hidden;
+ overflow-x:auto;
+ overflow-y:hidden;
+ -webkit-overflow-scrolling:touch;
+ white-space:nowrap;
  -webkit-user-select:none;
  -moz-user-select:none;
  -ms-user-select:none;
