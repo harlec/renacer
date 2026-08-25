@@ -324,6 +324,7 @@ foreach ($empleados_venta_l as $emp) {
 
 
 		$('#select_p').select2();
+		$('#id_empleado').select2({ placeholder: '-- elegir --', width: '100%' });
 
 		$('body').on('change', '#select_p', function(){
 			var demo = $(this).val();
