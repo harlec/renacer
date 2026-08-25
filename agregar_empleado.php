@@ -4,6 +4,18 @@ if ($_SESSION['type']=='operador') {
 	header("Location: dashboard.php");
 }
 
+include('inc/sdba/sdba.php');
+include('inc/config_facturacion.php');
+
+function rango_horario_general($ingreso, $salida) {
+	$ingreso = $ingreso ? substr($ingreso, 0, 5) : '';
+	$salida  = $salida  ? substr($salida, 0, 5)  : '';
+	return ($ingreso && $salida) ? ($ingreso . ' - ' . $salida) : 'sin configurar';
+}
+
+$general_lv  = rango_horario_general(get_config('planilla_horario_lv_ingreso'), get_config('planilla_horario_lv_salida'));
+$general_sab = rango_horario_general(get_config('planilla_horario_sab_ingreso'), get_config('planilla_horario_sab_salida'));
+$general_dom = rango_horario_general(get_config('planilla_horario_dom_ingreso'), get_config('planilla_horario_dom_salida'));
 ?>
 
 <!DOCTYPE html>
@@ -118,7 +130,7 @@ if ($_SESSION['type']=='operador') {
 															    <input type="number" step="0.01" min="0" class="form-control" name="sueldo_mensual" id="sueldo_mensual" placeholder="0.00">
 															</div>
 															<p class="help-block" style="margin-bottom:4px">Horarios (opcionales): si se dejan vacíos, se usa el horario general de la empresa configurado en Config. Planillas.</p>
-															<p class="help-block" style="margin-bottom:2px"><strong>Lunes a viernes</strong></p>
+															<p class="help-block" style="margin-bottom:2px"><strong>Lunes a viernes</strong> <span class="text-muted">(general: <?php echo $general_lv; ?>)</span></p>
 															<div class="row">
 															    <div class="col-md-6">
 																    <div class="form-group">
@@ -133,7 +145,7 @@ if ($_SESSION['type']=='operador') {
 																	</div>
 															    </div>
 															</div>
-															<p class="help-block" style="margin-bottom:2px"><strong>Sábado</strong></p>
+															<p class="help-block" style="margin-bottom:2px"><strong>Sábado</strong> <span class="text-muted">(general: <?php echo $general_sab; ?>)</span></p>
 															<div class="row">
 															    <div class="col-md-6">
 																    <div class="form-group">
@@ -148,7 +160,7 @@ if ($_SESSION['type']=='operador') {
 																	</div>
 															    </div>
 															</div>
-															<p class="help-block" style="margin-bottom:2px"><strong>Domingo</strong></p>
+															<p class="help-block" style="margin-bottom:2px"><strong>Domingo</strong> <span class="text-muted">(general: <?php echo $general_dom; ?>)</span></p>
 															<div class="row">
 															    <div class="col-md-6">
 																    <div class="form-group">

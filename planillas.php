@@ -223,6 +223,7 @@ $conn->close();
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/10.5.0/sweetalert2.min.js" integrity="sha512-V9JHp52ZkrbVVjJqNz/XXYMUOyUfzaGKEGrcD2Ual7n39+UR1yJK0numAHZqkhhGTAH/Klj0KUe4btAZXccw9w==" crossorigin="anonymous"></script>
 	<script>
 	var PLANTILLAS = <?php echo $plantillas_json; ?>;
+	var NOMBRES_MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 	function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 	function ultimoDiaMes(year, month) { return new Date(year, month, 0).getDate(); }
@@ -240,7 +241,13 @@ $conn->close();
 				return '<option value="' + i + '">' + p.nombre + ' (' + rango + ')</option>';
 			}).join('');
 			var hoy = new Date();
-			var mesActual = hoy.getFullYear() + '-' + pad2(hoy.getMonth() + 1);
+			var anioActual = hoy.getFullYear();
+			var opcionesMes = NOMBRES_MES.map(function(nombre, i) {
+				return '<option value="' + (i + 1) + '"' + (i === hoy.getMonth() ? ' selected' : '') + '>' + nombre + '</option>';
+			}).join('');
+			var opcionesAnio = [anioActual - 1, anioActual, anioActual + 1].map(function(y) {
+				return '<option value="' + y + '"' + (y === anioActual ? ' selected' : '') + '>' + y + '</option>';
+			}).join('');
 
 			Swal.fire({
 				title: 'Nueva planilla',
@@ -249,20 +256,18 @@ $conn->close();
 					'<label style="font-size:12px">Plantilla de periodo</label>' +
 					'<select id="swal-plantilla" class="swal2-input" style="display:block">' + opciones + '</select>' +
 					'<label style="font-size:12px">Mes</label>' +
-					'<input id="swal-mes" type="month" class="swal2-input" value="' + mesActual + '">' +
+					'<div style="display:flex;gap:8px">' +
+					'<select id="swal-mes" class="swal2-input" style="display:block;margin:0">' + opcionesMes + '</select>' +
+					'<select id="swal-anio" class="swal2-input" style="display:block;margin:0">' + opcionesAnio + '</select>' +
+					'</div>' +
 					'</div>',
 				showCancelButton: true,
 				confirmButtonText: 'Generar',
 				cancelButtonText: 'Cancelar',
 				preConfirm: function() {
 					var plantilla = PLANTILLAS[parseInt(document.getElementById('swal-plantilla').value, 10)];
-					var mes = document.getElementById('swal-mes').value;
-					if (!mes) {
-						Swal.showValidationMessage('Selecciona un mes');
-						return false;
-					}
-					var partes = mes.split('-');
-					var year = parseInt(partes[0], 10), month = parseInt(partes[1], 10);
+					var year = parseInt(document.getElementById('swal-anio').value, 10);
+					var month = parseInt(document.getElementById('swal-mes').value, 10);
 					var ultimoDia = ultimoDiaMes(year, month);
 					var diaInicio = Math.min(parseInt(plantilla.dia_inicio, 10), ultimoDia);
 					var diaFin = plantilla.dia_fin_tipo === 'fin_mes' ? ultimoDia : Math.min(parseInt(plantilla.dia_fin, 10), ultimoDia);
