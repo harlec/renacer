@@ -24,6 +24,24 @@ $r = $conn->query("
 	ORDER BY pp.fecha_inicio DESC
 ");
 
+$plantillas_rows = $conn->query("SELECT id_plantilla, nombre, dia_inicio, dia_fin_tipo, dia_fin FROM planilla_periodo_plantillas WHERE estado = '1' ORDER BY dia_inicio");
+$plantillas = [];
+$plantillas_filas = '';
+if ($plantillas_rows) {
+	while ($p = $plantillas_rows->fetch_assoc()) {
+		$plantillas[] = $p;
+		$rango = $p['dia_fin_tipo'] === 'fin_mes'
+			? ('Día ' . $p['dia_inicio'] . ' a fin de mes')
+			: ('Día ' . $p['dia_inicio'] . ' al ' . $p['dia_fin']);
+		$plantillas_filas .= '<tr>
+			<td>' . htmlspecialchars($p['nombre']) . '</td>
+			<td>' . $rango . '</td>
+			<td><button type="button" class="btn btn-danger btn-xs btn-borrar-plantilla" data-id="' . $p['id_plantilla'] . '"><i class="fa fa-trash"></i></button></td>
+		</tr>';
+	}
+}
+$plantillas_json = json_encode($plantillas);
+
 $estado_badge = [
 	'abierto' => '<span class="label label-success">Abierto</span>',
 	'cerrado' => '<span class="label label-default">Cerrado</span>',
@@ -101,13 +119,19 @@ $conn->close();
 	      		<li class="active">
 	      			<a class="" href="planillas.php">Planillas</a>
 	      		</li>
+	      		<li>
+	      			<a class="" href="configuracion_planillas.php">Config. planillas</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>
 		<div class="kbg">
 			<div class="cuerpofull">
 				<div class="titulo">
-					<h3>Planillas <button type="button" id="nueva_planilla" class="btn btn-success btn-sm pull-right">Nueva planilla</button></h3>
+					<h3>Planillas
+						<button type="button" id="nueva_planilla" class="btn btn-success btn-sm pull-right">Nueva planilla</button>
+						<button type="button" id="btn-gestionar-plantillas" class="btn btn-default btn-sm pull-right" style="margin-right:8px">Gestionar plantillas</button>
+					</h3>
 				</div>
 				<div class="container-fluid">
 					<div class="row">
@@ -146,7 +170,51 @@ $conn->close();
 		</div>
 	 	<!-- Tab panes -->
 
-
+		<!-- Modal gestión de plantillas de periodo -->
+		<div class="modal fade" id="modal-plantillas" tabindex="-1" role="dialog">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal">&times;</button>
+						<h4 class="modal-title">Plantillas de periodo de planilla</h4>
+					</div>
+					<div class="modal-body">
+						<table class="table table-bordered">
+							<thead><tr><th>Nombre</th><th>Rango</th><th></th></tr></thead>
+							<tbody id="plantillas-body"><?php echo $plantillas_filas; ?></tbody>
+						</table>
+						<hr>
+						<p class="help-block" style="margin-top:0">Nueva plantilla</p>
+						<div class="row">
+							<div class="col-sm-4">
+								<div class="form-group">
+									<label>Nombre</label>
+									<input type="text" class="form-control" id="np-nombre" placeholder="Ej. Quincena 1">
+								</div>
+							</div>
+							<div class="col-sm-3">
+								<div class="form-group">
+									<label>Día inicio</label>
+									<input type="number" min="1" max="31" class="form-control" id="np-dia-inicio">
+								</div>
+							</div>
+							<div class="col-sm-3">
+								<div class="form-group">
+									<label>Día fin</label>
+									<input type="number" min="1" max="31" class="form-control" id="np-dia-fin">
+								</div>
+							</div>
+							<div class="col-sm-2">
+								<div class="checkbox" style="margin-top:25px">
+									<label><input type="checkbox" id="np-fin-mes"> Fin de mes</label>
+								</div>
+							</div>
+						</div>
+						<button type="button" class="btn btn-success" id="btn-agregar-plantilla">Agregar</button>
+					</div>
+				</div>
+			</div>
+		</div>
 
 	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -154,31 +222,54 @@ $conn->close();
 	<script src="//cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/10.5.0/sweetalert2.min.js" integrity="sha512-V9JHp52ZkrbVVjJqNz/XXYMUOyUfzaGKEGrcD2Ual7n39+UR1yJK0numAHZqkhhGTAH/Klj0KUe4btAZXccw9w==" crossorigin="anonymous"></script>
 	<script>
+	var PLANTILLAS = <?php echo $plantillas_json; ?>;
+
+	function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+	function ultimoDiaMes(year, month) { return new Date(year, month, 0).getDate(); }
+
 	$(document).ready(function() {
 		$('#datos').DataTable({ order: [] });
 
 		$('#nueva_planilla').on('click', function() {
+			if (!PLANTILLAS.length) {
+				Swal.fire('Advertencia', 'Primero crea al menos una plantilla de periodo en "Gestionar plantillas"', 'warning');
+				return;
+			}
+			var opciones = PLANTILLAS.map(function(p, i) {
+				var rango = p.dia_fin_tipo === 'fin_mes' ? ('día ' + p.dia_inicio + ' a fin de mes') : ('día ' + p.dia_inicio + ' al ' + p.dia_fin);
+				return '<option value="' + i + '">' + p.nombre + ' (' + rango + ')</option>';
+			}).join('');
+			var hoy = new Date();
+			var mesActual = hoy.getFullYear() + '-' + pad2(hoy.getMonth() + 1);
+
 			Swal.fire({
 				title: 'Nueva planilla',
 				html:
 					'<div style="text-align:left">' +
-					'<label style="font-size:12px">Fecha inicio</label>' +
-					'<input id="swal-inicio" type="date" class="swal2-input">' +
-					'<label style="font-size:12px">Fecha fin</label>' +
-					'<input id="swal-fin" type="date" class="swal2-input">' +
+					'<label style="font-size:12px">Plantilla de periodo</label>' +
+					'<select id="swal-plantilla" class="swal2-input" style="display:block">' + opciones + '</select>' +
+					'<label style="font-size:12px">Mes</label>' +
+					'<input id="swal-mes" type="month" class="swal2-input" value="' + mesActual + '">' +
 					'</div>',
 				showCancelButton: true,
 				confirmButtonText: 'Generar',
 				cancelButtonText: 'Cancelar',
 				preConfirm: function() {
-					var inicio = document.getElementById('swal-inicio').value;
-					var fin = document.getElementById('swal-fin').value;
-					if (!inicio || !fin) {
-						Swal.showValidationMessage('Ingresa ambas fechas');
+					var plantilla = PLANTILLAS[parseInt(document.getElementById('swal-plantilla').value, 10)];
+					var mes = document.getElementById('swal-mes').value;
+					if (!mes) {
+						Swal.showValidationMessage('Selecciona un mes');
 						return false;
 					}
+					var partes = mes.split('-');
+					var year = parseInt(partes[0], 10), month = parseInt(partes[1], 10);
+					var ultimoDia = ultimoDiaMes(year, month);
+					var diaInicio = Math.min(parseInt(plantilla.dia_inicio, 10), ultimoDia);
+					var diaFin = plantilla.dia_fin_tipo === 'fin_mes' ? ultimoDia : Math.min(parseInt(plantilla.dia_fin, 10), ultimoDia);
+					var inicio = year + '-' + pad2(month) + '-' + pad2(diaInicio);
+					var fin = year + '-' + pad2(month) + '-' + pad2(diaFin);
 					if (fin < inicio) {
-						Swal.showValidationMessage('La fecha fin no puede ser anterior a la fecha inicio');
+						Swal.showValidationMessage('El rango de la plantilla es inválido para ese mes');
 						return false;
 					}
 					return { inicio: inicio, fin: fin };
@@ -201,6 +292,57 @@ $conn->close();
 						Swal.fire('Advertencia', 'Error general del sistema', 'warning');
 					}
 				});
+			});
+		});
+
+		$('#btn-gestionar-plantillas').on('click', function() {
+			$('#modal-plantillas').modal('show');
+		});
+
+		$('#btn-agregar-plantilla').on('click', function() {
+			var nombre = $('#np-nombre').val().trim();
+			var diaInicio = $('#np-dia-inicio').val();
+			var finMes = $('#np-fin-mes').is(':checked');
+			var diaFin = $('#np-dia-fin').val();
+			if (!nombre || !diaInicio || (!finMes && !diaFin)) {
+				Swal.fire('Advertencia', 'Completa nombre, día inicio y día fin (o marca "Fin de mes")', 'warning');
+				return;
+			}
+			$.ajax({
+				type: 'POST',
+				dataType: 'json',
+				url: 'inc/registrar_periodo_plantilla.php',
+				data: { nombre: nombre, dia_inicio: diaInicio, dia_fin_tipo: finMes ? 'fin_mes' : 'fijo', dia_fin: diaFin },
+				success: function(data) {
+					if (data.ok) {
+						document.location.reload();
+					} else {
+						Swal.fire('Advertencia', data.mensaje || 'No se pudo crear la plantilla', 'warning');
+					}
+				},
+				error: function() {
+					Swal.fire('Advertencia', 'Error general del sistema', 'warning');
+				}
+			});
+		});
+
+		$('#plantillas-body').on('click', '.btn-borrar-plantilla', function() {
+			var id = $(this).data('id');
+			$.ajax({
+				type: 'GET',
+				dataType: 'json',
+				url: 'inc/borrar_periodo_plantilla.php',
+				data: { id: id },
+				success: function(data) {
+					if (data.ok) {
+						document.location.reload();
+					} else {
+						Swal.fire('Advertencia', data.mensaje || 'No se pudo borrar la plantilla', 'warning');
+					}
+				},
+				error: function() {
+					Swal.fire('Advertencia', 'Error general del sistema', 'warning');
+				}
 			});
 		});
 	});

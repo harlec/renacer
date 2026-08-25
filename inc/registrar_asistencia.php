@@ -14,6 +14,10 @@ if (!isset($_SESSION['id_usr'])) {
     exit;
 }
 
+include('sdba/sdba.php');
+include('config_facturacion.php');
+include('horario_helpers.php');
+
 $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
 $conn->set_charset('utf8');
 
@@ -45,12 +49,7 @@ foreach ($ids as $i => $id_empleado) {
 
     if (!$falto && !$entrada_real && !$salida_real) continue; // fila sin cambios
 
-    $r = $conn->query("SELECT hora_ingreso, hora_salida FROM empleados WHERE id_empleado = $id_empleado");
-    $emp = $r ? $r->fetch_assoc() : null;
-    if (!$emp) continue;
-
-    $prog_ingreso = ($emp['hora_ingreso'] && $emp['hora_ingreso'] != '00:00:00') ? $emp['hora_ingreso'] : null;
-    $prog_salida  = ($emp['hora_salida']  && $emp['hora_salida']  != '00:00:00') ? $emp['hora_salida']  : null;
+    list($prog_ingreso, $prog_salida) = obtener_horario_programado($conn, $id_empleado, $fecha);
 
     $minutos_tardanza = 0;
     $horas_trabajadas = null;

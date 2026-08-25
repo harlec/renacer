@@ -55,6 +55,9 @@ if ($_SESSION['type']=='operador') {
 	      		<li >
 	      			<a class="" href="planillas.php">Planillas</a>
 	      		</li>
+	      		<li>
+	      			<a class="" href="configuracion_planillas.php">Config. planillas</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>
@@ -114,6 +117,8 @@ if ($_SESSION['type']=='operador') {
 															    <label for="sueldo_mensual">Sueldo mensual (S/)</label>
 															    <input type="number" step="0.01" min="0" class="form-control" name="sueldo_mensual" id="sueldo_mensual" placeholder="0.00">
 															</div>
+															<p class="help-block" style="margin-bottom:4px">Horarios (opcionales): si se dejan vacíos, se usa el horario general de la empresa configurado en Config. Planillas.</p>
+															<p class="help-block" style="margin-bottom:2px"><strong>Lunes a viernes</strong></p>
 															<div class="row">
 															    <div class="col-md-6">
 																    <div class="form-group">
@@ -125,6 +130,36 @@ if ($_SESSION['type']=='operador') {
 																    <div class="form-group">
 																	    <label for="hora_salida">Hora de salida</label>
 																	    <input type="time" class="form-control" name="hora_salida" id="hora_salida">
+																	</div>
+															    </div>
+															</div>
+															<p class="help-block" style="margin-bottom:2px"><strong>Sábado</strong></p>
+															<div class="row">
+															    <div class="col-md-6">
+																    <div class="form-group">
+																	    <label for="hora_ingreso_sab">Hora de ingreso</label>
+																	    <input type="time" class="form-control" name="hora_ingreso_sab" id="hora_ingreso_sab">
+																	</div>
+															    </div>
+															    <div class="col-md-6">
+																    <div class="form-group">
+																	    <label for="hora_salida_sab">Hora de salida</label>
+																	    <input type="time" class="form-control" name="hora_salida_sab" id="hora_salida_sab">
+																	</div>
+															    </div>
+															</div>
+															<p class="help-block" style="margin-bottom:2px"><strong>Domingo</strong></p>
+															<div class="row">
+															    <div class="col-md-6">
+																    <div class="form-group">
+																	    <label for="hora_ingreso_dom">Hora de ingreso</label>
+																	    <input type="time" class="form-control" name="hora_ingreso_dom" id="hora_ingreso_dom">
+																	</div>
+															    </div>
+															    <div class="col-md-6">
+																    <div class="form-group">
+																	    <label for="hora_salida_dom">Hora de salida</label>
+																	    <input type="time" class="form-control" name="hora_salida_dom" id="hora_salida_dom">
 																	</div>
 															    </div>
 															</div>

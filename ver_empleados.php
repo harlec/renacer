@@ -25,6 +25,12 @@ foreach ($ventas_list as $value) {
 	$horario = ($value['hora_ingreso'] && $value['hora_ingreso'] != '00:00:00')
 					? substr($value['hora_ingreso'],0,5).' - '.substr($value['hora_salida'],0,5)
 					: '-';
+	if (!empty($value['hora_ingreso_sab']) && $value['hora_ingreso_sab'] != '00:00:00') {
+		$horario .= '<br><small class="text-muted">Sáb: '.substr($value['hora_ingreso_sab'],0,5).' - '.substr($value['hora_salida_sab'],0,5).'</small>';
+	}
+	if (!empty($value['hora_ingreso_dom']) && $value['hora_ingreso_dom'] != '00:00:00') {
+		$horario .= '<br><small class="text-muted">Dom: '.substr($value['hora_ingreso_dom'],0,5).' - '.substr($value['hora_salida_dom'],0,5).'</small>';
+	}
 
 	$datos .='<tr><td>'.$value['id_empleado'].'</td>
 				<td>'.$value['dni'].'</td>
@@ -94,6 +100,9 @@ foreach ($ventas_list as $value) {
 	      		</li>
 	      		<li >
 	      			<a class="" href="planillas.php">Planillas</a>
+	      		</li>
+	      		<li>
+	      			<a class="" href="configuracion_planillas.php">Config. planillas</a>
 	      		</li>
 	      	</ul>
 	      </div>

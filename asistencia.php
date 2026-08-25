@@ -6,12 +6,16 @@ if ($_SESSION['type']=='operador') {
 
 $fecha = isset($_GET['fecha']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['fecha']) ? $_GET['fecha'] : date('Y-m-d');
 
+include('inc/sdba/sdba.php');
+include('inc/config_facturacion.php');
+include('inc/horario_helpers.php');
+
 $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
 $conn->set_charset('utf8');
 
 $fecha_esc = $conn->real_escape_string($fecha);
 $r = $conn->query("
-	SELECT e.id_empleado, e.nombres, e.apellidos, e.cargo, e.hora_ingreso, e.hora_salida,
+	SELECT e.id_empleado, e.nombres, e.apellidos, e.cargo,
 	       a.hora_entrada_real, a.hora_salida_real, a.minutos_tardanza, a.horas_trabajadas, a.observacion
 	FROM empleados e
 	LEFT JOIN asistencias a ON a.id_empleado = e.id_empleado AND a.fecha = '$fecha_esc'
@@ -28,8 +32,9 @@ $obs_badge = [
 $datos = '';
 if ($r) {
 	while ($value = $r->fetch_assoc()) {
-		$horario_prog = ($value['hora_ingreso'] && $value['hora_ingreso'] != '00:00:00')
-			? substr($value['hora_ingreso'],0,5) . ' - ' . substr($value['hora_salida'],0,5)
+		list($hora_ingreso_dia, $hora_salida_dia) = obtener_horario_programado($conn, $value['id_empleado'], $fecha);
+		$horario_prog = ($hora_ingreso_dia && $hora_salida_dia)
+			? substr($hora_ingreso_dia,0,5) . ' - ' . substr($hora_salida_dia,0,5)
 			: '-';
 		$entrada_val = $value['hora_entrada_real'] ? substr($value['hora_entrada_real'],0,5) : '';
 		$salida_val  = $value['hora_salida_real'] ? substr($value['hora_salida_real'],0,5) : '';
@@ -100,6 +105,9 @@ $conn->close();
 	      		</li>
 	      		<li>
 	      			<a class="" href="planillas.php">Planillas</a>
+	      		</li>
+	      		<li>
+	      			<a class="" href="configuracion_planillas.php">Config. planillas</a>
 	      		</li>
 	      	</ul>
 	      </div>

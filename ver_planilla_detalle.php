@@ -266,8 +266,12 @@ $conn->close();
 						dataType: 'json',
 						url: 'inc/borrar_planilla_descuento.php',
 						data: { id: id },
-						success: function() {
-							document.location.reload();
+						success: function(data) {
+							if (data.respuesta) {
+								document.location.reload();
+							} else {
+								Swal.fire('Advertencia', data.mensaje || 'No se pudo borrar el descuento', 'warning');
+							}
 						}
 					});
 				}
