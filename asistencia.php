@@ -107,6 +107,9 @@ $conn->close();
 	      			<a class="" href="planillas.php">Planillas</a>
 	      		</li>
 	      		<li>
+	      			<a class="" href="movimientos.php">Adelantos y abarrotes</a>
+	      		</li>
+	      		<li>
 	      			<a class="" href="configuracion_planillas.php">Config. planillas</a>
 	      		</li>
 	      	</ul>

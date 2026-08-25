@@ -33,6 +33,15 @@ if ($id > 0) {
             throw new Exception('Esta venta ya fue facturada — no se puede anular directamente. Primero anula el comprobante emitido.');
         }
 
+        // Si es un consumo de abarrotes de un empleado (ver inc/registrar_venta.php), y ese
+        // movimiento ya se aplicó como descuento en una planilla, no se puede anular así de
+        // simple (habría que revertir también el descuento y el pago registrado).
+        $rm  = $conn->query("SELECT id_movimiento, id_detalle_aplicado FROM movimientos_empleado WHERE id_venta = $id");
+        $mov = $rm ? $rm->fetch_assoc() : null;
+        if ($mov && $mov['id_detalle_aplicado'] !== null) {
+            throw new Exception('Esta venta ya se descontó de una planilla del empleado — no se puede anular directamente.');
+        }
+
         $fecha = date('Y-m-d');
 
         // Revierte el stock que se descontó al registrar la venta — mismo patrón que
@@ -56,6 +65,10 @@ if ($id > 0) {
         }
 
         $conn->query("UPDATE ventas SET estado = '2' WHERE id_venta = $id");
+
+        if ($mov) {
+            $conn->query("DELETE FROM movimientos_empleado WHERE id_movimiento = " . (int)$mov['id_movimiento']);
+        }
 
         $conn->commit();
         $respuestaOk  = true;

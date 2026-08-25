@@ -33,6 +33,7 @@ $r = $conn->query("
         SELECT venta, SUM(monto) AS pagado FROM venta_pagos GROUP BY venta
     ) vp ON vp.venta = v.id_venta
     WHERE v.estado != '2'
+      AND v.id_empleado IS NULL
       AND v.fecha_compromiso_pago IS NOT NULL
     GROUP BY v.id_venta
     HAVING total_real - pagado > 0.01

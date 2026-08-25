@@ -14,6 +14,16 @@ $conn->set_charset('utf8');
 $ini_esc = $conn->real_escape_string($fechaini);
 $fin_esc = $conn->real_escape_string($fechafin);
 
+$rper = $conn->query("SELECT id_periodo, fecha_inicio, fecha_fin FROM planilla_periodos ORDER BY fecha_inicio DESC");
+$periodos_opciones = '<option value="">-- elegir periodo de planilla --</option>';
+if ($rper) {
+	while ($p = $rper->fetch_assoc()) {
+		$sel = ($p['fecha_inicio'] === $fechaini && $p['fecha_fin'] === $fechafin) ? 'selected' : '';
+		$periodos_opciones .= '<option value="' . $p['fecha_inicio'] . '|' . $p['fecha_fin'] . '" ' . $sel . '>'
+			. date('d/m/Y', strtotime($p['fecha_inicio'])) . ' - ' . date('d/m/Y', strtotime($p['fecha_fin'])) . '</option>';
+	}
+}
+
 $r = $conn->query("
 	SELECT a.fecha, e.nombres, e.apellidos, a.hora_entrada_prog, a.hora_entrada_real, a.hora_salida_prog, a.hora_salida_real,
 	       a.minutos_tardanza, a.horas_trabajadas, a.observacion
@@ -110,6 +120,12 @@ $conn->close();
 						<div class="col-md-12">
 							<div class="kdashboard">
 								<div class="row">
+									<div class="col-md-4">
+										<div class="form-group">
+											<label>Periodo de planilla</label>
+											<select id="periodo" class="form-control"><?php echo $periodos_opciones; ?></select>
+										</div>
+									</div>
 									<div class="col-md-3">
 										<div class="form-group">
 											<label>Desde</label>
@@ -170,6 +186,14 @@ $conn->close();
 	<script>
 	$(document).ready(function() {
 		$('#datos').DataTable({ order: [] });
+
+		$('#periodo').on('change', function() {
+			var val = $(this).val();
+			if (!val) return;
+			var partes = val.split('|');
+			$('#fechaini').val(partes[0]);
+			$('#fechafin').val(partes[1]);
+		});
 
 		$('#filtrar').on('click', function() {
 			document.location.href = 'ver_asistencias.php?fechaini=' + $('#fechaini').val() + '&fechafin=' + $('#fechafin').val();

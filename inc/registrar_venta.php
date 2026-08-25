@@ -22,8 +22,10 @@ if (isset($_POST) && !empty($_POST)) {
     $total_pre = $_POST['total_pre'];
     $total     = $_POST['total1'];
     $id_vp     = $_POST['id_vp'];
+    $es_empleado  = ($_POST['es_empleado'] ?? '0') === '1';
+    $id_empleado  = $es_empleado ? intval($_POST['id_empleado'] ?? 0) : 0;
 
-    if (!empty($fecha) && !empty($id_p) && !empty($total_pre)) {
+    if (!empty($fecha) && !empty($id_p) && !empty($total_pre) && (!$es_empleado || $id_empleado > 0)) {
 
         $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
         $conn->set_charset('utf8');
@@ -60,7 +62,8 @@ if (isset($_POST) && !empty($_POST)) {
             // Insertar venta
             $fecha_safe = $conn->real_escape_string($fecha);
             $total_safe = floatval($total);
-            $conn->query("INSERT INTO ventas (fecha, fecha_ope, total, cliente, usuario, estado) VALUES ('$fecha_safe', '$fecha_ope', $total_safe, $id_cliente, $id_usuario, '0')");
+            $id_empleado_sql = $id_empleado > 0 ? $id_empleado : 'NULL';
+            $conn->query("INSERT INTO ventas (fecha, fecha_ope, total, cliente, usuario, estado, id_empleado) VALUES ('$fecha_safe', '$fecha_ope', $total_safe, $id_cliente, $id_usuario, '0', $id_empleado_sql)");
             $venta_id = $conn->insert_id;
             if (!$venta_id) throw new Exception("No se pudo crear la venta");
 
@@ -85,6 +88,14 @@ if (isset($_POST) && !empty($_POST)) {
                 // Registrar movimiento
                 $conn->query("INSERT INTO stock (producto, egreso, motivo, stock, fv, stockt, fecha, estado)
                               VALUES ($pid, $cant, '$motivo', $stocktot, '', $stocktot, '$fecha_safe', '0')");
+            }
+
+            // Consumo de abarrotes de un empleado: se registra como movimiento pendiente
+            // para que se descuente automáticamente en la próxima planilla que cubra esta
+            // fecha (ver inc/registrar_planilla_periodo.php). No se cobra en caja.
+            if ($id_empleado > 0) {
+                $conn->query("INSERT INTO movimientos_empleado (id_empleado, tipo, fecha, importe, descripcion, usuario, id_venta)
+                              VALUES ($id_empleado, 'abarrotes', '$fecha_safe', $total_safe, 'Consumo abarrotes - venta #$venta_id', $id_usuario, $venta_id)");
             }
 
             $conn->commit();

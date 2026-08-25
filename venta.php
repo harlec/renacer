@@ -96,6 +96,16 @@ foreach ($el as $value) {
 	$emplel[]= $value['cliente'];
 }
 
+// Empleados activos, para la opción "Es un empleado" (consumo de abarrotes a descontar de planilla)
+$empleados_venta = Sdba::table('empleados');
+$empleados_venta->where('estado', '1');
+$empleados_venta->order_by('nombres', 'asc');
+$empleados_venta_l = $empleados_venta->get();
+$empleados_venta_opciones = '';
+foreach ($empleados_venta_l as $emp) {
+	$empleados_venta_opciones .= '<option value="' . $emp['id_empleado'] . '">' . htmlspecialchars($emp['nombres'] . ' ' . $emp['apellidos']) . '</option>';
+}
+
 
 
 
@@ -178,11 +188,20 @@ foreach ($el as $value) {
 															 </div>
 											    		</div>
 											    		<div class="col-md-6">
-											    			<label for="exampleInputPassword1">Cliente</label>
+											    			<div class="radio-inline"><label><input type="radio" name="es_empleado" value="0" checked> Cliente normal</label></div>
+											    			<div class="radio-inline"><label><input type="radio" name="es_empleado" value="1"> Es un empleado</label></div>
+											    			<div id="bloque-cliente">
+											    				<label for="cliente">Cliente</label>
 											    				<input class="form-control" style="text-transform:uppercase;" type="text" id="cliente" name="cliente" oninput="this.value = this.value.toUpperCase();">
-															    <!-- <select class="form-control" name="cliente">
-															    	<?php //echo $emplel; ?>
-															    </select> -->
+															</div>
+											    			<div id="bloque-empleado" style="display:none">
+											    				<label for="id_empleado">Empleado</label>
+											    				<select class="form-control" id="id_empleado" name="id_empleado">
+											    					<option value="">-- elegir --</option>
+											    					<?php echo $empleados_venta_opciones; ?>
+											    				</select>
+											    				<p class="help-block" style="margin-bottom:0">Se descontará de su próximo pago de planilla, no se cobra en caja.</p>
+											    			</div>
 											    		</div>
 											    	</div>
 
@@ -267,6 +286,19 @@ foreach ($el as $value) {
 	<script >
 	// A $( document ).ready() block.
 	$(document ).ready(function() {
+
+	    $('input[name="es_empleado"]').on('change', function() {
+	        var esEmpleado = $('input[name="es_empleado"]:checked').val() === '1';
+	        $('#bloque-cliente').toggle(!esEmpleado);
+	        $('#bloque-empleado').toggle(esEmpleado);
+	        if (!esEmpleado) { $('#cliente').val(''); $('#id_empleado').val(''); }
+	    });
+
+	    // El nombre del cliente en el recibo debe ser el del empleado, aunque el campo
+	    // #cliente esté oculto (el backend sigue usando 'cliente' para buscar/crear el registro).
+	    $('#id_empleado').on('change', function() {
+	        $('#cliente').val($(this).find('option:selected').text().trim().toUpperCase());
+	    });
 
 	    $( "#cliente" ).autocomplete({
 	      source: function(request, response) {
@@ -544,6 +576,11 @@ $('div.dataTables_filter input').on('keyup', function() {
 			});
 		$('body').on('click',"#guardar_venta", function(e){
           e.preventDefault();
+
+				if ($('input[name="es_empleado"]:checked').val() === '1' && !$('#id_empleado').val()) {
+					swal('Advertencia', 'Selecciona el empleado', 'warning');
+					return;
+				}
 
 				// Validar que ninguna cantidad supere el stock antes de guardar
 				var errorStock = false;

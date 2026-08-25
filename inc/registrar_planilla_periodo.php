@@ -93,6 +93,31 @@ if ($empleados) {
                                VALUES ($id_detalle, 'tardanza', '$fecha_desc_esc', $importe, '" . $conn->real_escape_string($desc) . "', $usuario_id)");
             }
         }
+
+        // Adelantos y crédito de abarrotes entregados en este rango de fechas que aún
+        // no se hayan aplicado a ninguna otra planilla, se vuelcan como descuentos aquí.
+        $rm = $conn->query("SELECT id_movimiento, tipo, fecha, importe, descripcion, id_venta
+                             FROM movimientos_empleado
+                             WHERE id_empleado = $id_empleado AND fecha BETWEEN '$ini_esc' AND '$fin_esc' AND id_detalle_aplicado IS NULL");
+        if ($rm) {
+            while ($m = $rm->fetch_assoc()) {
+                $tipo_esc = $conn->real_escape_string($m['tipo']);
+                $fecha_mov_esc = $conn->real_escape_string($m['fecha']);
+                $desc_mov_esc = $conn->real_escape_string($m['descripcion']);
+                $importe_mov = round((float)$m['importe'], 2);
+                $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                               VALUES ($id_detalle, '$tipo_esc', '$fecha_mov_esc', $importe_mov, '$desc_mov_esc', $usuario_id)");
+                $conn->query("UPDATE movimientos_empleado SET id_detalle_aplicado = $id_detalle WHERE id_movimiento = " . (int)$m['id_movimiento']);
+
+                // Si el movimiento viene de una venta real (abarrotes), se marca esa
+                // venta como pagada vía planilla, para que deje de figurar con saldo
+                // pendiente en el sistema de ventas.
+                if (!empty($m['id_venta'])) {
+                    $conn->query("INSERT INTO venta_pagos (venta, metodo, monto, usuario, fecha)
+                                   VALUES (" . (int)$m['id_venta'] . ", 'planilla', $importe_mov, $usuario_id, NOW())");
+                }
+            }
+        }
     }
 }
 

@@ -116,6 +116,7 @@ $conn->close();
 					<h3>Planilla: <?php echo date('d/m/Y', strtotime($periodo['fecha_inicio'])) . ' - ' . date('d/m/Y', strtotime($periodo['fecha_fin'])); ?>
 					<small>(<?php echo $periodo['dias']; ?> días, <?php echo ucfirst($periodo['estado']); ?>)</small>
 					<a href="planillas.php" class="btn btn-default btn-sm pull-right">Volver</a>
+					<a href="ver_asistencias.php?fechaini=<?php echo $periodo['fecha_inicio']; ?>&fechafin=<?php echo $periodo['fecha_fin']; ?>" class="btn btn-default btn-sm pull-right" style="margin-right:8px"><i class="fas fa-clipboard-list"></i> Ver asistencias del periodo</a>
 					</h3>
 				</div>
 				<div class="container-fluid">
