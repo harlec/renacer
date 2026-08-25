@@ -37,6 +37,23 @@ if ($periodo['estado'] === 'cerrado') {
     exit;
 }
 
+// Los movimientos (adelantos/abarrotes) que ya se habían aplicado a este periodo deben
+// volver a quedar "pendientes" para que se apliquen a la siguiente planilla que los
+// cubra — si no, quedan huérfanos apuntando a un id_detalle que ya no existe (se ve como
+// fecha inválida en movimientos.php) y su descuento se pierde para siempre.
+$rm = $conn->query("SELECT m.id_movimiento, m.id_venta FROM movimientos_empleado m
+                     INNER JOIN planilla_detalle pd ON pd.id_detalle = m.id_detalle_aplicado
+                     WHERE pd.id_periodo = $id_periodo");
+if ($rm) {
+    while ($m = $rm->fetch_assoc()) {
+        // Si además se había marcado como pagada una venta vía planilla, revertir ese pago.
+        if (!empty($m['id_venta'])) {
+            $conn->query("DELETE FROM venta_pagos WHERE venta = " . (int)$m['id_venta'] . " AND metodo = 'planilla'");
+        }
+        $conn->query("UPDATE movimientos_empleado SET id_detalle_aplicado = NULL WHERE id_movimiento = " . (int)$m['id_movimiento']);
+    }
+}
+
 $conn->query("DELETE pdesc FROM planilla_descuentos pdesc
               INNER JOIN planilla_detalle pd ON pd.id_detalle = pdesc.id_detalle
               WHERE pd.id_periodo = $id_periodo");
