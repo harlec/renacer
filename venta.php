@@ -207,7 +207,6 @@ foreach ($empleados_venta_l as $emp) {
 											    					<option value="">-- elegir --</option>
 											    					<?php echo $empleados_venta_opciones; ?>
 											    				</select>
-											    				<p class="help-block" style="margin-bottom:0">Se descontará de su próximo pago de planilla, no se cobra en caja.</p>
 											    			</div>
 											    		</div>
 											    	</div>
