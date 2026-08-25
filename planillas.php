@@ -47,7 +47,10 @@ if ($r) {
 			<td>S/ ' . number_format($descuentos,2) . '</td>
 			<td><strong>S/ ' . number_format($total_pagar,2) . '</strong></td>
 			<td>' . ($estado_badge[$value['estado']] ?? $value['estado']) . '</td>
-			<td><a class="btn btn-custom btn-sm" href="ver_planilla.php?id=' . $value['id_periodo'] . '"><i class="fas fa-eye"></i> Ver</a></td>
+			<td>
+				<a class="btn btn-custom btn-sm" href="ver_planilla.php?id=' . $value['id_periodo'] . '"><i class="fas fa-eye"></i> Ver</a>
+				' . ($value['estado'] !== 'cerrado' ? '<button type="button" class="btn btn-danger btn-sm btn-borrar-planilla" data-id="' . $value['id_periodo'] . '"><i class="fas fa-trash"></i></button>' : '') . '
+			</td>
 		</tr>';
 	}
 }
@@ -218,6 +221,37 @@ $conn->close();
 							document.location.href = 'ver_planilla.php?id=' + data.id_periodo;
 						} else {
 							Swal.fire('Advertencia', data.mensaje || 'No se pudo generar la planilla', 'warning');
+						}
+					},
+					error: function() {
+						Swal.fire('Advertencia', 'Error general del sistema', 'warning');
+					}
+				});
+			});
+		});
+
+		$('body').on('click', '.btn-borrar-planilla', function() {
+			var id = $(this).data('id');
+			Swal.fire({
+				title: 'Seguro de borrar esta planilla?',
+				text: 'Se borrarán también los sueldos y descuentos calculados de todos los colaboradores en este periodo. No podrás revertir esto.',
+				icon: 'warning',
+				showCancelButton: true,
+				confirmButtonColor: '#3085d6',
+				cancelButtonColor: '#d33',
+				confirmButtonText: 'Sí, borrar!'
+			}).then(function(result) {
+				if (!result.isConfirmed) return;
+				$.ajax({
+					type: 'GET',
+					dataType: 'json',
+					url: 'inc/borrar_planilla_periodo.php',
+					data: { id: id },
+					success: function(data) {
+						if (data.respuesta) {
+							document.location.reload();
+						} else {
+							Swal.fire('Advertencia', data.mensaje || 'No se pudo borrar la planilla', 'warning');
 						}
 					},
 					error: function() {
