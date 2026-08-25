@@ -181,13 +181,13 @@ foreach ($empleados_venta_l as $emp) {
 
 											    <form id="venta">
 											    	<div class="row">
-											    		<div class="col-md-6">
+											    		<div class="col-md-3">
 											    			<div class="form-group">
 															    <label for="exampleInputPassword1">Fecha</label>
 															    <input type="date" class="form-control" name="fecha" id="fecha" value="<?php echo $newDate; ?>" placeholder="monto">
 															 </div>
 											    		</div>
-											    		<div class="col-md-6">
+											    		<div class="col-md-4">
 											    			<div class="form-group">
 											    				<label>Tipo de cliente</label>
 											    				<div>
@@ -195,6 +195,8 @@ foreach ($empleados_venta_l as $emp) {
 											    					<label class="radio-inline"><input type="radio" name="es_empleado" value="1"> Es un empleado</label>
 											    				</div>
 											    			</div>
+											    		</div>
+														<div class="col-md-4">
 											    			<div class="form-group" id="bloque-cliente">
 											    				<label for="cliente">Cliente</label>
 											    				<input class="form-control" style="text-transform:uppercase;" type="text" id="cliente" name="cliente" oninput="this.value = this.value.toUpperCase();">
