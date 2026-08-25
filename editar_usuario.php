@@ -63,6 +63,18 @@ $tablet_checked = (!empty($ul['tablet_mode']) && $ul['tablet_mode']==1) ? 'check
 	      		<li >
 	      			<a class="" href="ver_empleados.php">Listar colaboradores</a>
 	      		</li>
+	      		<li>
+	      			<a class="" href="asistencia.php">Asistencia</a>
+	      		</li>
+	      		<li>
+	      			<a class="" href="planillas.php">Planillas</a>
+	      		</li>
+	      		<li>
+	      			<a class="" href="movimientos.php">Adelantos y abarrotes</a>
+	      		</li>
+	      		<li>
+	      			<a class="" href="configuracion_planillas.php">Config. planillas</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>

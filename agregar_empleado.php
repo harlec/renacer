@@ -7,6 +7,14 @@ if ($_SESSION['type']=='operador') {
 include('inc/sdba/sdba.php');
 include('inc/config_facturacion.php');
 
+$cargos_opciones = '';
+$cargos = Sdba::table('cargos');
+$cargos->where('estado', '1');
+$cargos->order_by('nombre', 'asc');
+foreach ($cargos->get() as $c) {
+	$cargos_opciones .= '<option value="' . htmlspecialchars($c['nombre']) . '">' . htmlspecialchars($c['nombre']) . '</option>';
+}
+
 function rango_horario_general($ingreso, $salida) {
 	$ingreso = $ingreso ? substr($ingreso, 0, 5) : '';
 	$salida  = $salida  ? substr($salida, 0, 5)  : '';
@@ -116,17 +124,14 @@ $general_dom = rango_horario_general(get_config('planilla_horario_dom_ingreso'),
 															    <label for="exampleInputPassword1">Dirección</label>
 															    <input type="text" class="form-control" name="direccion" id="direccion" placeholder="">
 															</div>
-															<div class="form-group">
-															    <label for="exampleInputPassword1">Tienda</label>
-															    <select name="ubicacion" class="form-control">
-															    	<option value="1">Chimbote 1</option>
-															    	<option value="2">Chimbote 2</option>
-															    	<option value="3">Trujillo</option>
-															    </select>
-															</div>
+															<input type="hidden" name="ubicacion" value="1">
 															<div class="form-group">
 															    <label for="cargo">Cargo / Ocupación</label>
-															    <input type="text" class="form-control" name="cargo" id="cargo" placeholder="Ej. BOLETEADORA">
+															    <select class="form-control" name="cargo" id="cargo">
+															    	<option value="">-- elegir --</option>
+															    	<?php echo $cargos_opciones; ?>
+															    </select>
+															    <p class="help-block" style="margin-bottom:0">¿No está el cargo que buscas? Agrégalo en <a href="configuracion_planillas.php">Config. planillas</a>.</p>
 															</div>
 															<div class="form-group">
 															    <label for="sueldo_mensual">Sueldo mensual (S/)</label>

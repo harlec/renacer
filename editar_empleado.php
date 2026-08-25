@@ -11,15 +11,6 @@ include('inc/config_facturacion.php');
 $ventas = Sdba::table('empleados'); // creating table object
 $ventas->where('id_empleado',$id);
 $l = $ventas->get_one();
-if ($l['ubicacion']=='1') {
-	$uno = 'selected';
-}
-elseif ($l['ubicacion']=='2') {
-	$dos = 'selected';
-}
-elseif ($l['ubicacion']=='3') {
-	$tres ='selected';
-}
 
 function rango_horario_general($ingreso, $salida) {
 	$ingreso = $ingreso ? substr($ingreso, 0, 5) : '';
@@ -30,6 +21,23 @@ function rango_horario_general($ingreso, $salida) {
 $general_lv  = rango_horario_general(get_config('planilla_horario_lv_ingreso'), get_config('planilla_horario_lv_salida'));
 $general_sab = rango_horario_general(get_config('planilla_horario_sab_ingreso'), get_config('planilla_horario_sab_salida'));
 $general_dom = rango_horario_general(get_config('planilla_horario_dom_ingreso'), get_config('planilla_horario_dom_salida'));
+
+$cargo_actual = $l['cargo'];
+$cargo_actual_en_catalogo = false;
+$cargos_opciones = '';
+$cargos = Sdba::table('cargos');
+$cargos->where('estado', '1');
+$cargos->order_by('nombre', 'asc');
+foreach ($cargos->get() as $c) {
+	if ($c['nombre'] === $cargo_actual) $cargo_actual_en_catalogo = true;
+	$sel = ($c['nombre'] === $cargo_actual) ? 'selected' : '';
+	$cargos_opciones .= '<option value="' . htmlspecialchars($c['nombre']) . '" ' . $sel . '>' . htmlspecialchars($c['nombre']) . '</option>';
+}
+// El cargo actual del empleado puede ya no estar en el catálogo (se desactivó, o es texto
+// libre de antes de este catálogo) — se agrega igual para no perderlo/blanquearlo al guardar.
+if ($cargo_actual !== '' && !$cargo_actual_en_catalogo) {
+	$cargos_opciones .= '<option value="' . htmlspecialchars($cargo_actual) . '" selected>' . htmlspecialchars($cargo_actual) . '</option>';
+}
 
 ?>
 
@@ -132,17 +140,14 @@ $general_dom = rango_horario_general(get_config('planilla_horario_dom_ingreso'),
 															    <label for="exampleInputPassword1">Dirección</label>
 															    <input type="text" class="form-control" name="direccion" id="direccion" value="<?php echo $l['direccion']; ?>">
 															</div>
-															<div class="form-group">
-															    <label for="exampleInputPassword1">Ubicación</label>
-															    <select name="ubicacion" class="form-control">
-															    	<option <?php echo$uno; ?> value="1">Chimbote 1</option>
-															    	<option <?php echo$dos; ?> value="2">Chimbote 2</option>
-															    	<option <?php echo$tres; ?> value="3">Trujillo</option>
-															    </select>
-															</div>
+															<input type="hidden" name="ubicacion" value="<?php echo htmlspecialchars($l['ubicacion']); ?>">
 															<div class="form-group">
 															    <label for="cargo">Cargo / Ocupación</label>
-															    <input type="text" class="form-control" name="cargo" id="cargo" placeholder="Ej. BOLETEADORA" value="<?php echo $l['cargo']; ?>">
+															    <select class="form-control" name="cargo" id="cargo">
+															    	<option value="">-- elegir --</option>
+															    	<?php echo $cargos_opciones; ?>
+															    </select>
+															    <p class="help-block" style="margin-bottom:0">¿No está el cargo que buscas? Agrégalo en <a href="configuracion_planillas.php">Config. planillas</a>.</p>
 															</div>
 															<div class="form-group">
 															    <label for="sueldo_mensual">Sueldo mensual (S/)</label>
