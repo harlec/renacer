@@ -191,8 +191,8 @@ foreach ($empleados_venta_l as $emp) {
 											    			<div class="form-group">
 											    				<label>Tipo de cliente</label>
 											    				<div>
-											    					<label class="radio-inline"><input type="radio" name="es_empleado" value="0" checked> Cliente normal</label>
-											    					<label class="radio-inline"><input type="radio" name="es_empleado" value="1"> Es un empleado</label>
+											    					<label class="radio-inline"><input type="radio" name="es_empleado" value="0" checked> Cliente</label>
+											    					<label class="radio-inline"><input type="radio" name="es_empleado" value="1"> Empleado</label>
 											    				</div>
 											    			</div>
 											    		</div>
