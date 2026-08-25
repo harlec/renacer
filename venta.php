@@ -188,13 +188,18 @@ foreach ($empleados_venta_l as $emp) {
 															 </div>
 											    		</div>
 											    		<div class="col-md-6">
-											    			<div class="radio-inline"><label><input type="radio" name="es_empleado" value="0" checked> Cliente normal</label></div>
-											    			<div class="radio-inline"><label><input type="radio" name="es_empleado" value="1"> Es un empleado</label></div>
-											    			<div id="bloque-cliente">
+											    			<div class="form-group">
+											    				<label>Tipo de cliente</label>
+											    				<div>
+											    					<label class="radio-inline"><input type="radio" name="es_empleado" value="0" checked> Cliente normal</label>
+											    					<label class="radio-inline"><input type="radio" name="es_empleado" value="1"> Es un empleado</label>
+											    				</div>
+											    			</div>
+											    			<div class="form-group" id="bloque-cliente">
 											    				<label for="cliente">Cliente</label>
 											    				<input class="form-control" style="text-transform:uppercase;" type="text" id="cliente" name="cliente" oninput="this.value = this.value.toUpperCase();">
 															</div>
-											    			<div id="bloque-empleado" style="display:none">
+											    			<div class="form-group" id="bloque-empleado" style="display:none">
 											    				<label for="id_empleado">Empleado</label>
 											    				<select class="form-control" id="id_empleado" name="id_empleado">
 											    					<option value="">-- elegir --</option>
