@@ -72,7 +72,10 @@ $general_dom = rango_horario_general(get_config('planilla_horario_dom_ingreso'),
 	      		<li >
 	      			<a class="" href="asistencia.php">Asistencia</a>
 	      		</li>
-	      		<li >
+	      		<li>
+	      			<a class="" href="descansos.php">Descansos</a>
+	      		</li>
+	      			      		<li >
 	      			<a class="" href="planillas.php">Planillas</a>
 	      		</li>
 	      		<li>

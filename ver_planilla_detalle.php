@@ -100,7 +100,10 @@ $conn->close();
 	      		<li>
 	      			<a class="" href="asistencia.php">Asistencia</a>
 	      		</li>
-	      		<li class="active">
+	      		<li>
+	      			<a class="" href="descansos.php">Descansos</a>
+	      		</li>
+	      			      		<li class="active">
 	      			<a class="" href="planillas.php">Planillas</a>
 	      		</li>
 	      		<li>

@@ -87,7 +87,10 @@ if ($cargo_actual !== '' && !$cargo_actual_en_catalogo) {
 	      		<li >
 	      			<a class="" href="asistencia.php">Asistencia</a>
 	      		</li>
-	      		<li >
+	      		<li>
+	      			<a class="" href="descansos.php">Descansos</a>
+	      		</li>
+	      			      		<li >
 	      			<a class="" href="planillas.php">Planillas</a>
 	      		</li>
 	      		<li>

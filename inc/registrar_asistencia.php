@@ -39,9 +39,16 @@ $faltos     = $_POST['falto'] ?? [];
 $usuario_id = intval($_SESSION['id_usr']);
 $guardados  = 0;
 
+$descanso_ids = [];
+$rd = $conn->query("SELECT id_empleado FROM empleado_descansos WHERE fecha = '$fecha'");
+if ($rd) {
+    while ($dr = $rd->fetch_assoc()) $descanso_ids[] = (int) $dr['id_empleado'];
+}
+
 foreach ($ids as $i => $id_empleado) {
     $id_empleado = intval($id_empleado);
     if ($id_empleado <= 0) continue;
+    if (in_array($id_empleado, $descanso_ids, true)) continue; // día de descanso programado, no se marca falta ni asistencia
 
     $falto        = isset($faltos[$i]) && $faltos[$i] == '1';
     $entrada_real = trim($entradas[$i] ?? '');

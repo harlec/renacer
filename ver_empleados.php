@@ -98,7 +98,10 @@ foreach ($ventas_list as $value) {
 	      		<li >
 	      			<a class="" href="asistencia.php">Asistencia</a>
 	      		</li>
-	      		<li >
+	      		<li>
+	      			<a class="" href="descansos.php">Descansos</a>
+	      		</li>
+	      			      		<li >
 	      			<a class="" href="planillas.php">Planillas</a>
 	      		</li>
 	      		<li>

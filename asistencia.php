@@ -16,9 +16,11 @@ $conn->set_charset('utf8');
 $fecha_esc = $conn->real_escape_string($fecha);
 $r = $conn->query("
 	SELECT e.id_empleado, e.nombres, e.apellidos, e.cargo,
-	       a.hora_entrada_real, a.hora_salida_real, a.minutos_tardanza, a.horas_trabajadas, a.observacion
+	       a.hora_entrada_real, a.hora_salida_real, a.minutos_tardanza, a.horas_trabajadas, a.observacion,
+	       d.id_descanso
 	FROM empleados e
 	LEFT JOIN asistencias a ON a.id_empleado = e.id_empleado AND a.fecha = '$fecha_esc'
+	LEFT JOIN empleado_descansos d ON d.id_empleado = e.id_empleado AND d.fecha = '$fecha_esc'
 	WHERE e.estado = '1'
 	ORDER BY e.nombres, e.apellidos
 ");
@@ -32,6 +34,8 @@ $obs_badge = [
 $datos = '';
 if ($r) {
 	while ($value = $r->fetch_assoc()) {
+		$es_descanso = !empty($value['id_descanso']);
+
 		list($hora_ingreso_dia, $hora_salida_dia) = obtener_horario_programado($conn, $value['id_empleado'], $fecha);
 		$horario_prog = ($hora_ingreso_dia && $hora_salida_dia)
 			? substr($hora_ingreso_dia,0,5) . ' - ' . substr($hora_salida_dia,0,5)
@@ -43,12 +47,21 @@ if ($r) {
 		$horas       = $value['horas_trabajadas'] !== null ? number_format((float)$value['horas_trabajadas'],2) . ' h' : '-';
 		$badge       = $value['observacion'] && isset($obs_badge[$value['observacion']]) ? $obs_badge[$value['observacion']] : '-';
 
-		$datos .= '<tr>
+		$dis = $es_descanso ? 'disabled' : '';
+		if ($es_descanso) {
+			$badge = '<span class="label label-info">Descanso</span>';
+		}
+
+		$fila_class = $es_descanso ? ' class="active"' : '';
+		$descanso_chk = $es_descanso ? 'checked' : '';
+
+		$datos .= '<tr' . $fila_class . ' data-descanso="' . ($es_descanso ? '1' : '0') . '">
 			<td>' . htmlspecialchars($value['nombres'] . ' ' . $value['apellidos']) . '<br><small class="text-muted">' . htmlspecialchars($value['cargo']) . '</small></td>
 			<td>' . $horario_prog . '</td>
-			<td><input type="time" class="form-control input-sm entrada" data-id="' . $value['id_empleado'] . '" value="' . $entrada_val . '"></td>
-			<td><input type="time" class="form-control input-sm salida" data-id="' . $value['id_empleado'] . '" value="' . $salida_val . '"></td>
-			<td class="text-center"><input type="checkbox" class="falto" data-id="' . $value['id_empleado'] . '" ' . $falto_chk . '></td>
+			<td><input type="time" class="form-control input-sm entrada" data-id="' . $value['id_empleado'] . '" value="' . $entrada_val . '" ' . $dis . '></td>
+			<td><input type="time" class="form-control input-sm salida" data-id="' . $value['id_empleado'] . '" value="' . $salida_val . '" ' . $dis . '></td>
+			<td class="text-center"><input type="checkbox" class="descanso" data-id="' . $value['id_empleado'] . '" ' . $descanso_chk . ' disabled></td>
+			<td class="text-center"><input type="checkbox" class="falto" data-id="' . $value['id_empleado'] . '" ' . $falto_chk . ' ' . $dis . '></td>
 			<td>' . $tardanza . '</td>
 			<td>' . $horas . '</td>
 			<td>' . $badge . '</td>
@@ -104,6 +117,9 @@ $conn->close();
 	      			<a class="" href="asistencia.php">Asistencia</a>
 	      		</li>
 	      		<li>
+	      			<a class="" href="descansos.php">Descansos</a>
+	      		</li>
+	      			      		<li>
 	      			<a class="" href="planillas.php">Planillas</a>
 	      		</li>
 	      		<li>
@@ -143,6 +159,7 @@ $conn->close();
 											    			<th>Horario</th>
 											    			<th>Entrada</th>
 											    			<th>Salida</th>
+											    			<th>Descanso</th>
 											    			<th>Faltó</th>
 											    			<th>Tardanza</th>
 											    			<th>Horas trab.</th>
@@ -184,6 +201,8 @@ $conn->close();
 
 			$('#datos tbody tr').each(function() {
 				var $row = $(this);
+				if ($row.data('descanso') == 1) return; // día bloqueado, no se envía
+
 				var id = $row.find('.entrada').data('id');
 				id_empleado.push(id);
 				entrada.push($row.find('.entrada').val());
