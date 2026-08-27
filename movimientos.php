@@ -16,12 +16,14 @@ if ($empleados_rows) {
 }
 
 $r = $conn->query("
-	SELECT m.id_movimiento, m.tipo, m.fecha, m.importe, m.descripcion, m.id_detalle_aplicado, m.id_venta,
-	       e.nombres, e.apellidos, pp.fecha_inicio, pp.fecha_fin
+	SELECT m.id_movimiento, m.tipo, m.fecha, m.importe, m.descripcion, m.id_venta, m.partes,
+	       e.nombres, e.apellidos,
+	       COUNT(mc.id_cuota) AS n_cuotas,
+	       SUM(mc.id_detalle_aplicado IS NOT NULL) AS n_aplicadas
 	FROM movimientos_empleado m
 	INNER JOIN empleados e ON e.id_empleado = m.id_empleado
-	LEFT JOIN planilla_detalle pd ON pd.id_detalle = m.id_detalle_aplicado
-	LEFT JOIN planilla_periodos pp ON pp.id_periodo = pd.id_periodo
+	LEFT JOIN movimiento_cuotas mc ON mc.id_movimiento = m.id_movimiento
+	GROUP BY m.id_movimiento
 	ORDER BY m.fecha DESC, m.id_movimiento DESC
 ");
 
@@ -33,23 +35,32 @@ $tipo_badge = [
 $datos = '';
 if ($r) {
 	while ($value = $r->fetch_assoc()) {
-		$estado = $value['id_detalle_aplicado']
-			? '<span class="label label-default">Aplicado (' . date('d/m/Y', strtotime($value['fecha_inicio'])) . ' - ' . date('d/m/Y', strtotime($value['fecha_fin'])) . ')</span>'
-			: '<span class="label label-success">Pendiente</span>';
+		$n_cuotas    = (int) $value['n_cuotas'];
+		$n_aplicadas = (int) $value['n_aplicadas'];
+
+		if ($n_aplicadas <= 0) {
+			$estado = '<span class="label label-success">Pendiente</span>';
+		} elseif ($n_aplicadas < $n_cuotas) {
+			$estado = '<span class="label label-warning">' . $n_aplicadas . '/' . $n_cuotas . ' cuotas aplicadas</span>';
+		} else {
+			$estado = '<span class="label label-default">Aplicado (' . $n_cuotas . ($n_cuotas > 1 ? ' cuotas' : ' cuota') . ')</span>';
+		}
 
 		$acciones = '';
 		if ($value['id_venta']) {
 			// Viene de una venta real (abarrotes desde venta.php): se anula desde la venta, no desde aquí.
 			$acciones .= '<a class="btn btn-default btn-xs" href="ver_venta.php?id=' . $value['id_venta'] . '"><i class="fas fa-eye"></i> Ver venta</a>';
-		} elseif (!$value['id_detalle_aplicado']) {
+		} elseif ($n_aplicadas <= 0) {
 			$acciones .= '<button type="button" class="btn btn-danger btn-xs btn-borrar-movimiento" data-id="' . $value['id_movimiento'] . '"><i class="fa fa-trash"></i></button>';
 		}
+
+		$cuotas_label = $n_cuotas > 1 ? '<br><small class="text-muted">' . $n_cuotas . ' cuotas</small>' : '';
 
 		$datos .= '<tr>
 			<td>' . date('d/m/Y', strtotime($value['fecha'])) . '</td>
 			<td>' . htmlspecialchars($value['nombres'] . ' ' . $value['apellidos']) . '</td>
 			<td>' . ($tipo_badge[$value['tipo']] ?? $value['tipo']) . '</td>
-			<td>S/ ' . number_format((float)$value['importe'], 2) . '</td>
+			<td>S/ ' . number_format((float)$value['importe'], 2) . $cuotas_label . '</td>
 			<td>' . htmlspecialchars($value['descripcion']) . '</td>
 			<td>' . $estado . '</td>
 			<td>' . $acciones . '</td>
@@ -137,7 +148,8 @@ $conn->close();
 												<p class="help-block" style="margin-top:0">
 													Registra un adelanto en efectivo con la fecha en que realmente se entregó. El consumo de <strong>abarrotes</strong> ya no se registra aquí: se hace desde <a href="venta.php">Registrar venta</a> marcando "Es un empleado", para que también descuente el stock.
 													El adelanto se descuenta automáticamente del sueldo del colaborador cuando generes la planilla que cubra esa fecha
-													(no hace falta que la planilla ya exista).
+													(no hace falta que la planilla ya exista). Si se indica más de una cuota, cada planilla que se genere después
+													descuenta una cuota, en orden (por defecto en partes iguales, editables antes de registrar).
 												</p>
 												<div class="row">
 													<div class="col-sm-3">
@@ -158,8 +170,14 @@ $conn->close();
 													</div>
 													<div class="col-sm-2">
 														<div class="form-group">
-															<label>Importe (S/)</label>
+															<label>Importe total (S/)</label>
 															<input type="number" step="0.01" min="0.01" class="form-control" id="mov-importe" placeholder="0.00">
+														</div>
+													</div>
+													<div class="col-sm-2">
+														<div class="form-group">
+															<label>Nº de cuotas</label>
+															<input type="number" step="1" min="1" max="24" value="1" class="form-control" id="mov-cuotas">
 														</div>
 													</div>
 													<div class="col-sm-3">
@@ -167,6 +185,13 @@ $conn->close();
 															<label>Descripción (opcional)</label>
 															<input type="text" class="form-control" id="mov-descripcion" placeholder="Ej. motivo del adelanto">
 														</div>
+													</div>
+												</div>
+												<div class="row" id="cuotas-detalle" style="display:none">
+													<div class="col-sm-12">
+														<label>Monto por cuota (editable)</label>
+														<div id="cuotas-inputs"></div>
+														<p class="help-block">Total de las cuotas: S/ <span id="cuotas-total">0.00</span></p>
 													</div>
 												</div>
 												<button type="button" class="btn btn-success" id="btn-registrar-movimiento">Registrar</button>
@@ -217,11 +242,52 @@ $conn->close();
 	$(document).ready(function() {
 		$('#datos').DataTable({ order: [] });
 
+		function generarCuotas() {
+			var importe = parseFloat($('#mov-importe').val()) || 0;
+			var cuotas = parseInt($('#mov-cuotas').val(), 10) || 1;
+
+			if (cuotas <= 1) {
+				$('#cuotas-detalle').hide();
+				$('#cuotas-inputs').empty();
+				return;
+			}
+
+			var base = Math.floor((importe / cuotas) * 100) / 100;
+			var acumulado = 0;
+			var html = '';
+			for (var i = 1; i < cuotas; i++) {
+				html += '<div class="input-group" style="width:160px;display:inline-block;margin:0 6px 6px 0">' +
+					'<span class="input-group-addon">' + i + '</span>' +
+					'<input type="number" step="0.01" min="0" class="form-control cuota-monto" value="' + base.toFixed(2) + '">' +
+					'</div>';
+				acumulado += base;
+			}
+			var ultimo = Math.round((importe - acumulado) * 100) / 100;
+			html += '<div class="input-group" style="width:160px;display:inline-block;margin:0 6px 6px 0">' +
+				'<span class="input-group-addon">' + cuotas + '</span>' +
+				'<input type="number" step="0.01" min="0" class="form-control cuota-monto" value="' + ultimo.toFixed(2) + '">' +
+				'</div>';
+
+			$('#cuotas-inputs').html(html);
+			$('#cuotas-detalle').show();
+			actualizarTotalCuotas();
+		}
+
+		function actualizarTotalCuotas() {
+			var total = 0;
+			$('.cuota-monto').each(function() { total += parseFloat($(this).val()) || 0; });
+			$('#cuotas-total').text(total.toFixed(2));
+		}
+
+		$('#mov-importe, #mov-cuotas').on('change', generarCuotas);
+		$('#cuotas-inputs').on('input', '.cuota-monto', actualizarTotalCuotas);
+
 		$('#btn-registrar-movimiento').on('click', function() {
 			var id_empleado = $('#mov-empleado').val();
 			var tipo = $('#mov-tipo').val();
 			var fecha = $('#mov-fecha').val();
 			var importe = $('#mov-importe').val();
+			var cuotas = parseInt($('#mov-cuotas').val(), 10) || 1;
 			var descripcion = $('#mov-descripcion').val();
 
 			if (!id_empleado || !fecha || !importe || parseFloat(importe) <= 0) {
@@ -229,11 +295,25 @@ $conn->close();
 				return;
 			}
 
+			var montos = [];
+			if (cuotas <= 1) {
+				montos.push(parseFloat(importe));
+			} else {
+				$('.cuota-monto').each(function() {
+					var v = parseFloat($(this).val());
+					if (v > 0) montos.push(v);
+				});
+				if (montos.length !== cuotas) {
+					Swal.fire('Advertencia', 'Revisa los montos de las cuotas', 'warning');
+					return;
+				}
+			}
+
 			$.ajax({
 				type: 'POST',
 				dataType: 'json',
 				url: 'inc/registrar_movimiento.php',
-				data: { id_empleado: id_empleado, tipo: tipo, fecha: fecha, importe: importe, descripcion: descripcion },
+				data: { id_empleado: id_empleado, tipo: tipo, fecha: fecha, montos: montos, descripcion: descripcion },
 				success: function(data) {
 					if (data.ok) {
 						document.location.reload();

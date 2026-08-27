@@ -24,15 +24,11 @@ if ($conn->connect_error) {
     exit;
 }
 
-$r = $conn->query("SELECT id_detalle_aplicado, id_venta FROM movimientos_empleado WHERE id_movimiento = $id");
+$r = $conn->query("SELECT id_venta FROM movimientos_empleado WHERE id_movimiento = $id");
 $mov = $r ? $r->fetch_assoc() : null;
 
 if (!$mov) {
     echo json_encode(['ok' => false, 'mensaje' => 'El movimiento no existe']);
-    exit;
-}
-if ($mov['id_detalle_aplicado'] !== null) {
-    echo json_encode(['ok' => false, 'mensaje' => 'Este movimiento ya se aplicó a una planilla; bórralo desde el detalle de esa planilla']);
     exit;
 }
 if ($mov['id_venta'] !== null) {
@@ -40,6 +36,14 @@ if ($mov['id_venta'] !== null) {
     exit;
 }
 
+$rc = $conn->query("SELECT COUNT(*) AS n FROM movimiento_cuotas WHERE id_movimiento = $id AND id_detalle_aplicado IS NOT NULL");
+$aplicadas = $rc ? (int) $rc->fetch_assoc()['n'] : 0;
+if ($aplicadas > 0) {
+    echo json_encode(['ok' => false, 'mensaje' => 'Este movimiento ya tiene cuotas aplicadas a una planilla; bórralas desde el detalle de esa planilla']);
+    exit;
+}
+
+$conn->query("DELETE FROM movimiento_cuotas WHERE id_movimiento = $id");
 $conn->query("DELETE FROM movimientos_empleado WHERE id_movimiento = $id");
 $ok = !$conn->error;
 $conn->close();

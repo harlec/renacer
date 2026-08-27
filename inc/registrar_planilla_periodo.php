@@ -94,28 +94,48 @@ if ($empleados) {
             }
         }
 
-        // Adelantos y crédito de abarrotes entregados en este rango de fechas que aún
-        // no se hayan aplicado a ninguna otra planilla, se vuelcan como descuentos aquí.
-        $rm = $conn->query("SELECT id_movimiento, tipo, fecha, importe, descripcion, id_venta
+        // Adelantos y crédito de abarrotes: cada movimiento pendiente (con fecha hasta
+        // el fin de este periodo) aporta como máximo UNA cuota por planilla generada,
+        // en orden — así es como un movimiento en "3 partes" se reparte en las 3
+        // próximas planillas que se generen, sin importar el rango exacto de fechas de
+        // cada una (solo la primera cuota necesita que la fecha del movimiento caiga
+        // dentro/antes del periodo).
+        $rm = $conn->query("SELECT id_movimiento, tipo, descripcion, id_venta, partes
                              FROM movimientos_empleado
-                             WHERE id_empleado = $id_empleado AND fecha BETWEEN '$ini_esc' AND '$fin_esc' AND id_detalle_aplicado IS NULL");
+                             WHERE id_empleado = $id_empleado AND fecha <= '$fin_esc'
+                             ORDER BY fecha ASC, id_movimiento ASC");
         if ($rm) {
             while ($m = $rm->fetch_assoc()) {
-                $tipo_esc = $conn->real_escape_string($m['tipo']);
-                $fecha_mov_esc = $conn->real_escape_string($m['fecha']);
-                $desc_mov_esc = $conn->real_escape_string($m['descripcion']);
-                $importe_mov = round((float)$m['importe'], 2);
-                $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
-                               VALUES ($id_detalle, '$tipo_esc', '$fecha_mov_esc', $importe_mov, '$desc_mov_esc', $usuario_id)");
-                $conn->query("UPDATE movimientos_empleado SET id_detalle_aplicado = $id_detalle WHERE id_movimiento = " . (int)$m['id_movimiento']);
+                $id_movimiento = (int) $m['id_movimiento'];
+                $rc = $conn->query("SELECT id_cuota, numero_cuota, monto FROM movimiento_cuotas
+                                     WHERE id_movimiento = $id_movimiento AND id_detalle_aplicado IS NULL
+                                     ORDER BY numero_cuota ASC LIMIT 1");
+                $cuota = $rc && $rc->num_rows ? $rc->fetch_assoc() : null;
+                if (!$cuota) continue; // sin cuotas pendientes
 
-                // Si el movimiento viene de una venta real (abarrotes), se marca esa
-                // venta como pagada vía planilla, para que deje de figurar con saldo
-                // pendiente en el sistema de ventas.
-                if (!empty($m['id_venta'])) {
-                    $conn->query("INSERT INTO venta_pagos (venta, metodo, monto, usuario, fecha)
-                                   VALUES (" . (int)$m['id_venta'] . ", 'planilla', $importe_mov, $usuario_id, NOW())");
+                $monto_cuota = round((float) $cuota['monto'], 2);
+
+                $tipo_esc = $conn->real_escape_string($m['tipo']);
+                $desc_base = $m['descripcion'] ?: ucfirst($m['tipo']);
+                $desc = (int) $m['partes'] > 1
+                    ? $desc_base . " (cuota {$cuota['numero_cuota']}/{$m['partes']})"
+                    : $desc_base;
+                $desc_esc = $conn->real_escape_string($desc);
+
+                if ($monto_cuota > 0) {
+                    $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                                   VALUES ($id_detalle, '$tipo_esc', '$fin_esc', $monto_cuota, '$desc_esc', $usuario_id)");
+
+                    // Si el movimiento viene de una venta real (abarrotes), esta cuota
+                    // se registra como un pago parcial de esa venta, para que deje de
+                    // figurar (total o parcialmente) con saldo pendiente.
+                    if (!empty($m['id_venta'])) {
+                        $conn->query("INSERT INTO venta_pagos (venta, metodo, monto, usuario, fecha)
+                                       VALUES (" . (int)$m['id_venta'] . ", 'planilla', $monto_cuota, $usuario_id, NOW())");
+                    }
                 }
+
+                $conn->query("UPDATE movimiento_cuotas SET id_detalle_aplicado = $id_detalle WHERE id_cuota = " . (int)$cuota['id_cuota']);
             }
         }
     }

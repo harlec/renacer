@@ -34,12 +34,17 @@ if ($id > 0) {
         }
 
         // Si es un consumo de abarrotes de un empleado (ver inc/registrar_venta.php), y ese
-        // movimiento ya se aplicó como descuento en una planilla, no se puede anular así de
-        // simple (habría que revertir también el descuento y el pago registrado).
-        $rm  = $conn->query("SELECT id_movimiento, id_detalle_aplicado FROM movimientos_empleado WHERE id_venta = $id");
+        // movimiento ya tiene alguna cuota aplicada como descuento en una planilla, no se
+        // puede anular así de simple (habría que revertir también el descuento y el pago
+        // registrado).
+        $rm  = $conn->query("SELECT id_movimiento FROM movimientos_empleado WHERE id_venta = $id");
         $mov = $rm ? $rm->fetch_assoc() : null;
-        if ($mov && $mov['id_detalle_aplicado'] !== null) {
-            throw new Exception('Esta venta ya se descontó de una planilla del empleado — no se puede anular directamente.');
+        if ($mov) {
+            $rc = $conn->query("SELECT COUNT(*) AS n FROM movimiento_cuotas WHERE id_movimiento = " . (int)$mov['id_movimiento'] . " AND id_detalle_aplicado IS NOT NULL");
+            $aplicadas = $rc ? (int) $rc->fetch_assoc()['n'] : 0;
+            if ($aplicadas > 0) {
+                throw new Exception('Esta venta ya se descontó de una planilla del empleado — no se puede anular directamente.');
+            }
         }
 
         $fecha = date('Y-m-d');
@@ -49,10 +54,10 @@ if ($id > 0) {
         // contador real que usan tablet.php/venta.php), solo que sumando en vez de restando.
         $motivo_original = $conn->real_escape_string('v-' . $id);
         $rs = $conn->query("SELECT producto, egreso, fv FROM stock WHERE motivo = '$motivo_original'");
-        while ($mov = $rs->fetch_assoc()) {
-            $pid  = (int)$mov['producto'];
-            $cant = (float)$mov['egreso'];
-            $fv   = $conn->real_escape_string($mov['fv'] ?? '');
+        while ($srow = $rs->fetch_assoc()) {
+            $pid  = (int)$srow['producto'];
+            $cant = (float)$srow['egreso'];
+            $fv   = $conn->real_escape_string($srow['fv'] ?? '');
             if ($pid <= 0 || $cant <= 0) continue;
 
             $conn->query("UPDATE productos SET stockp = ROUND(stockp + $cant, 3) WHERE id_producto = $pid");
@@ -67,6 +72,7 @@ if ($id > 0) {
         $conn->query("UPDATE ventas SET estado = '2' WHERE id_venta = $id");
 
         if ($mov) {
+            $conn->query("DELETE FROM movimiento_cuotas WHERE id_movimiento = " . (int)$mov['id_movimiento']);
             $conn->query("DELETE FROM movimientos_empleado WHERE id_movimiento = " . (int)$mov['id_movimiento']);
         }
 

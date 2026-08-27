@@ -37,20 +37,24 @@ if ($periodo['estado'] === 'cerrado') {
     exit;
 }
 
-// Los movimientos (adelantos/abarrotes) que ya se habían aplicado a este periodo deben
-// volver a quedar "pendientes" para que se apliquen a la siguiente planilla que los
-// cubra — si no, quedan huérfanos apuntando a un id_detalle que ya no existe (se ve como
-// fecha inválida en movimientos.php) y su descuento se pierde para siempre.
-$rm = $conn->query("SELECT m.id_movimiento, m.id_venta FROM movimientos_empleado m
-                     INNER JOIN planilla_detalle pd ON pd.id_detalle = m.id_detalle_aplicado
+// Las cuotas de movimientos (adelantos/abarrotes) que ya se habían aplicado a este
+// periodo deben volver a quedar "pendientes" para que se apliquen a la siguiente
+// planilla que se genere — si no, quedan huérfanas apuntando a un id_detalle que ya no
+// existe y esa cuota se pierde para siempre.
+$rm = $conn->query("SELECT mc.id_cuota, mc.monto, m.id_venta
+                     FROM movimiento_cuotas mc
+                     INNER JOIN movimientos_empleado m ON m.id_movimiento = mc.id_movimiento
+                     INNER JOIN planilla_detalle pd ON pd.id_detalle = mc.id_detalle_aplicado
                      WHERE pd.id_periodo = $id_periodo");
 if ($rm) {
     while ($m = $rm->fetch_assoc()) {
-        // Si además se había marcado como pagada una venta vía planilla, revertir ese pago.
+        // Si esta cuota se había marcado como pago parcial de una venta, revertir solo
+        // ese pago (por monto, ya que varias cuotas pueden compartir el mismo importe).
         if (!empty($m['id_venta'])) {
-            $conn->query("DELETE FROM venta_pagos WHERE venta = " . (int)$m['id_venta'] . " AND metodo = 'planilla'");
+            $monto_esc = (float) $m['monto'];
+            $conn->query("DELETE FROM venta_pagos WHERE venta = " . (int)$m['id_venta'] . " AND metodo = 'planilla' AND monto = $monto_esc LIMIT 1");
         }
-        $conn->query("UPDATE movimientos_empleado SET id_detalle_aplicado = NULL WHERE id_movimiento = " . (int)$m['id_movimiento']);
+        $conn->query("UPDATE movimiento_cuotas SET id_detalle_aplicado = NULL WHERE id_cuota = " . (int)$m['id_cuota']);
     }
 }
 
