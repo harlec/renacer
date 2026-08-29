@@ -156,6 +156,16 @@ if ($cargo_actual !== '' && !$cargo_actual_en_catalogo) {
 															    <label for="sueldo_mensual">Sueldo mensual (S/)</label>
 															    <input type="number" step="0.01" min="0" class="form-control" name="sueldo_mensual" id="sueldo_mensual" placeholder="0.00" value="<?php echo $l['sueldo_mensual']; ?>">
 															</div>
+															<div class="form-group">
+															    <label>AFP</label><br>
+															    <label class="radio-inline"><input type="radio" name="afp" value="1" <?php echo $l['afp'] == '1' ? 'checked' : ''; ?>> Sí</label>
+															    <label class="radio-inline"><input type="radio" name="afp" value="0" <?php echo $l['afp'] == '1' ? '' : 'checked'; ?>> No</label>
+															</div>
+															<div class="form-group" id="grupo-afp-monto" style="<?php echo $l['afp'] == '1' ? '' : 'display:none'; ?>">
+															    <label for="afp_monto_mensual">Monto de descuento mensual por AFP (S/)</label>
+															    <input type="number" step="0.01" min="0" class="form-control" name="afp_monto_mensual" id="afp_monto_mensual" placeholder="0.00" value="<?php echo $l['afp_monto_mensual']; ?>">
+															    <p class="help-block" style="margin-bottom:0">Se descuenta la mitad de este monto en cada quincena.</p>
+															</div>
 															<p class="help-block" style="margin-bottom:4px">Horarios (opcionales): si se dejan vacíos, se usa el horario general de la empresa configurado en Config. Planillas.</p>
 															<p class="help-block" style="margin-bottom:2px"><strong>Lunes a viernes</strong> <span class="text-muted">(general: <?php echo $general_lv; ?>)</span></p>
 															<div class="row">
@@ -232,6 +242,10 @@ if ($cargo_actual !== '' && !$cargo_actual_en_catalogo) {
 	<script >
 	// A $( document ).ready() block.
 	$(document ).ready(function() {
+
+		$('input[name="afp"]').on('change', function() {
+			$('#grupo-afp-monto').toggle($('input[name="afp"]:checked').val() == '1');
+		});
 
 		$('body').on('click',"#guardar_venta", function(e){
           e.preventDefault();

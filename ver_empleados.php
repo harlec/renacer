@@ -32,6 +32,10 @@ foreach ($ventas_list as $value) {
 		$horario .= '<br><small class="text-muted">Dom: '.substr($value['hora_ingreso_dom'],0,5).' - '.substr($value['hora_salida_dom'],0,5).'</small>';
 	}
 
+	$afp_label = $value['afp'] == '1'
+					? '<span class="label label-info">Sí (S/ '.number_format((float)$value['afp_monto_mensual'],2).')</span>'
+					: '<span class="label label-default">No</span>';
+
 	$datos .='<tr><td>'.$value['id_empleado'].'</td>
 				<td>'.$value['dni'].'</td>
     			<td>'.$value['nombres'].'</td>
@@ -43,6 +47,7 @@ foreach ($ventas_list as $value) {
     			<td>'.$value['cargo'].'</td>
     			<td>'.$horario.'</td>
     			<td>S/ '.number_format((float)$value['sueldo_mensual'],2).'</td>
+    			<td>'.$afp_label.'</td>
     			<td>'.$value['puntos'].'</td>
     			<td><a title="Ver venta" class="" alt="ver" href="editar_empleado.php?id='.$value['id_empleado'].'"><img src="assets/img/edit.png" /> </a><button class="btn-custom" id="borrar" value="'.$value['id_empleado'].'" alt="borrar"><img src="assets/img/trash.png" /></button></td>
     		  </tr>';
@@ -140,6 +145,7 @@ foreach ($ventas_list as $value) {
 											    			<th>Cargo</th>
 											    			<th>Horario</th>
 											    			<th>Sueldo</th>
+											    			<th>AFP</th>
 											    			<th>Puntos</th>
 											    			<th>Opciones</th>
 											    		</tr> 

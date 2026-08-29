@@ -31,6 +31,7 @@ $tipo_label = [
 	'adelanto'  => 'Adelanto',
 	'falta'     => 'Día faltado',
 	'prestamo'  => 'Préstamo',
+	'afp'       => 'AFP',
 ];
 
 $rd = $conn->query("SELECT id_descuento, tipo, fecha, importe, descripcion FROM planilla_descuentos WHERE id_detalle = $id_detalle ORDER BY fecha, id_descuento");
@@ -206,6 +207,7 @@ $conn->close();
 					'<option value="falta">Día faltado</option>' +
 					'<option value="tardanza">Tardanza</option>' +
 					'<option value="prestamo">Préstamo</option>' +
+					'<option value="afp">AFP</option>' +
 					'</select>' +
 					'<label style="font-size:12px">Fecha</label>' +
 					'<input id="swal-fecha" type="date" class="swal2-input" value="' + new Date().toISOString().slice(0,10) + '">' +

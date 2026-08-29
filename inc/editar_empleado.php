@@ -29,10 +29,12 @@ if (isset($_POST) && !empty($_POST)) {
 	$hora_ingreso_dom = $_POST['hora_ingreso_dom'] ? $_POST['hora_ingreso_dom'] : '00:00:00';
 	$hora_salida_dom = $_POST['hora_salida_dom'] ? $_POST['hora_salida_dom'] : '00:00:00';
 	$sueldo_mensual = $_POST['sueldo_mensual'] ? $_POST['sueldo_mensual'] : 0;
+	$afp = isset($_POST['afp']) && $_POST['afp'] == '1' ? '1' : '0';
+	$afp_monto_mensual = $afp == '1' && $_POST['afp_monto_mensual'] ? $_POST['afp_monto_mensual'] : 0;
 
 			$ventas = Sdba::table('empleados');
 			$ventas->where('id_empleado',$id);
-			$data = array('dni'=>$dni,'nombres'=> $nombres,'apellidos'=>$apellidos,'email'=>$email,'celular'=>$celular,'direccion'=>$direccion,'ubicacion'=>$ubicacion,'cargo'=>$cargo,'hora_ingreso'=>$hora_ingreso,'hora_salida'=>$hora_salida,'hora_ingreso_sab'=>$hora_ingreso_sab,'hora_salida_sab'=>$hora_salida_sab,'hora_ingreso_dom'=>$hora_ingreso_dom,'hora_salida_dom'=>$hora_salida_dom,'sueldo_mensual'=>$sueldo_mensual,'estado'=>'1');
+			$data = array('dni'=>$dni,'nombres'=> $nombres,'apellidos'=>$apellidos,'email'=>$email,'celular'=>$celular,'direccion'=>$direccion,'ubicacion'=>$ubicacion,'cargo'=>$cargo,'hora_ingreso'=>$hora_ingreso,'hora_salida'=>$hora_salida,'hora_ingreso_sab'=>$hora_ingreso_sab,'hora_salida_sab'=>$hora_salida_sab,'hora_ingreso_dom'=>$hora_ingreso_dom,'hora_salida_dom'=>$hora_salida_dom,'sueldo_mensual'=>$sueldo_mensual,'afp'=>$afp,'afp_monto_mensual'=>$afp_monto_mensual,'estado'=>'1');
 			$ventas->update($data);
 			$venta_id = $id;
 			if ($venta_id) {

@@ -58,7 +58,7 @@ if ($dias_mes_referencia <= 0) $dias_mes_referencia = 30;
 $factor_tardanza = (float) get_config('planilla_factor_tardanza', 2);
 if ($factor_tardanza <= 0) $factor_tardanza = 2;
 
-$empleados = $conn->query("SELECT id_empleado, sueldo_mensual FROM empleados WHERE estado = '1'");
+$empleados = $conn->query("SELECT id_empleado, sueldo_mensual, afp, afp_monto_mensual FROM empleados WHERE estado = '1'");
 if ($empleados) {
     while ($emp = $empleados->fetch_assoc()) {
         $id_empleado    = (int) $emp['id_empleado'];
@@ -91,6 +91,17 @@ if ($empleados) {
                 $fecha_desc_esc = $conn->real_escape_string($a['fecha']);
                 $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
                                VALUES ($id_detalle, 'tardanza', '$fecha_desc_esc', $importe, '" . $conn->real_escape_string($desc) . "', $usuario_id)");
+            }
+        }
+
+        // AFP: si el colaborador está marcado con AFP y tiene un monto mensual configurado,
+        // cada planilla que se genere aplica la mitad de ese monto (una mitad por quincena).
+        if ($emp['afp'] == '1') {
+            $afp_monto_mensual = round((float) $emp['afp_monto_mensual'], 2);
+            if ($afp_monto_mensual > 0) {
+                $importe_afp = round($afp_monto_mensual / 2, 2);
+                $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                               VALUES ($id_detalle, 'afp', '$fin_esc', $importe_afp, 'AFP (quincena)', $usuario_id)");
             }
         }
 

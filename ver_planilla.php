@@ -23,7 +23,8 @@ $r = $conn->query("
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='abarrotes' THEN pdesc.importe ELSE 0 END),0) AS abarrotes,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='adelanto'  THEN pdesc.importe ELSE 0 END),0) AS adelanto,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='falta'     THEN pdesc.importe ELSE 0 END),0) AS falta,
-	       COALESCE(SUM(CASE WHEN pdesc.tipo='prestamo'  THEN pdesc.importe ELSE 0 END),0) AS prestamo
+	       COALESCE(SUM(CASE WHEN pdesc.tipo='prestamo'  THEN pdesc.importe ELSE 0 END),0) AS prestamo,
+	       COALESCE(SUM(CASE WHEN pdesc.tipo='afp'       THEN pdesc.importe ELSE 0 END),0) AS afp
 	FROM planilla_detalle pd
 	INNER JOIN empleados e ON e.id_empleado = pd.id_empleado
 	LEFT JOIN planilla_descuentos pdesc ON pdesc.id_detalle = pd.id_detalle
@@ -37,7 +38,7 @@ $gran_total = 0;
 if ($r) {
 	while ($value = $r->fetch_assoc()) {
 		$sueldo = round((float)$value['sueldo_periodo'], 2);
-		$descuentos = round((float)$value['tardanza'] + (float)$value['abarrotes'] + (float)$value['adelanto'] + (float)$value['falta'] + (float)$value['prestamo'], 2);
+		$descuentos = round((float)$value['tardanza'] + (float)$value['abarrotes'] + (float)$value['adelanto'] + (float)$value['falta'] + (float)$value['prestamo'] + (float)$value['afp'], 2);
 		$total = round($sueldo - $descuentos, 2);
 		$gran_total += $total;
 
@@ -50,6 +51,7 @@ if ($r) {
 			<td>S/ ' . number_format((float)$value['adelanto'],2) . '</td>
 			<td>S/ ' . number_format((float)$value['falta'],2) . '</td>
 			<td>S/ ' . number_format((float)$value['prestamo'],2) . '</td>
+			<td>S/ ' . number_format((float)$value['afp'],2) . '</td>
 			<td><strong>S/ ' . number_format($total,2) . '</strong></td>
 			<td><a class="btn btn-custom btn-sm" href="ver_planilla_detalle.php?id_detalle=' . $value['id_detalle'] . '"><i class="fas fa-list"></i> Detalle</a></td>
 		</tr>';
@@ -147,6 +149,7 @@ $conn->close();
 											    			<th>Adelantos</th>
 											    			<th>Faltas</th>
 											    			<th>Préstamos</th>
+											    			<th>AFP</th>
 											    			<th>Total a pagar</th>
 											    			<th>Opciones</th>
 											    		</tr>
@@ -156,7 +159,7 @@ $conn->close();
 											    	</tbody>
 											    	<tfoot>
 											    		<tr>
-											    			<th colspan="8" class="text-right">TOTAL A PAGAR</th>
+											    			<th colspan="9" class="text-right">TOTAL A PAGAR</th>
 											    			<th colspan="2">S/ <?php echo number_format($gran_total,2); ?></th>
 											    		</tr>
 											    	</tfoot>
