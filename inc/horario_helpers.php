@@ -37,3 +37,11 @@ function obtener_horario_programado($conn, $id_empleado, $fecha) {
 
     return [$ingreso, $salida];
 }
+
+function formatear_horas_trabajadas($horas_decimal) {
+    $horas_decimal = (float) $horas_decimal;
+    $horas = (int) floor($horas_decimal);
+    $minutos = (int) round(($horas_decimal - $horas) * 60);
+    if ($minutos == 60) { $minutos = 0; $horas++; }
+    return $horas . 'h ' . str_pad((string) $minutos, 2, '0', STR_PAD_LEFT) . 'm';
+}

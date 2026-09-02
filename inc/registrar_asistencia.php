@@ -77,7 +77,15 @@ foreach ($ids as $i => $id_empleado) {
             }
         }
         if ($entrada_real && $salida_real) {
-            $horas = (strtotime($salida_real) - strtotime($entrada_real)) / 3600;
+            // Si llegó antes de su horario programado, para el cálculo de horas trabajadas
+            // se toma la hora programada (no se le da crédito por llegar antes); la hora
+            // real siempre queda guardada en hora_entrada_real para otros fines. Si llegó
+            // después (tardanza), sí se usa la hora real, que ya reduce las horas trabajadas.
+            $entrada_calculo = $entrada_real;
+            if ($prog_ingreso && strtotime($entrada_real) < strtotime($prog_ingreso)) {
+                $entrada_calculo = $prog_ingreso;
+            }
+            $horas = (strtotime($salida_real) - strtotime($entrada_calculo)) / 3600;
             $horas_trabajadas = $horas > 0 ? round($horas, 2) : 0;
         }
     }

@@ -4,6 +4,8 @@ if ($_SESSION['type']=='operador') {
 	header("Location: dashboard.php");
 }
 
+include('inc/horario_helpers.php');
+
 $hoy = date('Y-m-d');
 $fechaini = isset($_GET['fechaini']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['fechaini']) ? $_GET['fechaini'] : date('Y-m-d', strtotime('-6 days'));
 $fechafin = isset($_GET['fechafin']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['fechafin']) ? $_GET['fechafin'] : $hoy;
@@ -51,7 +53,7 @@ if ($r) {
 			<td>' . ($value['hora_salida_prog'] ? substr($value['hora_salida_prog'],0,5) : '-') . '</td>
 			<td>' . ($value['hora_salida_real'] ? substr($value['hora_salida_real'],0,5) : '-') . '</td>
 			<td>' . ($value['minutos_tardanza'] ? $value['minutos_tardanza'] . ' min' : '-') . '</td>
-			<td>' . ($value['horas_trabajadas'] !== null ? number_format((float)$value['horas_trabajadas'],2).' h' : '-') . '</td>
+			<td>' . ($value['horas_trabajadas'] !== null ? formatear_horas_trabajadas($value['horas_trabajadas']) : '-') . '</td>
 			<td>' . $badge . '</td>
 		</tr>';
 	}

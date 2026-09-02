@@ -44,7 +44,7 @@ if ($r) {
 		$salida_val  = $value['hora_salida_real'] ? substr($value['hora_salida_real'],0,5) : '';
 		$falto_chk   = $value['observacion'] == 'FALTO' ? 'checked' : '';
 		$tardanza    = $value['minutos_tardanza'] ? $value['minutos_tardanza'] . ' min' : '-';
-		$horas       = $value['horas_trabajadas'] !== null ? number_format((float)$value['horas_trabajadas'],2) . ' h' : '-';
+		$horas       = $value['horas_trabajadas'] !== null ? formatear_horas_trabajadas($value['horas_trabajadas']) : '-';
 		$badge       = $value['observacion'] && isset($obs_badge[$value['observacion']]) ? $obs_badge[$value['observacion']] : '-';
 
 		$dis = $es_descanso ? 'disabled' : '';
