@@ -25,29 +25,31 @@ $producto = $_POST['producto'];
 	$ventas1->order_by('id_stock','asc');
 	$ventas_list1 = $ventas1->get();
 	$entro = '';
-	$stockt = 0;
-	$ingreso = 0;
-	$egreso = 0;
+	$primer_stockt = null;
+	$primer_ingreso = 0;
+	$primer_egreso = 0;
 	foreach ($ventas_list1 as $value) {
 		if ($value['motivo']=='si') {
 			$entro = 'si';
 		}
 
 		$datos .='<tr>
-				<td>'.$value['id_stock'].'</td>  
-    			<td>'.$value['fecha'].'</td> 
-    			<td>'.$value['motivo'].'</td>  
+				<td>'.$value['id_stock'].'</td>
+    			<td>'.$value['fecha'].'</td>
+    			<td>'.$value['motivo'].'</td>
     			<td>'.$value['ingreso'].'</td>
     			<td>'.$value['egreso'].'</td>
     			<td>'.$value['stockt'].'</td>
     		  </tr>';
 
-	    	$stockt = isset($value['stockt']) ? (float)$value['stockt'] : 0;
-	    	$ingreso = isset($value['ingreso']) ? (float)$value['ingreso'] : 0;
-	    	$egreso = isset($value['egreso']) ? (float)$value['egreso'] : 0;
+	    	if ($primer_stockt === null) {
+	    		$primer_stockt = isset($value['stockt']) ? (float)$value['stockt'] : 0;
+	    		$primer_ingreso = isset($value['ingreso']) ? (float)$value['ingreso'] : 0;
+	    		$primer_egreso = isset($value['egreso']) ? (float)$value['egreso'] : 0;
+	    	}
 	}
 
-	$stockt = $stockt - $ingreso + $egreso;
+	$stockt = $primer_stockt !== null ? ($primer_stockt - $primer_ingreso + $primer_egreso) : 0;
 
 	if ($entro!='si') {
 		$datos .='<tr>
