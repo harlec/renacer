@@ -12,7 +12,7 @@ else{
 }
 
 function menu($i){
-	$uno = ''; $dos = ''; $tres = ''; $cuatro = ''; $cinco = ''; $seis = ''; $siete = ''; $ocho = ''; $nueve = '';
+	$uno = ''; $dos = ''; $tres = ''; $cuatro = ''; $cinco = ''; $seis = ''; $siete = ''; $ocho = ''; $nueve = ''; $diez = '';
 	switch ($i) {
 		case '1':
 			$uno = 'active';
@@ -41,6 +41,9 @@ function menu($i){
 		case '9':
 			$nueve = 'active';
 			break;
+		case '10':
+			$diez = 'active';
+			break;
 	}
 	if ($_SESSION['type']=='admin') {
 		echo '<div id="navbar" class="navbar-collapse collapse">
@@ -52,6 +55,7 @@ function menu($i){
 	            <li class="'.$cuatro.' text-center" ><a title="Ventas" href="venta.php"><img class="isvg" src="assets/img/ventas.png"><br><span>Ventas</span></a></li>
 	            <li class="'.$nueve.' text-center" ><a title="Caja" href="caja_pagos.php"><img class="isvg" src="assets/img/caja.png"><br><span>Caja</span></a></li>
 	            <li class="'.$seis.' text-center" ><a title="Compras" href="compra.php"><img class="isvg" src="assets/img/compras.png"><br><span>Compras</span></a></li>
+	            <li class="'.$diez.' text-center" ><a title="Preventas" href="preventas.php"><img class="isvg" src="assets/img/clientes.png"><br><span>Preventas</span></a></li>
 	            <li class="'.$cinco.' text-center" ><a title="reportes" href="reportes.php"><img class="isvg" src="assets/img/reports.png"><br><span>Reportes</span></a></li>
 	            <li class="'.$ocho.' dropdown text-center">
 	              <a href="#" class="dropdown-toggle" data-toggle="dropdown" title="Configuración"><img class="isvg" src="/assets/img/config_tablet.svg"><br><span>Config.</span></a>
