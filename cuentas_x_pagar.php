@@ -9,7 +9,7 @@ $conn->set_charset('utf8');
 
 $hoy = date('Y-m-d');
 $r = $conn->query("
-    SELECT c.id_compra, c.fecha, c.serie_f, c.numero_f, c.total, c.forma_pago, c.fecha_compromiso_pago,
+    SELECT c.id_compra, c.fecha, c.serie_f, c.numero_f, c.total, c.forma_pago, c.fecha_compromiso_pago, c.deuda_anterior,
            c.proveedor AS id_proveedor, p.proveedor AS nombre_proveedor,
            COALESCE(cp.pagado, 0) AS pagado
     FROM compras c
@@ -19,8 +19,16 @@ $r = $conn->query("
     ) cp ON cp.compra = c.id_compra
     WHERE c.estado != '2'
     HAVING c.total - pagado > 0.01
-    ORDER BY (c.fecha_compromiso_pago IS NULL), c.fecha_compromiso_pago ASC, c.fecha ASC
+    ORDER BY c.deuda_anterior DESC, (c.fecha_compromiso_pago IS NULL), c.fecha_compromiso_pago ASC, c.fecha ASC
 ");
+
+$proveedores_lista = [];
+$rp = $conn->query("SELECT id_proveedor, proveedor FROM proveedores WHERE estado = '1' ORDER BY proveedor");
+if ($rp) {
+    while ($row = $rp->fetch_assoc()) {
+        $proveedores_lista[] = ['id' => (int)$row['id_proveedor'], 'nombre' => $row['proveedor']];
+    }
+}
 
 $forma_label = ['contado' => 'Contado', 'credito' => 'Crédito'];
 
@@ -88,10 +96,14 @@ foreach ($grupos as $idp => $g) {
             ? '<span style="' . ($vencida ? 'color:#c0392b;font-weight:700' : '') . '">' . date('d/m/Y', strtotime($f['fecha_compromiso_pago'])) . ($vencida ? ' (vencida)' : '') . '</span>'
             : '-';
 
+        $documento = $f['deuda_anterior'] === '1'
+            ? '<span class="label label-default">Deuda anterior</span>'
+            : htmlspecialchars($f['serie_f'] . '-' . $f['numero_f']);
+
         $datos .= '<tr>
             <th scope="row">' . $f['id_compra'] . '</th>
             <td>' . date('d/m/Y', strtotime($f['fecha'])) . '</td>
-            <td>' . htmlspecialchars($f['serie_f'] . '-' . $f['numero_f']) . '</td>
+            <td>' . $documento . '</td>
             <td>' . ($forma_label[$f['forma_pago']] ?? $f['forma_pago']) . '</td>
             <td>' . $fecha_compromiso . '</td>
             <td>' . number_format($f['total'], 2) . '</td>
@@ -163,7 +175,11 @@ foreach ($grupos as $idp => $g) {
 		<div class="kbg">
 			<div class="cuerpofull">
 				<div class="titulo">
-					<h3>Cuentas x pagar</h3>
+					<h3>Cuentas x pagar
+						<button class="btn btn-default btn-sm" id="btn-deuda-anterior" style="margin-left:10px">
+							<i class="fas fa-plus"></i> Deuda anterior
+						</button>
+					</h3>
 				</div>
 				<div class="container-fluid">
 					<div class="row">
@@ -208,6 +224,8 @@ foreach ($grupos as $idp => $g) {
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/10.5.0/sweetalert2.min.js" integrity="sha512-V9JHp52ZkrbVVjJqNz/XXYMUOyUfzaGKEGrcD2Ual7n39+UR1yJK0numAHZqkhhGTAH/Klj0KUe4btAZXccw9w==" crossorigin="anonymous"></script>
 	<script >
+	const PROVEEDORES = <?php echo json_encode($proveedores_lista, JSON_UNESCAPED_UNICODE); ?>;
+
 	$(document ).ready(function() {
 
 		function pedirPago(url, data, onOk) {
@@ -307,6 +325,72 @@ foreach ($grupos as $idp => $g) {
 			}).then(function (result) {
 				if (!result.isConfirmed) return;
 				pedirPago('inc/registrar_pago_proveedor.php', { proveedor: id, monto: result.value.monto, metodo: result.value.metodo });
+			});
+		});
+
+		$('#btn-deuda-anterior').on('click', function () {
+			var escHtml = function (s) {
+				return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+			};
+			var opciones = PROVEEDORES.map(function (p) {
+				return '<option value="' + p.id + '">' + escHtml(p.nombre) + '</option>';
+			}).join('');
+
+			Swal.fire({
+				title: 'Registrar deuda anterior',
+				html:
+					'<div style="text-align:left">' +
+					'<p style="font-size:12px;color:#777">Para un saldo que ya se le debía al proveedor antes de usar el sistema. Se pagará siempre antes que cualquier otra factura de este proveedor.</p>' +
+					'<label style="font-size:12px">Proveedor</label>' +
+					'<select id="swal-proveedor" class="swal2-input">' + opciones + '</select>' +
+					'<label style="font-size:12px">Monto adeudado</label>' +
+					'<input id="swal-monto" type="number" step="0.01" min="0.01" class="swal2-input" placeholder="0.00">' +
+					'<label style="font-size:12px">Fecha aproximada (opcional)</label>' +
+					'<input id="swal-fecha" type="date" class="swal2-input">' +
+					'<label style="font-size:12px">Observación (opcional)</label>' +
+					'<input id="swal-obs" type="text" class="swal2-input" placeholder="Ej: saldo al migrar de sistema">' +
+					'</div>',
+				showCancelButton: true,
+				confirmButtonText: 'Registrar',
+				cancelButtonText: 'Cancelar',
+				preConfirm: function () {
+					var proveedor = document.getElementById('swal-proveedor').value;
+					var monto = parseFloat(document.getElementById('swal-monto').value);
+					if (!proveedor) {
+						Swal.showValidationMessage('Selecciona un proveedor');
+						return false;
+					}
+					if (!monto || monto <= 0) {
+						Swal.showValidationMessage('Ingresa un monto válido');
+						return false;
+					}
+					return {
+						proveedor: proveedor,
+						monto: monto,
+						fecha: document.getElementById('swal-fecha').value,
+						observacion: document.getElementById('swal-obs').value
+					};
+				}
+			}).then(function (result) {
+				if (!result.isConfirmed) return;
+				$.ajax({
+					type: 'POST',
+					dataType: 'json',
+					url: 'inc/registrar_deuda_anterior.php',
+					data: result.value,
+					success: function (resp) {
+						if (resp.ok) {
+							Swal.fire('Listo', 'Deuda registrada', 'success').then(function () {
+								document.location.href = 'cuentas_x_pagar.php';
+							});
+						} else {
+							Swal.fire('Advertencia', resp.mensaje || 'No se pudo registrar la deuda', 'warning');
+						}
+					},
+					error: function () {
+						Swal.fire('Advertencia', 'Error general del sistema', 'warning');
+					}
+				});
 			});
 		});
 	});

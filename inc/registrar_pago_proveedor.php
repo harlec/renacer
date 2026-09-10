@@ -44,7 +44,7 @@ $r = $conn->query("
     ) cp ON cp.compra = c.id_compra
     WHERE c.proveedor = $id_proveedor AND c.estado != '2'
     HAVING saldo > 0.01
-    ORDER BY (c.fecha_compromiso_pago IS NULL), c.fecha_compromiso_pago ASC, c.fecha ASC
+    ORDER BY c.deuda_anterior DESC, (c.fecha_compromiso_pago IS NULL), c.fecha_compromiso_pago ASC, c.fecha ASC
 ");
 
 $pendientes = [];
