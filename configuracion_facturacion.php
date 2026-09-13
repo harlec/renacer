@@ -14,6 +14,8 @@ $serie_boleta               = get_config('serie_boleta', 'BV03');
 $serie_factura              = get_config('serie_factura', 'F003');
 $serie_nota_credito_boleta  = get_config('serie_nota_credito_boleta', 'BC03');
 $serie_nota_credito_factura = get_config('serie_nota_credito_factura', 'FC03');
+
+$openai_api_key = get_config('openai_api_key');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -137,6 +139,22 @@ $serie_nota_credito_factura = get_config('serie_nota_credito_factura', 'FC03');
         </div>
 
         <div class="panel panel-default">
+            <div class="panel-heading"><b>Inteligencia Artificial (interpretación de pedidos)</b></div>
+            <div class="panel-body">
+                <p class="help-block">Clave usada por "Tomar pedido con IA" para leer fotos/audios/texto de pedidos de clientes.</p>
+                <div class="form-group">
+                    <label>OpenAI API Key</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="openai_api_key" value="<?php echo htmlspecialchars($openai_api_key); ?>" placeholder="sk-...">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default btn-toggle-key" type="button" data-target="#openai_api_key"><i class="fas fa-eye"></i></button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel panel-default">
             <div class="panel-heading"><b>Herramientas de prueba (QA)</b></div>
             <div class="panel-body">
                 <p class="help-block">Genera una proforma con cliente, productos y cantidades al azar para probar las reglas de monto de arriba. Uso exclusivo de ambientes de prueba.</p>
@@ -178,12 +196,25 @@ $('#btn-guardar').on('click', function(){
         serie_boleta: $('#serie_boleta').val(),
         serie_factura: $('#serie_factura').val(),
         serie_nota_credito_boleta: $('#serie_nota_credito_boleta').val(),
-        serie_nota_credito_factura: $('#serie_nota_credito_factura').val()
+        serie_nota_credito_factura: $('#serie_nota_credito_factura').val(),
+        openai_api_key: $('#openai_api_key').val()
     }, function(d){
         showAlert(d.ok ? 'Configuración guardada.' : 'Error al guardar.', d.ok ? 'success' : 'danger');
     }, 'json').fail(function(xhr){
         showAlert('Error del servidor: ' + xhr.status, 'danger');
     });
+});
+
+$('.btn-toggle-key').on('click', function(){
+    var $input = $($(this).data('target'));
+    var $icon = $(this).find('i');
+    if ($input.attr('type') === 'password') {
+        $input.attr('type', 'text');
+        $icon.removeClass('fa-eye').addClass('fa-eye-slash');
+    } else {
+        $input.attr('type', 'password');
+        $icon.removeClass('fa-eye-slash').addClass('fa-eye');
+    }
 });
 
 $('#btn-generar-prueba').on('click', function(){

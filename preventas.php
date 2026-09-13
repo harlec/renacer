@@ -56,7 +56,7 @@ $conn->close();
 		<div class="kbg">
 			<div class="cuerpofull">
 				<div class="titulo">
-					<h3>Preventas pendientes</h3>
+					<h3>Preventas pendientes <a href="pedido_ia.php" class="btn btn-primary btn-sm pull-right"><i class="fas fa-magic"></i> Tomar pedido con IA</a></h3>
 				</div>
 				<div class="container-fluid">
 					<div class="row">

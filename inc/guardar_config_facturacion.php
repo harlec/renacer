@@ -25,4 +25,6 @@ set_config('serie_factura', normalizar_serie($_POST['serie_factura'] ?? '', 'F00
 set_config('serie_nota_credito_boleta', normalizar_serie($_POST['serie_nota_credito_boleta'] ?? '', 'BC03'));
 set_config('serie_nota_credito_factura', normalizar_serie($_POST['serie_nota_credito_factura'] ?? '', 'FC03'));
 
+set_config('openai_api_key', trim($_POST['openai_api_key'] ?? ''));
+
 echo json_encode(array('ok' => true));
