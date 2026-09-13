@@ -151,6 +151,7 @@ $openai_api_key = get_config('openai_api_key');
                         </span>
                     </div>
                 </div>
+                <button class="btn btn-success" id="btn-guardar-ia" style="float:right"><i class="fas fa-save"></i> Guardar</button>
             </div>
         </div>
 
@@ -186,7 +187,7 @@ $('#btn-probar-nubefact').on('click', function(){
     });
 });
 
-$('#btn-guardar').on('click', function(){
+function guardarConfiguracion(){
     $.post('/inc/guardar_config_facturacion.php', {
         nubefact_ruta: $('#nubefact_ruta').val(),
         nubefact_token: $('#nubefact_token').val(),
@@ -203,7 +204,9 @@ $('#btn-guardar').on('click', function(){
     }, 'json').fail(function(xhr){
         showAlert('Error del servidor: ' + xhr.status, 'danger');
     });
-});
+}
+
+$('#btn-guardar, #btn-guardar-ia').on('click', guardarConfiguracion);
 
 $('.btn-toggle-key').on('click', function(){
     var $input = $($(this).data('target'));
