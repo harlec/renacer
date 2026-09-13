@@ -12,6 +12,7 @@ $v = '20260913';
     <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/custom.css?v=<?= $v ?>">
     <link rel="stylesheet" type="text/css" href="/assets/css/select2.min.css?v=<?= $v ?>">
+    <link rel="stylesheet" type="text/css" href="/assets/css/jquery-ui.min.css?v=<?= $v ?>">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.0.5/sweetalert2.min.css">
     <style>
@@ -55,7 +56,7 @@ $v = '20260913';
 								<div class="panel-body">
 									<div class="form-group">
 										<label>Cliente</label>
-										<input type="text" id="cliente" class="form-control" placeholder="Nombre del cliente" autocomplete="off">
+										<input type="text" id="cliente" class="form-control" placeholder="Escribe para buscar un cliente existente o escribe uno nuevo" autocomplete="off">
 									</div>
 
 									<ul class="nav nav-tabs" id="tabs-tipo">
@@ -141,10 +142,23 @@ $v = '20260913';
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="/assets/js/jquery-ui.min.js?v=<?= $v ?>"></script>
 	<script src="/assets/js/select2.full.min.js?v=<?= $v ?>"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.0.5/sweetalert2.min.js"></script>
 	<script>
 	let ultimoResultado = null;
+
+	$('#cliente').autocomplete({
+		source: function(request, response) {
+			$.ajax({
+				url: '/inc/autocomplete-cliente.php',
+				data: { term: request.term },
+				dataType: 'json',
+				success: function(data) { response(data); }
+			});
+		},
+		minLength: 2
+	});
 
 	$('#input-foto').on('change', function() {
 		const file = this.files[0];
