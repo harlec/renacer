@@ -2,6 +2,32 @@
 require_once __DIR__ . '/sdba/sdba.php';
 require_once __DIR__ . '/config_facturacion.php';
 
+// OpenAI solo acepta mp3, mp4, mpeg, mpga, m4a, wav y webm. Las notas de voz de
+// WhatsApp llegan en .opus, así que si hace falta lo convertimos con ffmpeg antes
+// de mandarlo. Devuelve la ruta del archivo convertido, o null si no hacía falta.
+function ia_convertir_audio_si_hace_falta(string $rutaArchivo, string $nombreOriginal): ?string
+{
+    $extension = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
+    $formatosOk = ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'];
+    if (in_array($extension, $formatosOk, true)) {
+        return null;
+    }
+
+    if (!function_exists('exec')) {
+        throw new Exception('El formato de audio ".' . $extension . '" no es compatible con la IA y el servidor no puede convertirlo automáticamente (la función exec de PHP está deshabilitada). Convierte el audio a MP3 antes de subirlo, o pide a tu hosting que habilite exec + ffmpeg.');
+    }
+
+    $rutaDestino = $rutaArchivo . '_conv.mp3';
+    $comando = 'ffmpeg -y -i ' . escapeshellarg($rutaArchivo) . ' -ar 16000 -ac 1 ' . escapeshellarg($rutaDestino) . ' 2>&1';
+    exec($comando, $salida, $codigoSalida);
+
+    if ($codigoSalida !== 0 || !file_exists($rutaDestino)) {
+        throw new Exception('No se pudo convertir automáticamente el audio ".' . $extension . '" (parece que ffmpeg no está instalado en el servidor). Convierte el audio a MP3 antes de subirlo, o pide a tu hosting que instale ffmpeg.');
+    }
+
+    return $rutaDestino;
+}
+
 function ia_transcribir_audio(string $rutaArchivo, string $nombreOriginal): string
 {
     $apiKey = get_config('openai_api_key');
@@ -9,35 +35,45 @@ function ia_transcribir_audio(string $rutaArchivo, string $nombreOriginal): stri
         throw new Exception('Falta configurar la API Key de OpenAI en Configuración > Facturación Electrónica');
     }
 
-    $tipo = mime_content_type($rutaArchivo) ?: 'audio/mpeg';
-    $ch = curl_init('https://api.openai.com/v1/audio/transcriptions');
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'Authorization: Bearer ' . $apiKey,
-        ],
-        CURLOPT_POSTFIELDS => [
-            'file'     => new CURLFile($rutaArchivo, $tipo, $nombreOriginal),
-            'model'    => 'gpt-4o-mini-transcribe',
-            'language' => 'es',
-        ],
-        CURLOPT_TIMEOUT => 60,
-    ]);
-    $respuesta = curl_exec($ch);
-    $error = curl_error($ch);
-    $codigo = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    $rutaConvertida = ia_convertir_audio_si_hace_falta($rutaArchivo, $nombreOriginal);
+    $rutaFinal = $rutaConvertida ?? $rutaArchivo;
+    $nombreFinal = $rutaConvertida ? 'audio.mp3' : $nombreOriginal;
 
-    if ($error) {
-        throw new Exception('Error de conexión con el transcriptor de audio: ' . $error);
+    try {
+        $tipo = mime_content_type($rutaFinal) ?: 'audio/mpeg';
+        $ch = curl_init('https://api.openai.com/v1/audio/transcriptions');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $apiKey,
+            ],
+            CURLOPT_POSTFIELDS => [
+                'file'     => new CURLFile($rutaFinal, $tipo, $nombreFinal),
+                'model'    => 'gpt-4o-mini-transcribe',
+                'language' => 'es',
+            ],
+            CURLOPT_TIMEOUT => 60,
+        ]);
+        $respuesta = curl_exec($ch);
+        $error = curl_error($ch);
+        $codigo = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($error) {
+            throw new Exception('Error de conexión con el transcriptor de audio: ' . $error);
+        }
+        $data = json_decode($respuesta, true);
+        if ($codigo !== 200 || !isset($data['text'])) {
+            $msg = $data['error']['message'] ?? 'Respuesta inesperada del transcriptor de audio';
+            throw new Exception('No se pudo transcribir el audio: ' . $msg);
+        }
+        return trim($data['text']);
+    } finally {
+        if ($rutaConvertida) {
+            @unlink($rutaConvertida);
+        }
     }
-    $data = json_decode($respuesta, true);
-    if ($codigo !== 200 || !isset($data['text'])) {
-        $msg = $data['error']['message'] ?? 'Respuesta inesperada del transcriptor de audio';
-        throw new Exception('No se pudo transcribir el audio: ' . $msg);
-    }
-    return trim($data['text']);
 }
 
 function ia_normalizar_texto(string $s): string
