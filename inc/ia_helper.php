@@ -40,7 +40,54 @@ function ia_transcribir_audio(string $rutaArchivo, string $nombreOriginal): stri
     return trim($data['text']);
 }
 
-function ia_interpretar_pedido(?string $texto, ?string $rutaImagen = null): array
+function ia_normalizar_texto(string $s): string
+{
+    $s = mb_strtoupper($s, 'UTF-8');
+    return strtr($s, [
+        'Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U',
+        'Ü' => 'U', 'Ñ' => 'N',
+    ]);
+}
+
+function ia_buscar_id_cliente(mysqli $conn, string $nombre): ?int
+{
+    $nombre = trim($nombre);
+    if ($nombre === '') {
+        return null;
+    }
+    $safe = $conn->real_escape_string($nombre);
+    $r = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$safe') LIMIT 1");
+    $row = $r ? $r->fetch_assoc() : null;
+    return $row ? (int)$row['id_cliente'] : null;
+}
+
+function ia_historial_cliente(mysqli $conn, int $idCliente, int $limite = 40): array
+{
+    $stmt = $conn->prepare("
+        SELECT pr.nom_prod
+        FROM detalle_ventas dv
+        JOIN ventas v ON v.id_venta = dv.venta
+        JOIN productos pr ON pr.id_producto = dv.producto
+        WHERE v.cliente = ? AND v.estado != '2'
+        ORDER BY v.id_venta DESC
+        LIMIT 200
+    ");
+    $stmt->bind_param('i', $idCliente);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    $nombres = [];
+    while ($row = $res->fetch_assoc()) {
+        $nombres[$row['nom_prod']] = true; // dedupe conservando el orden (más reciente primero)
+        if (count($nombres) >= $limite) {
+            break;
+        }
+    }
+    $stmt->close();
+    return array_keys($nombres);
+}
+
+function ia_interpretar_pedido(?string $texto, ?string $rutaImagen = null, array $historialProductos = []): array
 {
     $apiKey = get_config('openai_api_key');
     if ($apiKey === '') {
@@ -60,10 +107,15 @@ Responde ÚNICAMENTE con JSON válido, sin texto antes ni después, con este for
 {"cliente_texto": "nombre del cliente si aparece, o null", "items": [{"texto": "descripción del producto tal cual se leyó/escuchó", "cantidad": numero}]}
 TXT;
 
+    $contextoHistorial = '';
+    if (!empty($historialProductos)) {
+        $contextoHistorial = "\n\nHistorial de productos que este cliente ya compró antes (úsalo para interpretar mejor apodos, abreviaturas o medidas incompletas — por ejemplo, si pide \"de cuatrocientos\" y en el historial hay un producto con \"400\" en el nombre, probablemente se refiere a ese):\n- " . implode("\n- ", $historialProductos);
+    }
+
     $contenido = [
         [
             'type' => 'input_text',
-            'text' => $instrucciones . "\n\nTexto del pedido a interpretar:\n" . ($texto !== null && $texto !== '' ? $texto : '(ver imagen adjunta)'),
+            'text' => $instrucciones . $contextoHistorial . "\n\nTexto del pedido a interpretar:\n" . ($texto !== null && $texto !== '' ? $texto : '(ver imagen adjunta)'),
         ],
     ];
     if ($rutaImagen) {
@@ -151,7 +203,7 @@ function ia_buscar_producto_similar(mysqli $conn, string $texto): ?array
     $mejor = null;
     $mejorPorcentaje = 0.0;
     foreach ($candidatos as $c) {
-        similar_text(mb_strtoupper($texto), mb_strtoupper($c['nom_prod']), $porcentaje);
+        similar_text(ia_normalizar_texto($texto), ia_normalizar_texto($c['nom_prod']), $porcentaje);
         if ($porcentaje > $mejorPorcentaje) {
             $mejorPorcentaje = $porcentaje;
             $mejor = $c;

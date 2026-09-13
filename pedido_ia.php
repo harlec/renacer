@@ -189,6 +189,7 @@ $v = '20260913';
 		const tipo = tipoActivo();
 		const formData = new FormData();
 		formData.append('tipo', tipo);
+		formData.append('cliente', cliente);
 
 		if (tipo === 'foto') {
 			const f = $('#input-foto')[0].files[0];
@@ -265,7 +266,11 @@ $v = '20260913';
 	}
 
 	function pintarRevision(data) {
-		$('#texto-leido-info').html('<strong>Texto interpretado:</strong> ' + escHtml(data.texto_leido_completo || '(desde la imagen)'));
+		let info = '<strong>Texto interpretado:</strong> ' + escHtml(data.texto_leido_completo || '(desde la imagen)');
+		if (data.historial_usado > 0) {
+			info += '<br><span class="text-success"><i class="fas fa-check"></i> Se usó el historial de compras de este cliente (' + data.historial_usado + ' productos) para interpretar mejor el pedido</span>';
+		}
+		$('#texto-leido-info').html(info);
 
 		const $tbody = $('#tabla-revision tbody').empty();
 		data.items.forEach(item => {

@@ -58,7 +58,13 @@ try {
         throw new Exception('Tipo de pedido no reconocido');
     }
 
-    $resultado = ia_interpretar_pedido($textoOriginal, $rutaImagen);
+    $historial = [];
+    $idClienteExistente = ia_buscar_id_cliente($conn, $_POST['cliente'] ?? '');
+    if ($idClienteExistente) {
+        $historial = ia_historial_cliente($conn, $idClienteExistente);
+    }
+
+    $resultado = ia_interpretar_pedido($textoOriginal, $rutaImagen, $historial);
 
     $items = [];
     foreach ($resultado['items'] ?? [] as $item) {
@@ -87,6 +93,7 @@ try {
         'cliente_texto' => $resultado['cliente_texto'] ?? null,
         'texto_leido_completo' => $textoOriginal,
         'items' => $items,
+        'historial_usado' => count($historial),
     ]);
 } catch (Exception $e) {
     echo json_encode(['ok' => false, 'mensaje' => $e->getMessage()]);
