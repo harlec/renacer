@@ -226,14 +226,17 @@ TXT;
 const IA_PALABRAS_VACIAS_MATCH = [
     'DE', 'DEL', 'LA', 'EL', 'LOS', 'LAS', 'UN', 'UNA', 'UNOS', 'UNAS', 'Y', 'CON', 'PARA', 'A',
     'SOLO', 'SOLA', 'NOMAS',
-    'KILO', 'KILOS', 'KG', 'GR', 'GRAMO', 'GRAMOS', 'LITRO', 'LITROS', 'LT', 'ML',
+    'K', 'KILO', 'KILOS', 'KG', 'GR', 'GRAMO', 'GRAMOS', 'LITRO', 'LITROS', 'LT', 'ML',
     'UNIDAD', 'UNIDADES', 'PAQUETE', 'PAQUETES', 'CAJA', 'CAJAS', 'BOLSA', 'BOLSAS',
     'MEDIO', 'MEDIA', 'CUARTO', 'CUARTOS', 'DOCENA', 'DOCENAS',
 ];
 
 function ia_texto_para_match(string $texto): string
 {
-    $t = preg_replace('/\d+/', ' ', ia_normalizar_texto($texto));
+    // Deja sólo letras: fuera números, paréntesis, comas, etc. Si no se limpia esto, cosas como
+    // "(S/20 kG)" del catálogo quedan como palabra suelta "kG)" con el paréntesis pegado, y ya no
+    // hace match con el stopword "KG" ni compara bien contra nada.
+    $t = preg_replace('/[^A-ZÑ ]+/u', ' ', ia_normalizar_texto($texto));
     $palabras = array_filter(
         preg_split('/\s+/', trim($t)),
         fn($p) => $p !== '' && !in_array($p, IA_PALABRAS_VACIAS_MATCH, true)
@@ -281,11 +284,53 @@ function ia_similitud_texto(string $textoA, string $textoB): float
     return $score;
 }
 
+// Alias/sinónimos definidos a mano por el negocio (tabla producto_alias, administrable desde
+// alias_productos.php) — para apodos regionales que no se parecen en nada al nombre real del
+// producto (ej. "casillero de huevo") y que por eso ninguna comparación de letras puede detectar
+// de forma confiable, sin importar cuánto se ajuste la heurística.
+function ia_buscar_alias_producto(mysqli $conn, string $textoLimpio): ?array
+{
+    $palabrasQuery = array_flip(preg_split('/\s+/', trim($textoLimpio)));
+
+    $r = $conn->query("
+        SELECT pa.alias, pa.id_producto, pr.nom_prod
+        FROM producto_alias pa
+        JOIN productos pr ON pr.id_producto = pa.id_producto
+        WHERE pr.estado = '1'
+    ");
+    if (!$r) {
+        return null; // la tabla puede no existir aún si no se corrió la migración
+    }
+    while ($row = $r->fetch_assoc()) {
+        $palabrasAlias = array_filter(preg_split('/\s+/', trim(ia_texto_para_match($row['alias']))));
+        if (empty($palabrasAlias)) {
+            continue;
+        }
+        $todasPresentes = true;
+        foreach ($palabrasAlias as $pa) {
+            if (!isset($palabrasQuery[$pa])) {
+                $todasPresentes = false;
+                break;
+            }
+        }
+        if ($todasPresentes) {
+            return ['id_producto' => (int)$row['id_producto'], 'nom_prod' => $row['nom_prod'], 'score' => 97];
+        }
+    }
+    return null;
+}
+
 // $historial: nom_prod => id_producto, de lo que este cliente ya compró antes (puede venir vacío).
 // $sugeridoHistorial: nombre que la IA identificó, dentro de ese historial, como lo que el cliente
 // probablemente quiso decir (por apodo/sinónimo) — viene de ia_interpretar_pedido().
 function ia_buscar_producto_similar(mysqli $conn, string $texto, array $historial = [], ?string $sugeridoHistorial = null): ?array
 {
+    $textoLimpio = ia_texto_para_match($texto);
+    $alias = ia_buscar_alias_producto($conn, $textoLimpio);
+    if ($alias) {
+        return $alias;
+    }
+
     // 1) Si la IA ya identificó, usando el historial de este cliente, a qué producto se refiere
     //    (por ejemplo "casillero de huevo" -> el producto de huevos que ya le compró antes),
     //    confiamos en esa coincidencia semántica en vez de comparar caracteres a ciegas.
@@ -297,8 +342,6 @@ function ia_buscar_producto_similar(mysqli $conn, string $texto, array $historia
             }
         }
     }
-
-    $textoLimpio = ia_texto_para_match($texto);
 
     // 2) Comparamos historial del cliente y catálogo acotado (por nombre) EN CONJUNTO, dándole al
     //    historial una pequeña ventaja — pero sin dejar que gane sólo por casualidad de caracteres:
