@@ -334,8 +334,11 @@ function ia_buscar_producto_similar(mysqli $conn, string $texto, array $historia
         }
     }
 
-    // 3) Si nada de lo anterior dio una coincidencia razonable, caemos al catálogo completo.
-    if (!$mejor || $mejorPuntaje < 45) {
+    // 3) Sólo nos saltamos el catálogo completo si el paso anterior ya dio un match muy fuerte
+    //    (70%+, casi seguro correcto). Con un match dudoso (ej. 63% por pura coincidencia de
+    //    letras con algo del historial) sí o sí comparamos contra todo el catálogo, porque ahí
+    //    puede estar el producto correcto con un puntaje más alto.
+    if (!$mejor || $mejorPuntaje < 70) {
         $r = $conn->query("SELECT id_producto, nom_prod FROM productos WHERE estado = '1'");
         while ($row = $r->fetch_assoc()) {
             $id = (int)$row['id_producto'];
