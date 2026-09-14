@@ -58,13 +58,13 @@ try {
         throw new Exception('Tipo de pedido no reconocido');
     }
 
-    $historial = [];
+    $historial = []; // nom_prod => id_producto
     $idClienteExistente = ia_buscar_id_cliente($conn, $_POST['cliente'] ?? '');
     if ($idClienteExistente) {
-        $historial = ia_historial_cliente($conn, $idClienteExistente);
+        $historial = ia_historial_cliente_con_id($conn, $idClienteExistente);
     }
 
-    $resultado = ia_interpretar_pedido($textoOriginal, $rutaImagen, $historial);
+    $resultado = ia_interpretar_pedido($textoOriginal, $rutaImagen, array_keys($historial));
 
     $items = [];
     foreach ($resultado['items'] ?? [] as $item) {
@@ -74,7 +74,8 @@ try {
             continue;
         }
 
-        $match = ia_buscar_producto_similar($conn, $texto);
+        $sugeridoHistorial = isset($item['producto_historial']) ? trim((string)$item['producto_historial']) : null;
+        $match = ia_buscar_producto_similar($conn, $texto, $historial, $sugeridoHistorial ?: null);
         $items[] = [
             'texto_leido' => $texto,
             'cantidad'    => $cantidad,

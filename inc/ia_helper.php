@@ -97,10 +97,13 @@ function ia_buscar_id_cliente(mysqli $conn, string $nombre): ?int
     return $row ? (int)$row['id_cliente'] : null;
 }
 
-function ia_historial_cliente(mysqli $conn, int $idCliente, int $limite = 40): array
+// Historial de productos que un cliente ya compró antes, del más reciente al más antiguo,
+// como nom_prod => id_producto (para poder resolver directamente a un producto del catálogo
+// sin volver a buscarlo por nombre).
+function ia_historial_cliente_con_id(mysqli $conn, int $idCliente, int $limite = 40): array
 {
     $stmt = $conn->prepare("
-        SELECT pr.nom_prod
+        SELECT pr.id_producto, pr.nom_prod
         FROM detalle_ventas dv
         JOIN ventas v ON v.id_venta = dv.venta
         JOIN productos pr ON pr.id_producto = dv.producto
@@ -112,15 +115,15 @@ function ia_historial_cliente(mysqli $conn, int $idCliente, int $limite = 40): a
     $stmt->execute();
     $res = $stmt->get_result();
 
-    $nombres = [];
+    $productos = []; // nom_prod => id_producto, dedupe conservando el orden (más reciente primero)
     while ($row = $res->fetch_assoc()) {
-        $nombres[$row['nom_prod']] = true; // dedupe conservando el orden (más reciente primero)
-        if (count($nombres) >= $limite) {
+        $productos[$row['nom_prod']] = (int)$row['id_producto'];
+        if (count($productos) >= $limite) {
             break;
         }
     }
     $stmt->close();
-    return array_keys($nombres);
+    return $productos;
 }
 
 function ia_interpretar_pedido(?string $texto, ?string $rutaImagen = null, array $historialProductos = []): array
@@ -138,14 +141,15 @@ Extrae cada línea de producto pedido con su cantidad. Reglas:
 - Si una parte no se entiende bien (letra ilegible, audio confuso), igual inclúyela tal cual la leíste/escuchaste en "texto" para que un humano la revise después.
 - No incluyas saludos ni nombres de quien pide (eso va aparte en "cliente_texto").
 - Las cantidades son números; usa 1 si no se especifica.
+- Para cada línea, revisa la lista de "Historial de productos que este cliente ya compró antes" (si se proporcionó) e intenta reconocer si el cliente se refiere a alguno de esos productos usando un apodo, sinónimo regional, abreviatura o marca incompleta (por ejemplo: "casillero de huevo", "cubeta de huevo" o "jaba de huevo" suelen referirse a un producto de huevos aunque la palabra "huevo(s)" no aparezca igual en el nombre del catálogo; "de cuatrocientos" puede referirse a un producto con "400" en el nombre). Si encuentras una coincidencia razonable, copia el nombre EXACTAMENTE tal como aparece en esa lista en el campo "producto_historial". Si no hay una coincidencia clara, o no se te dio historial, usa null en ese campo — no inventes ni copies un nombre que no esté literalmente en la lista.
 
 Responde ÚNICAMENTE con JSON válido, sin texto antes ni después, con este formato exacto:
-{"cliente_texto": "nombre del cliente si aparece, o null", "items": [{"texto": "descripción del producto tal cual se leyó/escuchó", "cantidad": numero}]}
+{"cliente_texto": "nombre del cliente si aparece, o null", "items": [{"texto": "descripción del producto tal cual se leyó/escuchó", "cantidad": numero, "producto_historial": "nombre exacto copiado del historial, o null"}]}
 TXT;
 
     $contextoHistorial = '';
     if (!empty($historialProductos)) {
-        $contextoHistorial = "\n\nHistorial de productos que este cliente ya compró antes (úsalo para interpretar mejor apodos, abreviaturas o medidas incompletas — por ejemplo, si pide \"de cuatrocientos\" y en el historial hay un producto con \"400\" en el nombre, probablemente se refiere a ese):\n- " . implode("\n- ", $historialProductos);
+        $contextoHistorial = "\n\nHistorial de productos que este cliente ya compró antes (úsalo para interpretar mejor apodos, sinónimos, abreviaturas o medidas incompletas):\n- " . implode("\n- ", $historialProductos);
     }
 
     $contenido = [
@@ -216,8 +220,43 @@ TXT;
     return $json;
 }
 
-function ia_buscar_producto_similar(mysqli $conn, string $texto): ?array
+// $historial: nom_prod => id_producto, de lo que este cliente ya compró antes (puede venir vacío).
+// $sugeridoHistorial: nombre que la IA identificó, dentro de ese historial, como lo que el cliente
+// probablemente quiso decir (por apodo/sinónimo) — viene de ia_interpretar_pedido().
+function ia_buscar_producto_similar(mysqli $conn, string $texto, array $historial = [], ?string $sugeridoHistorial = null): ?array
 {
+    // 1) Si la IA ya identificó, usando el historial de este cliente, a qué producto se refiere
+    //    (por ejemplo "casillero de huevo" -> el producto de huevos que ya le compró antes),
+    //    confiamos en esa coincidencia semántica en vez de comparar caracteres a ciegas.
+    if ($sugeridoHistorial !== null && $sugeridoHistorial !== '') {
+        $sugeridoNorm = ia_normalizar_texto($sugeridoHistorial);
+        foreach ($historial as $nombreHist => $idHist) {
+            if (ia_normalizar_texto($nombreHist) === $sugeridoNorm) {
+                return ['id_producto' => $idHist, 'nom_prod' => $nombreHist, 'score' => 96];
+            }
+        }
+    }
+
+    // 2) Antes de buscar en todo el catálogo, probamos por similitud de texto sólo contra lo
+    //    que este cliente ya ha comprado — es un conjunto pequeño y mucho más probable que sea
+    //    lo correcto que cualquier producto del catálogo general.
+    if (!empty($historial)) {
+        $mejorHist = null;
+        $mejorPorcentajeHist = 0.0;
+        foreach ($historial as $nombreHist => $idHist) {
+            similar_text(ia_normalizar_texto($texto), ia_normalizar_texto($nombreHist), $porcentaje);
+            if ($porcentaje > $mejorPorcentajeHist) {
+                $mejorPorcentajeHist = $porcentaje;
+                $mejorHist = ['id_producto' => $idHist, 'nom_prod' => $nombreHist];
+            }
+        }
+        if ($mejorHist && $mejorPorcentajeHist >= 30) {
+            $mejorHist['score'] = round($mejorPorcentajeHist);
+            return $mejorHist;
+        }
+    }
+
+    // 3) Si nada de lo anterior dio una coincidencia razonable, caemos al catálogo completo.
     $palabras = preg_split('/\s+/', trim($texto));
     $primerasPalabras = implode(' ', array_slice($palabras, 0, 2));
     $like = '%' . $conn->real_escape_string($primerasPalabras) . '%';
