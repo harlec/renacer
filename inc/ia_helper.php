@@ -284,13 +284,24 @@ function ia_similitud_texto(string $textoA, string $textoB): float
     return $score;
 }
 
+// Compara dos palabras ya normalizadas tolerando diferencias chicas de singular/plural
+// (huevo/huevos, sillao/sillaos...) sin llegar a aceptar palabras realmente distintas.
+function ia_palabras_coinciden(string $a, string $b): bool
+{
+    if ($a === $b) {
+        return true;
+    }
+    $largo = min(strlen($a), strlen($b));
+    return $largo >= 3 && abs(strlen($a) - strlen($b)) <= 2 && substr($a, 0, $largo) === substr($b, 0, $largo);
+}
+
 // Alias/sinónimos definidos a mano por el negocio (tabla producto_alias, administrable desde
 // alias_productos.php) — para apodos regionales que no se parecen en nada al nombre real del
 // producto (ej. "casillero de huevo") y que por eso ninguna comparación de letras puede detectar
 // de forma confiable, sin importar cuánto se ajuste la heurística.
 function ia_buscar_alias_producto(mysqli $conn, string $textoLimpio): ?array
 {
-    $palabrasQuery = array_flip(preg_split('/\s+/', trim($textoLimpio)));
+    $palabrasQuery = array_filter(preg_split('/\s+/', trim($textoLimpio)));
 
     $r = $conn->query("
         SELECT pa.alias, pa.id_producto, pr.nom_prod
@@ -308,7 +319,14 @@ function ia_buscar_alias_producto(mysqli $conn, string $textoLimpio): ?array
         }
         $todasPresentes = true;
         foreach ($palabrasAlias as $pa) {
-            if (!isset($palabrasQuery[$pa])) {
+            $encontrada = false;
+            foreach ($palabrasQuery as $pq) {
+                if (ia_palabras_coinciden($pa, $pq)) {
+                    $encontrada = true;
+                    break;
+                }
+            }
+            if (!$encontrada) {
                 $todasPresentes = false;
                 break;
             }
