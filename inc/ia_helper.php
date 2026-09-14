@@ -220,6 +220,27 @@ TXT;
     return $json;
 }
 
+// Palabras de cantidad/medida/relleno que no aportan a identificar QUÉ producto es — al dejarlas
+// en la comparación, frases largas ("5 kilos de azúcar") ganan similitud falsa contra cualquier
+// nombre de catálogo que también tenga "DE", "KILO", etc., sin relación real con el producto.
+const IA_PALABRAS_VACIAS_MATCH = [
+    'DE', 'DEL', 'LA', 'EL', 'LOS', 'LAS', 'UN', 'UNA', 'UNOS', 'UNAS', 'Y', 'CON', 'PARA', 'A',
+    'KILO', 'KILOS', 'KG', 'GR', 'GRAMO', 'GRAMOS', 'LITRO', 'LITROS', 'LT', 'ML',
+    'UNIDAD', 'UNIDADES', 'PAQUETE', 'PAQUETES', 'CAJA', 'CAJAS', 'BOLSA', 'BOLSAS',
+    'MEDIO', 'MEDIA', 'CUARTO', 'CUARTOS', 'DOCENA', 'DOCENAS',
+];
+
+function ia_texto_para_match(string $texto): string
+{
+    $t = preg_replace('/\d+/', ' ', ia_normalizar_texto($texto));
+    $palabras = array_filter(
+        preg_split('/\s+/', trim($t)),
+        fn($p) => $p !== '' && !in_array($p, IA_PALABRAS_VACIAS_MATCH, true)
+    );
+    $limpio = implode(' ', $palabras);
+    return $limpio !== '' ? $limpio : trim($t);
+}
+
 // $historial: nom_prod => id_producto, de lo que este cliente ya compró antes (puede venir vacío).
 // $sugeridoHistorial: nombre que la IA identificó, dentro de ese historial, como lo que el cliente
 // probablemente quiso decir (por apodo/sinónimo) — viene de ia_interpretar_pedido().
@@ -237,57 +258,61 @@ function ia_buscar_producto_similar(mysqli $conn, string $texto, array $historia
         }
     }
 
-    // 2) Antes de buscar en todo el catálogo, probamos por similitud de texto sólo contra lo
-    //    que este cliente ya ha comprado — es un conjunto pequeño y mucho más probable que sea
-    //    lo correcto que cualquier producto del catálogo general.
-    if (!empty($historial)) {
-        $mejorHist = null;
-        $mejorPorcentajeHist = 0.0;
-        foreach ($historial as $nombreHist => $idHist) {
-            similar_text(ia_normalizar_texto($texto), ia_normalizar_texto($nombreHist), $porcentaje);
-            if ($porcentaje > $mejorPorcentajeHist) {
-                $mejorPorcentajeHist = $porcentaje;
-                $mejorHist = ['id_producto' => $idHist, 'nom_prod' => $nombreHist];
-            }
-        }
-        if ($mejorHist && $mejorPorcentajeHist >= 30) {
-            $mejorHist['score'] = round($mejorPorcentajeHist);
-            return $mejorHist;
-        }
-    }
+    $textoLimpio = ia_texto_para_match($texto);
 
-    // 3) Si nada de lo anterior dio una coincidencia razonable, caemos al catálogo completo.
-    $palabras = preg_split('/\s+/', trim($texto));
-    $primerasPalabras = implode(' ', array_slice($palabras, 0, 2));
-    $like = '%' . $conn->real_escape_string($primerasPalabras) . '%';
-
+    // 2) Comparamos historial del cliente y catálogo acotado (por nombre) EN CONJUNTO, dándole al
+    //    historial una pequeña ventaja — pero sin dejar que gane sólo por casualidad de caracteres:
+    //    si el catálogo tiene algo genuinamente más parecido, debe poder ganarle.
     $candidatos = [];
-    $r = $conn->query("SELECT id_producto, nom_prod FROM productos WHERE estado = '1' AND nom_prod LIKE '$like' LIMIT 30");
-    while ($row = $r->fetch_assoc()) {
-        $candidatos[] = $row;
+    $idsVistos = [];
+    foreach ($historial as $nombreHist => $idHist) {
+        $candidatos[] = ['id_producto' => $idHist, 'nom_prod' => $nombreHist, 'bono' => 12];
+        $idsVistos[$idHist] = true;
     }
 
-    // Si la búsqueda acotada no encontró nada, probamos contra todo el catálogo activo.
-    if (empty($candidatos)) {
-        $r = $conn->query("SELECT id_producto, nom_prod FROM productos WHERE estado = '1'");
+    $palabras = preg_split('/\s+/', trim($textoLimpio));
+    $primerasPalabras = implode(' ', array_slice($palabras, 0, 2));
+    if ($primerasPalabras !== '') {
+        $like = '%' . $conn->real_escape_string($primerasPalabras) . '%';
+        $r = $conn->query("SELECT id_producto, nom_prod FROM productos WHERE estado = '1' AND nom_prod LIKE '$like' LIMIT 30");
         while ($row = $r->fetch_assoc()) {
-            $candidatos[] = $row;
+            $id = (int)$row['id_producto'];
+            if (!isset($idsVistos[$id])) {
+                $candidatos[] = ['id_producto' => $id, 'nom_prod' => $row['nom_prod'], 'bono' => 0];
+                $idsVistos[$id] = true;
+            }
         }
     }
 
     $mejor = null;
-    $mejorPorcentaje = 0.0;
+    $mejorPuntaje = 0.0;
     foreach ($candidatos as $c) {
-        similar_text(ia_normalizar_texto($texto), ia_normalizar_texto($c['nom_prod']), $porcentaje);
-        if ($porcentaje > $mejorPorcentaje) {
-            $mejorPorcentaje = $porcentaje;
+        similar_text($textoLimpio, ia_texto_para_match($c['nom_prod']), $porcentaje);
+        $puntaje = $porcentaje + $c['bono'];
+        if ($puntaje > $mejorPuntaje) {
+            $mejorPuntaje = $puntaje;
             $mejor = $c;
         }
     }
 
-    if ($mejor && $mejorPorcentaje >= 35) {
-        $mejor['score'] = round($mejorPorcentaje);
-        return $mejor;
+    // 3) Si nada de lo anterior dio una coincidencia razonable, caemos al catálogo completo.
+    if (!$mejor || $mejorPuntaje < 35) {
+        $r = $conn->query("SELECT id_producto, nom_prod FROM productos WHERE estado = '1'");
+        while ($row = $r->fetch_assoc()) {
+            $id = (int)$row['id_producto'];
+            if (isset($idsVistos[$id])) {
+                continue;
+            }
+            similar_text($textoLimpio, ia_texto_para_match($row['nom_prod']), $porcentaje);
+            if ($porcentaje > $mejorPuntaje) {
+                $mejorPuntaje = $porcentaje;
+                $mejor = ['id_producto' => $id, 'nom_prod' => $row['nom_prod']];
+            }
+        }
+    }
+
+    if ($mejor && $mejorPuntaje >= 35) {
+        return ['id_producto' => $mejor['id_producto'], 'nom_prod' => $mejor['nom_prod'], 'score' => round(min($mejorPuntaje, 99))];
     }
     return null;
 }
