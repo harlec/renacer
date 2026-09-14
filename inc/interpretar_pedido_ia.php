@@ -59,7 +59,11 @@ try {
     }
 
     $historial = []; // nom_prod => id_producto
-    $idClienteExistente = ia_buscar_id_cliente($conn, $_POST['cliente'] ?? '');
+    // Si el usuario eligió el cliente del desplegable (que muestra cuántos pedidos tiene cada
+    // uno), usamos ese id exacto — hay nombres duplicados en la base y buscar solo por texto
+    // puede agarrar el registro equivocado (uno con poco o nada de historial).
+    $idClienteExistente = ia_validar_id_cliente($conn, $_POST['cliente_id'] ?? '')
+        ?? ia_buscar_id_cliente($conn, $_POST['cliente'] ?? '');
     if ($idClienteExistente) {
         $historial = ia_historial_cliente_con_id($conn, $idClienteExistente);
     }

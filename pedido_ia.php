@@ -57,6 +57,7 @@ $v = '20260913';
 									<div class="form-group">
 										<label>Cliente</label>
 										<input type="text" id="cliente" class="form-control" placeholder="Escribe para buscar un cliente existente o escribe uno nuevo" autocomplete="off">
+										<input type="hidden" id="cliente_id" value="">
 									</div>
 
 									<ul class="nav nav-tabs" id="tabs-tipo">
@@ -157,7 +158,17 @@ $v = '20260913';
 				success: function(data) { response(data); }
 			});
 		},
-		minLength: 2
+		minLength: 2,
+		select: function(event, ui) {
+			$('#cliente_id').val(ui.item.id);
+		}
+	});
+
+	// Si el usuario edita el texto a mano después de elegir una sugerencia (o escribe un
+	// cliente nuevo), el id ya no corresponde forzosamente a ese texto — se limpia y el
+	// backend vuelve a buscar/crear por nombre como antes.
+	$('#cliente').on('input', function() {
+		$('#cliente_id').val('');
 	});
 
 	$('#input-foto').on('change', function() {
@@ -190,6 +201,7 @@ $v = '20260913';
 		const formData = new FormData();
 		formData.append('tipo', tipo);
 		formData.append('cliente', cliente);
+		formData.append('cliente_id', $('#cliente_id').val() || '');
 
 		if (tipo === 'foto') {
 			const f = $('#input-foto')[0].files[0];
@@ -323,6 +335,7 @@ $v = '20260913';
 		const $btn = $(this).prop('disabled', true).text('Creando...');
 		const body = new URLSearchParams();
 		body.append('cliente', cliente);
+		body.append('cliente_id', $('#cliente_id').val() || '');
 		body.append('texto_ia', (ultimoResultado && ultimoResultado.texto_leido_completo) || '');
 		lineas.forEach(l => {
 			body.append('producto_id[]', l.producto_id);

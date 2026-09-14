@@ -8,6 +8,8 @@ if (!isset($_SESSION['ingress']) || $_SESSION['ingress'] !== true) {
     exit;
 }
 
+require_once __DIR__ . '/ia_helper.php';
+
 $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
 $conn->set_charset('utf8');
 
@@ -54,14 +56,20 @@ if (empty($items)) {
 
 $conn->begin_transaction();
 try {
-    $cliente_safe = $conn->real_escape_string($clienteNombre);
-    $rc = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$cliente_safe') LIMIT 1");
-    $cl = $rc ? $rc->fetch_assoc() : null;
-    if ($cl) {
-        $id_cliente = $cl['id_cliente'];
-    } else {
-        $conn->query("INSERT INTO clientes (cliente, estado) VALUES ('$cliente_safe', '1')");
-        $id_cliente = $conn->insert_id;
+    // Si el usuario eligió el cliente del desplegable (que muestra cuántos pedidos tiene cada
+    // uno), usamos ese id exacto — hay nombres duplicados en la base y buscar solo por texto
+    // puede agarrar el registro equivocado.
+    $id_cliente = ia_validar_id_cliente($conn, $_POST['cliente_id'] ?? '');
+    if (!$id_cliente) {
+        $cliente_safe = $conn->real_escape_string($clienteNombre);
+        $rc = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$cliente_safe') LIMIT 1");
+        $cl = $rc ? $rc->fetch_assoc() : null;
+        if ($cl) {
+            $id_cliente = $cl['id_cliente'];
+        } else {
+            $conn->query("INSERT INTO clientes (cliente, estado) VALUES ('$cliente_safe', '1')");
+            $id_cliente = $conn->insert_id;
+        }
     }
 
     $texto_safe = $conn->real_escape_string($textoIa);

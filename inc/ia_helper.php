@@ -97,6 +97,21 @@ function ia_buscar_id_cliente(mysqli $conn, string $nombre): ?int
     return $row ? (int)$row['id_cliente'] : null;
 }
 
+// Confirma que un id de cliente recibido del front (elegido del desplegable de autocompletar,
+// que muestra cuántos pedidos tiene cada uno) realmente exista, para no confiar a ciegas en un
+// valor manipulado. Hay nombres duplicados en la base, así que preferir el id exacto sobre
+// volver a buscar por texto evita agarrar por accidente un registro distinto con poco historial.
+function ia_validar_id_cliente(mysqli $conn, $idClientePost): ?int
+{
+    $id = (int)$idClientePost;
+    if ($id <= 0) {
+        return null;
+    }
+    $r = $conn->query("SELECT id_cliente FROM clientes WHERE id_cliente = $id LIMIT 1");
+    $row = $r ? $r->fetch_assoc() : null;
+    return $row ? (int)$row['id_cliente'] : null;
+}
+
 // Historial de productos que un cliente ya compró antes, del más reciente al más antiguo,
 // como nom_prod => id_producto (para poder resolver directamente a un producto del catálogo
 // sin volver a buscarlo por nombre).
