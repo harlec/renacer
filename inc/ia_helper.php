@@ -225,6 +225,7 @@ TXT;
 // nombre de catálogo que también tenga "DE", "KILO", etc., sin relación real con el producto.
 const IA_PALABRAS_VACIAS_MATCH = [
     'DE', 'DEL', 'LA', 'EL', 'LOS', 'LAS', 'UN', 'UNA', 'UNOS', 'UNAS', 'Y', 'CON', 'PARA', 'A',
+    'SOLO', 'SOLA', 'NOMAS',
     'KILO', 'KILOS', 'KG', 'GR', 'GRAMO', 'GRAMOS', 'LITRO', 'LITROS', 'LT', 'ML',
     'UNIDAD', 'UNIDADES', 'PAQUETE', 'PAQUETES', 'CAJA', 'CAJAS', 'BOLSA', 'BOLSAS',
     'MEDIO', 'MEDIA', 'CUARTO', 'CUARTOS', 'DOCENA', 'DOCENAS',
@@ -239,6 +240,45 @@ function ia_texto_para_match(string $texto): string
     );
     $limpio = implode(' ', $palabras);
     return $limpio !== '' ? $limpio : trim($t);
+}
+
+// Compara dos textos ya limpios palabra por palabra (en vez de como una sola cadena larga).
+// Comparar la frase completa de un tirón deja que dos palabras totalmente distintas "empaten"
+// por casualidad de letras (el español reusa mucho A, R, I, N, S...); palabra por palabra ese
+// ruido se reduce. Además le da más peso a la primera palabra de la búsqueda porque, en el
+// catálogo de este negocio, el nombre del producto casi siempre empieza con su palabra base
+// (ej. "QUESO FRESCO", "AZUCAR RUBIA...") — así una descripción que sólo MENCIONA esa palabra
+// más adelante (ej. "BOLSAS PARA ENVASAR AZUCAR") no le puede ganar al producto real.
+function ia_similitud_texto(string $textoA, string $textoB): float
+{
+    $palabrasA = array_values(array_filter(preg_split('/\s+/', trim($textoA))));
+    $palabrasB = array_values(array_filter(preg_split('/\s+/', trim($textoB))));
+    if (empty($palabrasA) || empty($palabrasB)) {
+        return 0.0;
+    }
+
+    $sumaPonderada = 0.0;
+    $pesoTotal = 0.0;
+    foreach ($palabrasA as $i => $pa) {
+        $mejor = 0.0;
+        foreach ($palabrasB as $pb) {
+            similar_text($pa, $pb, $pct);
+            if ($pct > $mejor) {
+                $mejor = $pct;
+            }
+        }
+        $peso = ($i === 0) ? 2.0 : 1.0;
+        $sumaPonderada += $mejor * $peso;
+        $pesoTotal += $peso;
+    }
+    $score = $sumaPonderada / $pesoTotal;
+
+    similar_text($palabrasA[0], $palabrasB[0], $pctInicio);
+    if ($pctInicio >= 80) {
+        $score += 15;
+    }
+
+    return $score;
 }
 
 // $historial: nom_prod => id_producto, de lo que este cliente ya compró antes (puede venir vacío).
@@ -287,8 +327,7 @@ function ia_buscar_producto_similar(mysqli $conn, string $texto, array $historia
     $mejor = null;
     $mejorPuntaje = 0.0;
     foreach ($candidatos as $c) {
-        similar_text($textoLimpio, ia_texto_para_match($c['nom_prod']), $porcentaje);
-        $puntaje = $porcentaje + $c['bono'];
+        $puntaje = ia_similitud_texto($textoLimpio, ia_texto_para_match($c['nom_prod'])) + $c['bono'];
         if ($puntaje > $mejorPuntaje) {
             $mejorPuntaje = $puntaje;
             $mejor = $c;
@@ -296,14 +335,14 @@ function ia_buscar_producto_similar(mysqli $conn, string $texto, array $historia
     }
 
     // 3) Si nada de lo anterior dio una coincidencia razonable, caemos al catálogo completo.
-    if (!$mejor || $mejorPuntaje < 35) {
+    if (!$mejor || $mejorPuntaje < 45) {
         $r = $conn->query("SELECT id_producto, nom_prod FROM productos WHERE estado = '1'");
         while ($row = $r->fetch_assoc()) {
             $id = (int)$row['id_producto'];
             if (isset($idsVistos[$id])) {
                 continue;
             }
-            similar_text($textoLimpio, ia_texto_para_match($row['nom_prod']), $porcentaje);
+            $porcentaje = ia_similitud_texto($textoLimpio, ia_texto_para_match($row['nom_prod']));
             if ($porcentaje > $mejorPuntaje) {
                 $mejorPuntaje = $porcentaje;
                 $mejor = ['id_producto' => $id, 'nom_prod' => $row['nom_prod']];
@@ -311,7 +350,7 @@ function ia_buscar_producto_similar(mysqli $conn, string $texto, array $historia
         }
     }
 
-    if ($mejor && $mejorPuntaje >= 35) {
+    if ($mejor && $mejorPuntaje >= 45) {
         return ['id_producto' => $mejor['id_producto'], 'nom_prod' => $mejor['nom_prod'], 'score' => round(min($mejorPuntaje, 99))];
     }
     return null;
