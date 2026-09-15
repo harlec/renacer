@@ -4,7 +4,8 @@
 // * dias del periodo) y, por cada día con tardanza registrada en Asistencia dentro del
 // rango, un descuento automático usando la tarifa hora de ESE día (según su horario
 // programado, que ya refleja si era lunes-viernes/sábado/domingo) y el factor de
-// penalización configurable.
+// penalización configurable. También descuenta el día completo (calculo_diario) por
+// cada día marcado como FALTO en Asistencia dentro del rango.
 ob_start();
 ini_set('display_errors', '0');
 error_reporting(0);
@@ -91,6 +92,21 @@ if ($empleados) {
                 $fecha_desc_esc = $conn->real_escape_string($a['fecha']);
                 $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
                                VALUES ($id_detalle, 'tardanza', '$fecha_desc_esc', $importe, '" . $conn->real_escape_string($desc) . "', $usuario_id)");
+            }
+        }
+
+        // Faltas: por cada día marcado como FALTO en Asistencia dentro del rango,
+        // se descuenta el día completo (calculo_diario).
+        if ($calculo_diario > 0) {
+            $rf = $conn->query("SELECT fecha FROM asistencias
+                                 WHERE id_empleado = $id_empleado AND fecha BETWEEN '$ini_esc' AND '$fin_esc' AND observacion = 'FALTO'");
+            if ($rf) {
+                while ($f = $rf->fetch_assoc()) {
+                    $desc = "Falta {$f['fecha']}";
+                    $fecha_desc_esc = $conn->real_escape_string($f['fecha']);
+                    $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                                   VALUES ($id_detalle, 'falta', '$fecha_desc_esc', $calculo_diario, '" . $conn->real_escape_string($desc) . "', $usuario_id)");
+                }
             }
         }
 
