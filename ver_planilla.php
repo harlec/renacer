@@ -53,7 +53,10 @@ if ($r) {
 			<td>S/ ' . number_format((float)$value['prestamo'],2) . '</td>
 			<td>S/ ' . number_format((float)$value['afp'],2) . '</td>
 			<td><strong>S/ ' . number_format($total,2) . '</strong></td>
-			<td><a class="btn btn-custom btn-sm" href="ver_planilla_detalle.php?id_detalle=' . $value['id_detalle'] . '"><i class="fas fa-list"></i> Detalle</a></td>
+			<td>
+				<a class="btn btn-custom btn-sm" href="ver_planilla_detalle.php?id_detalle=' . $value['id_detalle'] . '"><i class="fas fa-list"></i> Detalle</a>
+				<a class="btn btn-primary btn-sm" href="boleta_pago.php?id_detalle=' . $value['id_detalle'] . '" target="_blank"><i class="fas fa-file-pdf"></i> Boleta</a>
+			</td>
 		</tr>';
 	}
 }

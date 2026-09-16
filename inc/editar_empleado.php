@@ -20,6 +20,7 @@ if (isset($_POST) && !empty($_POST)) {
 	$celular = $_POST['celular'];
 	$ubicacion = $_POST['ubicacion'];
 	$direccion = $_POST['direccion'];
+	$fecha_ingreso = $_POST['fecha_ingreso'];
 	$cargo = $_POST['cargo'];
 	// Sdba::update() no soporta NULL, por eso '00:00:00' representa "sin horario definido".
 	$hora_ingreso = $_POST['hora_ingreso'] ? $_POST['hora_ingreso'] : '00:00:00';
@@ -34,7 +35,7 @@ if (isset($_POST) && !empty($_POST)) {
 
 			$ventas = Sdba::table('empleados');
 			$ventas->where('id_empleado',$id);
-			$data = array('dni'=>$dni,'nombres'=> $nombres,'apellidos'=>$apellidos,'email'=>$email,'celular'=>$celular,'direccion'=>$direccion,'ubicacion'=>$ubicacion,'cargo'=>$cargo,'hora_ingreso'=>$hora_ingreso,'hora_salida'=>$hora_salida,'hora_ingreso_sab'=>$hora_ingreso_sab,'hora_salida_sab'=>$hora_salida_sab,'hora_ingreso_dom'=>$hora_ingreso_dom,'hora_salida_dom'=>$hora_salida_dom,'sueldo_mensual'=>$sueldo_mensual,'afp'=>$afp,'afp_monto_mensual'=>$afp_monto_mensual,'estado'=>'1');
+			$data = array('dni'=>$dni,'nombres'=> $nombres,'apellidos'=>$apellidos,'email'=>$email,'celular'=>$celular,'direccion'=>$direccion,'fecha_ingreso'=>$fecha_ingreso,'ubicacion'=>$ubicacion,'cargo'=>$cargo,'hora_ingreso'=>$hora_ingreso,'hora_salida'=>$hora_salida,'hora_ingreso_sab'=>$hora_ingreso_sab,'hora_salida_sab'=>$hora_salida_sab,'hora_ingreso_dom'=>$hora_ingreso_dom,'hora_salida_dom'=>$hora_salida_dom,'sueldo_mensual'=>$sueldo_mensual,'afp'=>$afp,'afp_monto_mensual'=>$afp_monto_mensual,'estado'=>'1');
 			$ventas->update($data);
 			$venta_id = $id;
 			if ($venta_id) {

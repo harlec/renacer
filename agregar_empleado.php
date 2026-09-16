@@ -127,6 +127,10 @@ $general_dom = rango_horario_general(get_config('planilla_horario_dom_ingreso'),
 															    <label for="exampleInputPassword1">Dirección</label>
 															    <input type="text" class="form-control" name="direccion" id="direccion" placeholder="">
 															</div>
+															<div class="form-group">
+															    <label for="fecha_ingreso">Fecha de ingreso</label>
+															    <input type="date" class="form-control" name="fecha_ingreso" id="fecha_ingreso">
+															</div>
 															<input type="hidden" name="ubicacion" value="1">
 															<div class="form-group">
 															    <label for="cargo">Cargo / Ocupación</label>

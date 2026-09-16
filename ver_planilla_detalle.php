@@ -159,6 +159,7 @@ $conn->close();
 										<div class="panel panel-default pa">
 											<div class="panel-body table-responsive">
 												<button type="button" id="agregar_descuento" class="btn btn-success btn-sm">Agregar descuento</button>
+												<a href="boleta_pago.php?id_detalle=<?php echo $id_detalle; ?>" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-file-pdf"></i> Generar boleta PDF</a>
 												<br><br>
 											    <table id="datos" class="table table-hover">
 											    	<thead>

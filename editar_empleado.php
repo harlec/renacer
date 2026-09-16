@@ -143,6 +143,10 @@ if ($cargo_actual !== '' && !$cargo_actual_en_catalogo) {
 															    <label for="exampleInputPassword1">Dirección</label>
 															    <input type="text" class="form-control" name="direccion" id="direccion" value="<?php echo $l['direccion']; ?>">
 															</div>
+															<div class="form-group">
+															    <label for="fecha_ingreso">Fecha de ingreso</label>
+															    <input type="date" class="form-control" name="fecha_ingreso" id="fecha_ingreso" value="<?php echo $l['fecha_ingreso']; ?>">
+															</div>
 															<input type="hidden" name="ubicacion" value="<?php echo htmlspecialchars($l['ubicacion']); ?>">
 															<div class="form-group">
 															    <label for="cargo">Cargo / Ocupación</label>
