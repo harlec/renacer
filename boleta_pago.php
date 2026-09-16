@@ -137,7 +137,7 @@ ob_start();
     <tr>
         <th rowspan="2">NOMBRE Y APELLIDOS</th>
         <th colspan="5" class="grupo-remu">REMUNERACION</th>
-        <th colspan="5" class="grupo-desc">DESCUENTOS</th>
+        <th colspan="6" class="grupo-desc">DESCUENTOS</th>
         <th rowspan="2">TOTAL A<br>PAGAR</th>
     </tr>
     <tr>
