@@ -115,7 +115,7 @@ ob_start();
     .grupo-desc { color:#c0392b; }
     .total-pagar { color:#e74c3c; font-weight:bold; }
     .titulo-descuentos { text-align:center; color:#2e86c1; font-size:16px; font-weight:bold; margin:16px 0 8px; }
-    td.detalle-cell { vertical-align:top; padding:0 3px; width:20%; }
+    td.detalle-cell { vertical-align:top; padding:0 3px; width:16.6%; }
     @page { margin: 1cm; }
 </style>
 
@@ -142,7 +142,7 @@ ob_start();
     </tr>
     <tr>
         <th>SUELDO</th><th>CALCULO DE DIAS</th><th>DIAS</th><th>CALCULO X HORAS</th><th>CALCULO X MINUTOS</th>
-        <th class="grupo-desc">TARDANZAS</th><th class="grupo-desc">ABARROTES</th><th class="grupo-desc">ADELANTOS</th><th class="grupo-desc">DIAS FALTADOS</th><th class="grupo-desc">PRESTAMOS</th>
+        <th class="grupo-desc">TARDANZAS</th><th class="grupo-desc">ABARROTES</th><th class="grupo-desc">ADELANTOS</th><th class="grupo-desc">DIAS FALTADOS</th><th class="grupo-desc">PRESTAMOS</th><th class="grupo-desc">AFP</th>
     </tr>
     <tr>
         <td><?= htmlspecialchars($nombreCompleto) ?></td>
@@ -156,13 +156,10 @@ ob_start();
         <td style="text-align:right"><?= $totalAdelantos > 0 ? number_format($totalAdelantos, 2) : '-' ?></td>
         <td style="text-align:right"><?= $totalFaltas > 0 ? number_format($totalFaltas, 2) : '-' ?></td>
         <td style="text-align:right"><?= $totalPrestamos > 0 ? number_format($totalPrestamos, 2) : '-' ?></td>
+        <td style="text-align:right"><?= $totalAfp > 0 ? number_format($totalAfp, 2) : '-' ?></td>
         <td class="total-pagar" style="text-align:right"><?= number_format($totalPagar, 2) ?></td>
     </tr>
 </table>
-
-<?php if ($totalAfp > 0): ?>
-<p style="font-size:9px;margin-top:4px">* Incluye descuento de AFP: S/ <?= number_format($totalAfp, 2) ?> (no mostrado en el cuadro de arriba, ver detalle)</p>
-<?php endif; ?>
 
 <div class="titulo-descuentos">DESCUENTOS</div>
 
@@ -206,6 +203,14 @@ ob_start();
             <tr><th>FECHA</th><th>IMPORTE</th></tr>
             <?= ia_boleta_filas($porTipo['prestamo'], ['fecha', 'importe']) ?>
             <tr><td><b>TOTALES</b></td><td style="text-align:right"><b><?= $totalPrestamos > 0 ? number_format($totalPrestamos, 2) : '-' ?></b></td></tr>
+        </table>
+    </td>
+    <td class="detalle-cell">
+        <table class="tabla-desc">
+            <tr><th colspan="2">AFP</th></tr>
+            <tr><th>FECHA</th><th>IMPORTE</th></tr>
+            <?= ia_boleta_filas($porTipo['afp'], ['fecha', 'importe']) ?>
+            <tr><td><b>TOTALES</b></td><td style="text-align:right"><b><?= $totalAfp > 0 ? number_format($totalAfp, 2) : '-' ?></b></td></tr>
         </table>
     </td>
 </tr>
