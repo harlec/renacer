@@ -46,6 +46,22 @@ if (isset($_POST) && !empty($_POST)) {
         } else {
             
             try {
+                // Si es un consumo de abarrotes de un empleado (ver inc/registrar_venta.php),
+                // el movimiento y sus cuotas deben seguir al total de la venta. Si alguna cuota
+                // ya se descontó en una planilla no se puede editar (mismo criterio que anular).
+                $conn_mov = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
+                $conn_mov->set_charset('utf8');
+                $id_venta_int = (int) $id_venta;
+                $rm  = $conn_mov->query("SELECT id_movimiento FROM movimientos_empleado WHERE id_venta = $id_venta_int");
+                $mov = $rm ? $rm->fetch_assoc() : null;
+                if ($mov) {
+                    $rc = $conn_mov->query("SELECT COUNT(*) AS n, SUM(id_detalle_aplicado IS NOT NULL) AS aplicadas FROM movimiento_cuotas WHERE id_movimiento = " . (int)$mov['id_movimiento']);
+                    $cu = $rc ? $rc->fetch_assoc() : ['n' => 0, 'aplicadas' => 0];
+                    if ((int)$cu['aplicadas'] > 0) {
+                        throw new Exception('Esta venta ya se descontó de una planilla del empleado — no se puede editar.');
+                    }
+                }
+
                 // PRE-VALIDACIÓN: verificar stock suficiente ANTES de tocar nada
                 // Calculamos el stock efectivo = stock actual + lo que ya ocupa esta venta
                 $detalle_precheck = Sdba::table('detalle_ventas');
@@ -199,6 +215,27 @@ if (isset($_POST) && !empty($_POST)) {
                     'total' => $total_venta
                 ));
                 
+                // Sincroniza el consumo del empleado con el nuevo total, repartiendo en las
+                // mismas cuotas (la última absorbe el redondeo, como en registrar_venta.php).
+                if ($mov) {
+                    $id_mov  = (int) $mov['id_movimiento'];
+                    $total_m = round($total_venta, 2);
+                    $cuotas  = max(1, (int) $cu['n']);
+                    $fecha_m = $conn_mov->real_escape_string($fecha);
+
+                    $conn_mov->query("UPDATE movimientos_empleado SET importe = $total_m, fecha = '$fecha_m' WHERE id_movimiento = $id_mov");
+                    $conn_mov->query("DELETE FROM movimiento_cuotas WHERE id_movimiento = $id_mov");
+
+                    $base = floor(($total_m / $cuotas) * 100) / 100;
+                    $acumulado = 0;
+                    for ($i = 1; $i < $cuotas; $i++) {
+                        $conn_mov->query("INSERT INTO movimiento_cuotas (id_movimiento, numero_cuota, monto) VALUES ($id_mov, $i, $base)");
+                        $acumulado += $base;
+                    }
+                    $ultimo_monto = round($total_m - $acumulado, 2);
+                    $conn_mov->query("INSERT INTO movimiento_cuotas (id_movimiento, numero_cuota, monto) VALUES ($id_mov, $cuotas, $ultimo_monto)");
+                }
+
                 $respuestaOk = true;
                 $mensajeError = 'Venta actualizada correctamente';
                 $venta_id = $id_venta;
