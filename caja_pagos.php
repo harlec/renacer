@@ -83,6 +83,27 @@ include('inc/control.php');
     .pagada-item .pi-estado { font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:10px; background:#eee; color:#777; }
     .pagada-item.fue-credito { background:#fff8f3; border:2px solid var(--c-orange); }
     .pagada-item .pi-credito-badge { font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:10px; background:var(--c-orange); color:#fff; margin-left:6px; }
+    .pagada-item.venta-pasada { background:#f2f8ff; border:2px solid #2d7dd2; }
+    .pagada-item .pi-pasada-badge { font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:10px; background:#2d7dd2; color:#fff; margin-left:6px; }
+
+    .toggle-vista { margin-left:auto; display:flex; gap:6px; }
+    .btn-vista { border:2px solid #eee; background:#fff; color:#888; border-radius:8px; padding:7px 10px; font-size:14px; }
+    .btn-vista.activo { background:var(--c-navy); color:#fff; border-color:var(--c-navy); }
+
+    .pagada-tabla-wrap { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); overflow-x:auto; }
+    table.pagada-tabla { width:100%; border-collapse:collapse; font-size:13px; }
+    table.pagada-tabla th { text-align:left; font-size:11px; text-transform:uppercase; color:#888; font-weight:700; padding:10px 14px; border-bottom:2px solid #eee; white-space:nowrap; }
+    table.pagada-tabla td { padding:10px 14px; border-bottom:1px solid #f0f0f0; vertical-align:top; }
+    table.pagada-tabla tr:last-child td { border-bottom:none; }
+    table.pagada-tabla tr:hover td { background:#fafafa; }
+    table.pagada-tabla tr.venta-pasada td { background:#f2f8ff; }
+    table.pagada-tabla tr.fue-credito td { background:#fff8f3; }
+    table.pagada-tabla .pt-num { font-weight:700; color:var(--c-navy); }
+    table.pagada-tabla .pt-total { font-weight:700; color:var(--c-orange); white-space:nowrap; }
+    table.pagada-tabla .pt-metodo-chip { display:inline-block; font-size:11px; font-weight:600; color:var(--c-navy); background:#f7f7f7; border-radius:6px; padding:2px 7px; margin:1px 3px 1px 0; white-space:nowrap; }
+    table.pagada-tabla .pt-badge { font-size:9px; font-weight:700; text-transform:uppercase; padding:2px 7px; border-radius:10px; color:#fff; margin-left:5px; white-space:nowrap; }
+    table.pagada-tabla .pt-badge.credito { background:var(--c-orange); }
+    table.pagada-tabla .pt-badge.pasada { background:#2d7dd2; }
     .linea-pago { display:flex; justify-content:space-between; align-items:center; background:#f7f7f7; border-radius:8px; padding:6px 10px; margin-top:6px; font-size:13px; }
     .linea-pago .lp-metodo { font-weight:600; color:var(--c-navy); }
     .linea-pago .lp-editar { color:#555; background:#fff; border:1px solid #ddd; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; }
@@ -244,10 +265,30 @@ include('inc/control.php');
         <div class="caja-titulo">
             Ventas pagadas hoy
             <span class="contador" id="contadorPagadas">0</span>
+            <div class="toggle-vista">
+                <button class="btn-vista activo" id="btnVistaGrid" title="Cuadrícula"><i class="fas fa-th-large"></i></button>
+                <button class="btn-vista" id="btnVistaLista" title="Detalles"><i class="fas fa-list"></i></button>
+            </div>
         </div>
 
         <div class="pagada-grid" id="pagadas">
             <div class="vacio">Cargando...</div>
+        </div>
+        <div class="pagada-tabla-wrap" id="pagadasTablaWrap" style="display:none">
+            <table class="pagada-tabla">
+                <thead>
+                    <tr>
+                        <th>Venta</th>
+                        <th>Cliente</th>
+                        <th>Fecha venta</th>
+                        <th>Total</th>
+                        <th>Pagado hoy</th>
+                        <th>Métodos</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="pagadasTabla"></tbody>
+            </table>
         </div>
     </div>
 
@@ -746,6 +787,10 @@ include('inc/control.php');
     const vistaPagadas = document.getElementById('vistaPagadas');
     const vistaCredito = document.getElementById('vistaCredito');
     const pagadasGrid = document.getElementById('pagadas');
+    const pagadasTablaWrap = document.getElementById('pagadasTablaWrap');
+    const pagadasTabla = document.getElementById('pagadasTabla');
+    const btnVistaGrid = document.getElementById('btnVistaGrid');
+    const btnVistaLista = document.getElementById('btnVistaLista');
     const contadorPagadas = document.getElementById('contadorPagadas');
     const creditoGrid = document.getElementById('credito');
     const contadorCredito = document.getElementById('contadorCredito');
@@ -753,10 +798,33 @@ include('inc/control.php');
     const metodosLabel = { efectivo: 'Efectivo', yape: 'Yape', plin: 'Plin', bbva: 'BBVA', yape_susan: 'Yape Susan', tarjeta: 'Tarjeta' };
     const metodosOrden = ['efectivo', 'yape', 'plin', 'bbva', 'yape_susan', 'tarjeta'];
 
+    // Solo afecta cómo se ve esta pestaña en este navegador — no es información
+    // compartida, así que basta con recordarla en localStorage.
+    let vistaPagadasModo = 'grid';
+    try { vistaPagadasModo = localStorage.getItem('vistaPagadasModo') || 'grid'; } catch (e) {}
+
+    function aplicarVistaPagadas() {
+        const esLista = vistaPagadasModo === 'lista';
+        pagadasGrid.style.display = esLista ? 'none' : '';
+        pagadasTablaWrap.style.display = esLista ? '' : 'none';
+        btnVistaGrid.classList.toggle('activo', !esLista);
+        btnVistaLista.classList.toggle('activo', esLista);
+    }
+
+    function cambiarVistaPagadas(modo) {
+        vistaPagadasModo = modo;
+        try { localStorage.setItem('vistaPagadasModo', modo); } catch (e) {}
+        aplicarVistaPagadas();
+    }
+    btnVistaGrid.addEventListener('click', () => cambiarVistaPagadas('grid'));
+    btnVistaLista.addEventListener('click', () => cambiarVistaPagadas('lista'));
+    aplicarVistaPagadas();
+
     function renderPagadas(items) {
         contadorPagadas.textContent = items.length;
         if (items.length === 0) {
             pagadasGrid.innerHTML = '<div class="vacio">No hay ventas pagadas hoy</div>';
+            pagadasTabla.innerHTML = '<tr><td colspan="7" class="vacio">No hay ventas pagadas hoy</td></tr>';
             return;
         }
         pagadasGrid.innerHTML = items.map(function (v) {
@@ -766,13 +834,35 @@ include('inc/control.php');
                     '<button class="lp-editar" data-accion="editar" title="Editar pago"><i class="fas fa-pen"></i> Editar</button>' +
                 '</div>';
             }).join('');
-            return '<div class="pagada-item' + (v.fue_credito ? ' fue-credito' : '') + '" data-venta="' + v.id_venta + '">' +
+            const clases = (v.fue_credito ? ' fue-credito' : '') + (v.es_pasada ? ' venta-pasada' : '');
+            return '<div class="pagada-item' + clases + '" data-venta="' + v.id_venta + '">' +
                 '<div class="pi-head">' +
-                    '<div><div class="pi-num">v-' + v.id_venta + (v.fue_credito ? ' <span class="pi-credito-badge">Fue a crédito</span>' : '') + '</div><div class="pi-cliente">' + v.cliente + '</div></div>' +
+                    '<div><div class="pi-num">v-' + v.id_venta +
+                        (v.fue_credito ? ' <span class="pi-credito-badge">Fue a crédito</span>' : '') +
+                        (v.es_pasada ? ' <span class="pi-pasada-badge">Venta anterior (' + v.fecha_venta + ')</span>' : '') +
+                    '</div><div class="pi-cliente">' + v.cliente + '</div></div>' +
                     '<div style="text-align:right"><div class="pi-total">' + money(v.total) + '</div><span class="pi-estado">' + v.estado_label + '</span></div>' +
                 '</div>' +
                 lineas +
             '</div>';
+        }).join('');
+
+        pagadasTabla.innerHTML = items.map(function (v) {
+            const metodos = v.pagos.map(function (p) {
+                return '<span class="pt-metodo-chip">' + (metodosLabel[p.metodo] || p.metodo) + ': ' + money(p.monto) + '</span>';
+            }).join('');
+            const clases = (v.fue_credito ? ' fue-credito' : '') + (v.es_pasada ? ' venta-pasada' : '');
+            const badges = (v.fue_credito ? '<span class="pt-badge credito">Crédito</span>' : '') +
+                (v.es_pasada ? '<span class="pt-badge pasada">Venta anterior</span>' : '');
+            return '<tr class="' + clases.trim() + '" data-venta="' + v.id_venta + '">' +
+                '<td class="pt-num">v-' + v.id_venta + badges + '</td>' +
+                '<td>' + v.cliente + '</td>' +
+                '<td>' + v.fecha_venta + '</td>' +
+                '<td class="pt-total">' + money(v.total) + '</td>' +
+                '<td class="pt-total">' + money(v.pagado) + '</td>' +
+                '<td>' + metodos + '</td>' +
+                '<td>' + v.estado_label + '</td>' +
+            '</tr>';
         }).join('');
     }
 
