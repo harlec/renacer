@@ -57,7 +57,7 @@ if ($r) {
 }
 
 // Resumen de lo ya cobrado hoy, por medio de pago
-$resumen = ['efectivo' => 0, 'yape' => 0, 'plin' => 0, 'bbva' => 0, 'yape_susan' => 0, 'tarjeta' => 0, 'total' => 0];
+$resumen = ['efectivo' => 0, 'yape' => 0, 'plin' => 0, 'bbva' => 0, 'yape_susan' => 0, 'tarjeta' => 0, 'total' => 0, 'ventas_pasadas' => 0];
 $rr = $conn->query("SELECT metodo, SUM(monto) AS total FROM venta_pagos WHERE DATE(fecha) = CURDATE() GROUP BY metodo");
 if ($rr) {
     while ($row = $rr->fetch_assoc()) {
@@ -66,6 +66,20 @@ if ($rr) {
         }
         $resumen['total'] += round((float)$row['total'], 2);
     }
+}
+
+// De ese total, cuánto corresponde a pagos hechos hoy sobre ventas de otros días
+// (por ejemplo, créditos que recién hoy se terminan de cobrar) — para que el resumen
+// de arriba distinga lo cobrado de ventas de hoy vs. lo cobrado de ventas pasadas.
+$rvp = $conn->query("
+    SELECT COALESCE(SUM(vp.monto), 0) AS total
+    FROM venta_pagos vp
+    JOIN ventas v ON v.id_venta = vp.venta
+    WHERE DATE(vp.fecha) = CURDATE()
+      AND DATE(v.fecha_ope) != CURDATE()
+");
+if ($rvp && ($row = $rvp->fetch_assoc())) {
+    $resumen['ventas_pasadas'] = round((float)$row['total'], 2);
 }
 
 echo json_encode(['ok' => true, 'data' => $data, 'resumen' => $resumen]);
