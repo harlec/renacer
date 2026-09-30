@@ -795,7 +795,11 @@ include('inc/control.php');
     const creditoGrid = document.getElementById('credito');
     const contadorCredito = document.getElementById('contadorCredito');
 
-    const metodosLabel = { efectivo: 'Efectivo', yape: 'Yape', plin: 'Plin', bbva: 'BBVA', yape_susan: 'Yape Susan', tarjeta: 'Tarjeta' };
+    // 'planilla' no es un método que el cajero pueda elegir (por eso no está en metodosOrden);
+    // lo genera solo inc/registrar_planilla_periodo.php al aplicar una cuota de crédito de
+    // abarrotes/adelanto como pago parcial de la venta. Antes de este fallback se mostraba
+    // tal cual ("planilla") en vez de un texto legible.
+    const metodosLabel = { efectivo: 'Efectivo', yape: 'Yape', plin: 'Plin', bbva: 'BBVA', yape_susan: 'Yape Susan', tarjeta: 'Tarjeta', planilla: 'Descuento planilla' };
     const metodosOrden = ['efectivo', 'yape', 'plin', 'bbva', 'yape_susan', 'tarjeta'];
 
     // Solo afecta cómo se ve esta pestaña en este navegador — no es información

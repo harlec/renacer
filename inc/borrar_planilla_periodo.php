@@ -51,8 +51,14 @@ if ($rm) {
         // Si esta cuota se había marcado como pago parcial de una venta, revertir solo
         // ese pago (por monto, ya que varias cuotas pueden compartir el mismo importe).
         if (!empty($m['id_venta'])) {
+            // Comparar con tolerancia (no "=" exacto): monto viene de una columna float y
+            // puede llegar con un residuo binario (ej. 90.28999999999999996) distinto al que
+            // arroja (float) en PHP, con lo que el "=" no matcheaba ninguna fila — el DELETE
+            // "tenía éxito" (0 filas afectadas no es un error de MySQL) pero no borraba nada,
+            // dejando el pago fantasma en venta_pagos mientras la cuota sí volvía a quedar
+            // pendiente más abajo, lista para volver a cobrarse duplicada en la próxima planilla.
             $monto_esc = (float) $m['monto'];
-            $conn->query("DELETE FROM venta_pagos WHERE venta = " . (int)$m['id_venta'] . " AND metodo = 'planilla' AND monto = $monto_esc LIMIT 1");
+            $conn->query("DELETE FROM venta_pagos WHERE venta = " . (int)$m['id_venta'] . " AND metodo = 'planilla' AND ABS(monto - $monto_esc) < 0.005 LIMIT 1");
         }
         $conn->query("UPDATE movimiento_cuotas SET id_detalle_aplicado = NULL WHERE id_cuota = " . (int)$m['id_cuota']);
     }
