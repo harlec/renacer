@@ -75,36 +75,45 @@ $nombre = cd_upper($nombre);
 $tokens = cd_normalizar($nombre);
 $cands = [];
 if ($tokens) {
-    $like = [];
-    foreach ($tokens as $t) { if (strlen($t) >= 3) $like[] = "UPPER(c.cliente) LIKE '%" . $conn->real_escape_string($t) . "%'"; }
-    if ($like) {
-        $q = $conn->query("
-            SELECT c.id_cliente, c.cliente, c.doc_identidad, COUNT(v.id_venta) AS ventas
-            FROM clientes c LEFT JOIN ventas v ON v.cliente = c.id_cliente AND v.estado != '2'
-            WHERE (" . implode(' OR ', $like) . ")
-            GROUP BY c.id_cliente, c.cliente, c.doc_identidad LIMIT 300");
-        $set = array_flip($tokens);
-        $todos = [];
-        while ($q && $x = $q->fetch_assoc()) {
-            if (isset($fusionados[(int)$x['id_cliente']])) continue;
-            $t = cd_normalizar($x['cliente']);
-            if (!$t) continue;
-            $dentro = true;
-            foreach ($t as $w) { if (!isset($set[$w])) { $dentro = false; break; } }
-            if ($dentro) $doc = trim((string)$x['doc_identidad']);
-            $todos[] = ['id' => (int)$x['id_cliente'], 'nombre' => $x['cliente'], 'ventas' => (int)$x['ventas'], 'n' => count($t), 'tok' => $t,
-                        'doc' => ($doc === '-' ? '' : $doc)];
+    // Se revisan todos los clientes (unos miles, es liviano) y se queda con los que cumplen la
+    // regla: TODAS las palabras del cliente aparecen en el nombre completo de Migo.
+    // Ej.: Migo "ROMERO SANTOS HUGO ALONSO" -> sí "HUGO ROMERO", no "JESUS ROMERO" ni "SANTOS LOPEZ".
+    $set = array_flip($tokens);
+    $todos = [];
+    $df = []; // en cuántos clientes (de toda la base) aparece cada palabra
+    $q = $conn->query("SELECT id_cliente, cliente, doc_identidad FROM clientes");
+    while ($q && $x = $q->fetch_assoc()) {
+        if (isset($fusionados[(int)$x['id_cliente']])) continue;
+        $t = cd_normalizar($x['cliente']);
+        if (!$t) continue;
+        $dentro = true;
+        foreach ($t as $w) {
+            $df[$w] = ($df[$w] ?? 0) + 1;
+            if (!isset($set[$w])) $dentro = false;
         }
-        // Un nombre de una sola palabra solo cuenta si esa palabra es poco común entre los clientes.
-        $frec = [];
-        foreach ($todos as $c) foreach ($c['tok'] as $w) $frec[$w] = ($frec[$w] ?? 0) + 1;
-        foreach ($todos as $c) {
-            if ($c['n'] === 1 && ($frec[$c['tok'][0]] ?? 0) > 6) continue;
-            $cands[] = ['id' => $c['id'], 'nombre' => $c['nombre'], 'ventas' => $c['ventas'], 'doc' => $c['doc']];
-        }
-        usort($cands, function ($a, $b) { return (($a['doc'] !== '') - ($b['doc'] !== '')) ?: ($b['ventas'] - $a['ventas']); });
-        $cands = array_slice($cands, 0, 6);
+        if (!$dentro) continue;
+        $doc = trim((string)$x['doc_identidad']);
+        $todos[] = ['id' => (int)$x['id_cliente'], 'nombre' => $x['cliente'], 'n' => count($t), 'tok' => $t,
+                    'doc' => ($doc === '-' ? '' : $doc)];
     }
+    // Un nombre de una sola palabra (ej. "ROMERO") solo cuenta si esa palabra es poco común en la base.
+    $frec = $df;
+    $ids = [];
+    foreach ($todos as $c) {
+        if ($c['n'] === 1 && ($frec[$c['tok'][0]] ?? 0) > 6) continue;
+        $cands[$c['id']] = ['id' => $c['id'], 'nombre' => $c['nombre'], 'ventas' => 0, 'doc' => $c['doc'], 'n' => $c['n']];
+    }
+    if ($cands) {
+        $r2 = $conn->query("SELECT cliente, COUNT(*) AS n FROM ventas WHERE estado != '2' AND cliente IN (" . implode(',', array_keys($cands)) . ") GROUP BY cliente");
+        while ($r2 && $x = $r2->fetch_assoc()) $cands[(int)$x['cliente']]['ventas'] = (int)$x['n'];
+    }
+    // Más palabras en común primero (más específico), luego sin DNI antes que con DNI, luego más ventas.
+    usort($cands, function ($a, $b) {
+        if ($a['n'] !== $b['n']) return $b['n'] - $a['n'];
+        if (($a['doc'] !== '') !== ($b['doc'] !== '')) return ($a['doc'] !== '') ? 1 : -1;
+        return $b['ventas'] - $a['ventas'];
+    });
+    $cands = array_map(function ($c) { unset($c['n']); return $c; }, array_slice($cands, 0, 5));
 }
 
 echo json_encode(['estado' => 'api', 'nombre' => $nombre, 'candidatos' => $cands]);
