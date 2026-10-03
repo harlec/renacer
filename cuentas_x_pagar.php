@@ -1,5 +1,6 @@
 <?php
 include('inc/control.php');
+include_once('inc/medios_pago.php');
 include('inc/sdba/sdba.php'); // include main file
 
 // Igual criterio que antes: el saldo se calcula desde los pagos registrados
@@ -264,11 +265,7 @@ foreach ($grupos as $idp => $g) {
 					'<input id="swal-monto" type="number" step="0.01" min="0.01" max="' + saldo + '" class="swal2-input" value="' + saldo.toFixed(2) + '">' +
 					'<label style="font-size:12px">Método</label>' +
 					'<select id="swal-metodo" class="swal2-input">' +
-					'<option value="efectivo">Efectivo</option>' +
-					'<option value="transferencia">Transferencia</option>' +
-					'<option value="deposito">Depósito</option>' +
-					'<option value="cheque">Cheque</option>' +
-					'<option value="otro">Otro</option>' +
+					'<?php echo medios_options(); ?>' +
 					'</select>' +
 					'</div>',
 				showCancelButton: true,
@@ -304,11 +301,7 @@ foreach ($grupos as $idp => $g) {
 					'<input id="swal-monto" type="number" step="0.01" min="0.01" max="' + saldo + '" class="swal2-input" value="' + saldo.toFixed(2) + '">' +
 					'<label style="font-size:12px">Método</label>' +
 					'<select id="swal-metodo" class="swal2-input">' +
-					'<option value="efectivo">Efectivo</option>' +
-					'<option value="transferencia">Transferencia</option>' +
-					'<option value="deposito">Depósito</option>' +
-					'<option value="cheque">Cheque</option>' +
-					'<option value="otro">Otro</option>' +
+					'<?php echo medios_options(); ?>' +
 					'</select>' +
 					'</div>',
 				showCancelButton: true,

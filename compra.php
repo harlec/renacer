@@ -1,5 +1,6 @@
 <?php
 include('inc/control.php');
+include_once('inc/medios_pago.php');
 $fecha = date('d-m-Y');
 $newDate = date("Y-m-d", strtotime($fecha));
 
@@ -176,11 +177,7 @@ foreach ($proveedoresl as $key) {
 											    			<div class="form-group">
 													    <label>Método de pago</label>
 													    <select class="form-control" name="metodo_pago" id="metodo_pago">
-													    	<option value="efectivo">Efectivo</option>
-													    	<option value="transferencia">Transferencia</option>
-													    	<option value="deposito">Depósito</option>
-													    	<option value="cheque">Cheque</option>
-													    	<option value="otro">Otro</option>
+													    	<?php echo medios_options(); ?>
 													    </select>
 													 </div>
 											    		</div>

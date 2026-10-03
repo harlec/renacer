@@ -13,7 +13,8 @@ if (!isset($_SESSION['id_usr'])) {
     exit;
 }
 
-$metodos_validos = ['efectivo', 'transferencia', 'deposito', 'cheque', 'otro'];
+include_once(__DIR__ . '/medios_pago.php');
+    $metodos_validos = array_keys($MEDIOS_PAGO);
 
 $id_compra = intval($_POST['id_compra'] ?? 0);
 $monto     = round(floatval($_POST['monto'] ?? 0), 2);
