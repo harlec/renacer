@@ -89,11 +89,13 @@ foreach ($variantes_p_l as $value) {
 // }
 
 //obtnemos colaboradores
+require_once(__DIR__ . '/inc/cliente_helper.php');
+$fusionados_idx = array_flip(cliente_ids_fusionados());
 $clientes = Sdba::table('clientes');
 $el = $clientes->get();
 $emplel = array();
 foreach ($el as $value) {
-	if (($value['estado'] ?? '1') === '2') continue; // cliente fusionado en otro
+	if (isset($fusionados_idx[(int)$value['id_cliente']])) continue; // cliente fusionado en otro
 	$emplel[]= $value['cliente'];
 }
 

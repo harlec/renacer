@@ -60,6 +60,8 @@ if (!empty($detalle_actual)) {
 }
 
 // Obtener cliente actual
+require_once(__DIR__ . '/inc/cliente_helper.php');
+$fusionados_idx = array_flip(cliente_ids_fusionados());
 $cliente_actual = Sdba::table('clientes');
 $cliente_actual->where('id_cliente', $venta_data['cliente']);
 $cliente_data = $cliente_actual->get_one();
@@ -98,7 +100,7 @@ $clientes = Sdba::table('clientes');
 $el = $clientes->get();
 $emplel = array();
 foreach ($el as $value) {
-	if (($value['estado'] ?? '1') === '2') continue; // cliente fusionado en otro
+	if (isset($fusionados_idx[(int)$value['id_cliente']])) continue; // cliente fusionado en otro
     $emplel[]= $value['cliente'];
 }
 ?>

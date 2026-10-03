@@ -40,9 +40,9 @@ try {
         $conn->query("UPDATE clientes SET $campo = '' WHERE id_cliente = $p AND $campo = '$v'");
     }
 
-    $conn->query("UPDATE clientes SET estado = '1' WHERE id_cliente = $d");
     $conn->query("UPDATE cliente_fusiones SET deshecha = 1 WHERE id_fusion = $id");
     $conn->commit();
+    @unlink(sys_get_temp_dir() . '/renacer_dup_clientes.cache');
     echo json_encode(['ok' => true]);
 } catch (Exception $e) {
     $conn->rollback();

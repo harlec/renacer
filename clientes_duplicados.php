@@ -11,7 +11,24 @@ set_time_limit(60);
 $conn = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
 $conn->set_charset('utf8');
 
-$grupos = detectar_clientes_duplicados($conn);
+require_once('inc/cliente_helper.php');
+$fusionados = cliente_ids_fusionados($conn);
+$fusionados_idx = array_flip($fusionados);
+
+// El cálculo se guarda 15 minutos (se borra solo al fusionar o deshacer); "Recalcular" lo fuerza.
+$cache = sys_get_temp_dir() . '/renacer_dup_clientes.cache';
+$grupos = null;
+if (empty($_GET['recalcular']) && is_file($cache) && time() - filemtime($cache) < 900) {
+	$grupos = @unserialize((string)file_get_contents($cache), ['allowed_classes' => false]);
+}
+if (!is_array($grupos)) {
+	$grupos = detectar_clientes_duplicados($conn, $fusionados);
+	@file_put_contents($cache, serialize($grupos));
+}
+// Quita lo ya fusionado (por si el caché es anterior) y los grupos que quedan de uno solo.
+$grupos = array_values(array_filter(array_map(function ($g) use ($fusionados_idx) {
+	return array_values(array_filter($g, function ($c) use ($fusionados_idx) { return !isset($fusionados_idx[$c['id_cliente']]); }));
+}, $grupos), function ($g) { return count($g) >= 2; }));
 
 // Historial de fusiones (si la migración aún no se corrió, simplemente no hay historial)
 $fusiones = [];
@@ -84,7 +101,10 @@ $esc = function($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); 
 						Elige el cliente <strong>principal</strong> (el que se queda), marca los que quieres fusionar en él, y se pasan todas sus ventas.
 						Los fusionados no se borran, quedan inactivos y se pueden <strong>deshacer</strong> abajo.
 					</div>
-					<input type="text" id="buscar" class="form-control" placeholder="Filtrar por nombre..." style="max-width:320px;margin-bottom:15px">
+					<div style="margin-bottom:15px">
+						<input type="text" id="buscar" class="form-control" placeholder="Filtrar por nombre..." style="max-width:320px;display:inline-block">
+						<a href="clientes_duplicados.php?recalcular=1" class="btn btn-default">Recalcular</a>
+					</div>
 
 					<?php if ($sin_migracion): ?>
 						<div class="alert alert-warning">Falta correr <code>sql/add_fusion_clientes.sql</code> en la base de datos antes de poder fusionar.</div>

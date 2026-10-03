@@ -5,13 +5,15 @@ if ($_SESSION['type']=='operador') {
 }
 
 include('inc/sdba/sdba.php'); // include main file
+require_once(__DIR__ . '/inc/cliente_helper.php');
+$fusionados_idx = array_flip(cliente_ids_fusionados());
 $ventas = Sdba::table('clientes'); // creating table object
 $ventas_list = $ventas->get(); 
 
 $datos = '';
 $i = 1;
 foreach ($ventas_list as $value) {
-	if (($value['estado'] ?? '1') === '2') continue; // fusionado en otro cliente
+	if (isset($fusionados_idx[(int)$value['id_cliente']])) continue; // cliente fusionado en otro
 
 	$vc = Sdba::table('ventas');
 	$vc->where('cliente',$value['id_cliente']);

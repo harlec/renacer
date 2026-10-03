@@ -92,14 +92,11 @@ function ia_buscar_id_cliente(mysqli $conn, string $nombre): ?int
         return null;
     }
     $safe = $conn->real_escape_string($nombre);
-    $r = $conn->query("SELECT id_cliente, estado FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$safe') ORDER BY (estado = '2') ASC, id_cliente ASC LIMIT 1");
+    $r = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$safe') LIMIT 1");
     $row = $r ? $r->fetch_assoc() : null;
     if (!$row) return null;
-    if ($row['estado'] === '2') {
-        require_once(__DIR__ . '/cliente_helper.php');
-        return cliente_resolver_fusion($conn, (int)$row['id_cliente']);
-    }
-    return (int)$row['id_cliente'];
+    require_once(__DIR__ . '/cliente_helper.php');
+    return cliente_resolver_fusion($conn, (int)$row['id_cliente']);
 }
 
 // Confirma que un id de cliente recibido del front (elegido del desplegable de autocompletar,
@@ -112,14 +109,11 @@ function ia_validar_id_cliente(mysqli $conn, $idClientePost): ?int
     if ($id <= 0) {
         return null;
     }
-    $r = $conn->query("SELECT id_cliente, estado FROM clientes WHERE id_cliente = $id LIMIT 1");
+    $r = $conn->query("SELECT id_cliente FROM clientes WHERE id_cliente = $id LIMIT 1");
     $row = $r ? $r->fetch_assoc() : null;
     if (!$row) return null;
-    if ($row['estado'] === '2') {
-        require_once(__DIR__ . '/cliente_helper.php');
-        return cliente_resolver_fusion($conn, (int)$row['id_cliente']);
-    }
-    return (int)$row['id_cliente'];
+    require_once(__DIR__ . '/cliente_helper.php');
+    return cliente_resolver_fusion($conn, (int)$row['id_cliente']);
 }
 
 // Historial de productos que un cliente ya compró antes, del más reciente al más antiguo,

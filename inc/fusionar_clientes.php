@@ -1,6 +1,6 @@
 <?php
 // Fusiona clientes duplicados en un cliente principal: las ventas y preventas del duplicado
-// pasan al principal y el duplicado queda inactivo (estado '2'). No se borra nada; cada
+// pasan al principal y el duplicado queda registrado como fusionado en cliente_fusiones. No se borra nada; cada
 // fusión queda registrada en cliente_fusiones y se puede deshacer.
 ob_start();
 ini_set('display_errors', '0');
@@ -39,11 +39,10 @@ if (count($cl) !== count($dups) + 1) {
     echo json_encode(['ok' => false, 'mensaje' => 'Alguno de los clientes no existe']);
     exit;
 }
-foreach ($cl as $c) {
-    if ($c['estado'] === '2') {
-        echo json_encode(['ok' => false, 'mensaje' => 'Alguno de los clientes ya fue fusionado. Recarga la página.']);
-        exit;
-    }
+require_once(__DIR__ . '/cliente_helper.php');
+if (array_intersect(cliente_ids_fusionados($conn), array_merge([$principal], $dups))) {
+    echo json_encode(['ok' => false, 'mensaje' => 'Alguno de los clientes ya fue fusionado. Recarga la página.']);
+    exit;
 }
 
 $conn->begin_transaction();
@@ -70,14 +69,13 @@ try {
             }
         }
 
-        if (!$conn->query("UPDATE clientes SET estado = '2' WHERE id_cliente = $d")) throw new Exception($conn->error);
-
         $st = $conn->prepare("INSERT INTO cliente_fusiones (id_principal, id_duplicado, ventas_ids, preventa_ids, datos_rellenados, usuario, fecha) VALUES (?,?,?,?,?,?,NOW())");
         $j1 = json_encode($vids); $j2 = json_encode($pids); $j3 = json_encode($rellenado);
         $st->bind_param('iisssi', $principal, $d, $j1, $j2, $j3, $usuario);
         if (!$st->execute()) throw new Exception($conn->error);
     }
     $conn->commit();
+    @unlink(sys_get_temp_dir() . '/renacer_dup_clientes.cache');
     echo json_encode(['ok' => true]);
 } catch (Exception $e) {
     $conn->rollback();
