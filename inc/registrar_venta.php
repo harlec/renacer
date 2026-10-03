@@ -93,6 +93,22 @@ if (isset($_POST) && !empty($_POST)) {
                         $conn->query("UPDATE clientes SET doc_identidad = '$dni_safe' WHERE id_cliente = " . intval($id_cliente));
                     }
                 }
+                // Actualizar el nombre al nombre completo de Migo: solo si lo pidió la persona, el cliente
+                // fue elegido explícitamente y su documento coincide con el DNI ingresado.
+                if (intval($_POST['actualizar_nombre'] ?? 0) === 1 && $id_elegido > 0 && $cliente !== '') {
+                    $rn = $conn->query("SELECT cliente, doc_identidad FROM clientes WHERE id_cliente = " . intval($id_cliente));
+                    $cn = $rn ? $rn->fetch_assoc() : null;
+                    if ($cn && trim($cn['doc_identidad']) === $dni && $cn['cliente'] !== $cliente) {
+                        $conn->query("UPDATE clientes SET cliente = '$cliente_safe' WHERE id_cliente = " . intval($id_cliente));
+                        $log_ant = $conn->real_escape_string(json_encode(['cliente' => $cn['cliente']], JSON_UNESCAPED_UNICODE));
+                        $log_nue = $conn->real_escape_string(json_encode(['cliente' => $cliente], JSON_UNESCAPED_UNICODE));
+                        $log_ip  = $conn->real_escape_string($_SERVER['REMOTE_ADDR'] ?? '');
+                        try {
+                            $conn->query("INSERT INTO log_ediciones (tabla_afectada, id_registro, accion, usuario_id, fecha_edicion, datos_anteriores, datos_nuevos, ip_usuario, observaciones)
+                                          VALUES ('clientes', " . intval($id_cliente) . ", 'EDIT', " . intval($id_usuario) . ", NOW(), '$log_ant', '$log_nue', '$log_ip', 'Nombre actualizado por DNI (Migo) al registrar venta')");
+                        } catch (Throwable $e) { /* auditoría opcional */ }
+                    }
+                }
             }
 
             // Insertar venta

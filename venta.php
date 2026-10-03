@@ -208,6 +208,7 @@ foreach ($empleados_venta_l as $emp) {
 											    				</div>
 											    				<input type="hidden" id="cliente_id" name="cliente_id" value="">
 											    				<input type="hidden" id="corregir_dni" name="corregir_dni" value="0">
+											    				<input type="hidden" id="actualizar_nombre" name="actualizar_nombre" value="0">
 											    				<div id="dni_estado" style="font-size:11px;line-height:1.3;margin-top:2px"></div>
 															</div>
 											    			<div class="form-group" id="bloque-empleado" style="display:none">
@@ -330,16 +331,16 @@ foreach ($empleados_venta_l as $emp) {
 	      select: function(event, ui) { $('#cliente_id').val(ui.item.id || ''); }
 	    });
 	    // Si el cajero edita el nombre a mano, ya no es el cliente elegido del desplegable.
-	    $('#cliente').on('input', function() { $('#cliente_id').val(''); $('#corregir_dni').val('0'); });
+	    $('#cliente').on('input', function() { $('#cliente_id').val(''); $('#corregir_dni').val('0'); $('#actualizar_nombre').val('0'); });
 
 	    // ---- DNI opcional: busca cliente existente o consulta Migo; nunca bloquea la venta.
-	    var dniPendiente = null;
+	    var dniPendiente = null, oficialMigo = '';
 	    function dniMsg(html, cls) { $('#dni_estado').attr('class', cls || 'text-muted').html(html); }
 	    function esc(s) { return $('<div>').text(s).html(); }
 	    $('#dni_cliente').on('input', function() {
 	        var v = this.value.replace(/\D+/g, '');
 	        if (v !== this.value) this.value = v;
-	        $('#corregir_dni').val('0');
+	        $('#corregir_dni').val('0'); $('#actualizar_nombre').val('0');
 	        if (dniPendiente) { dniPendiente.abort(); dniPendiente = null; }
 	        if (v.length !== 8) { dniMsg(''); return; }
 	        dniMsg('Buscando...');
@@ -348,9 +349,16 @@ foreach ($empleados_venta_l as $emp) {
 	            success: function(d) {
 	                dniPendiente = null;
 	                if (d.estado === 'local') {
-	                    $('#cliente').val(d.cliente.nombre); $('#cliente_id').val(d.cliente.id);
-	                    dniMsg('✓ Cliente registrado: ' + esc(d.cliente.nombre), 'text-success');
+	                    $('#cliente_id').val(d.cliente.id);
+	                    if (d.nombre_oficial) {
+	                        $('#cliente').val(d.nombre_oficial); $('#actualizar_nombre').val('1');
+	                        dniMsg('✓ Cliente registrado: ' + esc(d.cliente.nombre) + '<br>Nombre se actualizará a <b>' + esc(d.nombre_oficial) + '</b> &middot; <a href="#" class="dni-mantener" data-nombre="' + esc(d.cliente.nombre) + '">mantener el actual</a>', 'text-success');
+	                    } else {
+	                        $('#cliente').val(d.cliente.nombre);
+	                        dniMsg('✓ Cliente registrado: ' + esc(d.cliente.nombre), 'text-success');
+	                    }
 	                } else if (d.estado === 'api') {
+	                    oficialMigo = d.nombre;
 	                    var html = 'Migo: <b>' + esc(d.nombre) + '</b>';
 	                    if (d.candidatos && d.candidatos.length) {
 	                        html += ' &middot; ¿es alguno?';
@@ -373,9 +381,16 @@ foreach ($empleados_venta_l as $emp) {
 	    });
 	    $('#dni_estado').on('click', '.dni-usar', function(e) {
 	        e.preventDefault();
-	        $('#cliente').val($(this).data('nombre')); $('#cliente_id').val($(this).data('id'));
+	        // Se vincula al cliente existente y su nombre pasa al nombre completo de Migo.
+	        $('#cliente').val(oficialMigo || $(this).data('nombre')); $('#cliente_id').val($(this).data('id'));
 	        $('#corregir_dni').val($(this).data('doc') ? '1' : '0');
-	        dniMsg('✓ ' + esc($(this).data('nombre')) + ($(this).data('doc') ? ' &middot; DNI se corregirá' : ' &middot; se agregará el DNI'), 'text-success');
+	        $('#actualizar_nombre').val(oficialMigo ? '1' : '0');
+	        dniMsg('✓ ' + esc($(this).data('nombre')) + ' &middot; nombre se actualizará a <b>' + esc(oficialMigo) + '</b>' + ($(this).data('doc') ? ' &middot; DNI se corregirá' : ' &middot; se agregará el DNI') + ' &middot; <a href="#" class="dni-mantener" data-nombre="' + esc($(this).data('nombre')) + '">mantener nombre</a>', 'text-success');
+	    });
+	    $('#dni_estado').on('click', '.dni-mantener', function(e) {
+	        e.preventDefault();
+	        $('#cliente').val($(this).data('nombre')); $('#actualizar_nombre').val('0');
+	        dniMsg('✓ Se mantiene el nombre ' + esc($(this).data('nombre')), 'text-success');
 	    });
 	    $('#dni_estado').on('click', '.dni-nuevo', function(e) {
 	        e.preventDefault();

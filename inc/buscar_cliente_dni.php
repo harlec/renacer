@@ -36,36 +36,49 @@ if ($conn->connect_error) {
 
 $fusionados = array_flip(cliente_ids_fusionados($conn));
 
+// Nombre completo desde Migo, con timeout corto para no frenar la venta. '' si no se pudo.
+function migo_nombre_dni($dni)
+{
+    $token = function_exists('get_config') ? get_config('migo_token') : '';
+    if ($token === '') return ['', 'Consulta de DNI no configurada'];
+    $ch = curl_init('https://api.migo.pe/api/v1/dni');
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+        CURLOPT_POST           => 1,
+        CURLOPT_POSTFIELDS     => ['dni' => $dni, 'token' => $token],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT        => 5,
+    ]);
+    $resp = curl_exec($ch);
+    curl_close($ch);
+    $j = $resp ? json_decode($resp, true) : null;
+    $n = is_array($j) ? trim((string)($j['nombre'] ?? '')) : '';
+    return [$n, $n === '' ? 'No se pudo obtener el nombre; puedes seguir sin DNI o escribir el nombre' : ''];
+}
+
 // 1) ¿Ya existe un cliente con este DNI?
 $r = $conn->query("SELECT id_cliente, cliente FROM clientes WHERE doc_identidad = '" . $conn->real_escape_string($dni) . "'");
 while ($r && $x = $r->fetch_assoc()) {
     if (isset($fusionados[(int)$x['id_cliente']])) continue;
-    echo json_encode(['estado' => 'local', 'cliente' => ['id' => (int)$x['id_cliente'], 'nombre' => $x['cliente']]]);
+    $out = ['estado' => 'local', 'cliente' => ['id' => (int)$x['id_cliente'], 'nombre' => $x['cliente']]];
+    // Si el nombre guardado no es el nombre completo de Migo, se ofrece actualizarlo.
+    list($oficial) = migo_nombre_dni($dni);
+    if ($oficial !== '') {
+        $oficial = cd_upper($oficial);
+        $a1 = cd_normalizar($x['cliente']); $a2 = cd_normalizar($oficial);
+        sort($a1); sort($a2);
+        if ($a1 !== $a2) $out['nombre_oficial'] = $oficial;
+    }
+    echo json_encode($out);
     exit;
 }
 
-// 2) Nombre completo desde Migo (con timeout corto para no frenar la venta)
-$token = function_exists('get_config') ? get_config('migo_token') : '';
-if ($token === '') {
-    echo json_encode(['estado' => 'sin_api', 'mensaje' => 'Consulta de DNI no configurada']);
-    exit;
-}
-$ch = curl_init('https://api.migo.pe/api/v1/dni');
-curl_setopt_array($ch, [
-    CURLOPT_HTTPHEADER     => ['Accept: application/json'],
-    CURLOPT_POST           => 1,
-    CURLOPT_POSTFIELDS     => ['dni' => $dni, 'token' => $token],
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_SSL_VERIFYPEER => false,
-    CURLOPT_CONNECTTIMEOUT => 3,
-    CURLOPT_TIMEOUT        => 5,
-]);
-$resp = curl_exec($ch);
-curl_close($ch);
-$j = $resp ? json_decode($resp, true) : null;
-$nombre = is_array($j) ? trim((string)($j['nombre'] ?? '')) : '';
+// 2) No hay cliente con ese DNI: se busca el nombre completo y candidatos para vincular
+list($nombre, $err) = migo_nombre_dni($dni);
 if ($nombre === '') {
-    echo json_encode(['estado' => 'sin_api', 'mensaje' => 'No se pudo obtener el nombre; puedes seguir sin DNI o escribir el nombre']);
+    echo json_encode(['estado' => 'sin_api', 'mensaje' => $err]);
     exit;
 }
 $nombre = cd_upper($nombre);
