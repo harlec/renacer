@@ -49,15 +49,42 @@ if (isset($_POST) && !empty($_POST)) {
             // Normalizar nombre: sin espacios extra, todo en mayúsculas
             $cliente = strtoupper(trim($cliente));
             $cliente_safe = $conn->real_escape_string($cliente);
-            // Buscar cliente ignorando mayúsculas/minúsculas
-            $rc = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$cliente_safe') LIMIT 1");
-            $cl = $rc ? $rc->fetch_assoc() : null;
-            if ($cl) {
-                require_once(__DIR__ . '/cliente_helper.php');
-                $id_cliente = cliente_resolver_fusion($conn, $cl['id_cliente']);
-            } else {
-                $conn->query("INSERT INTO clientes (cliente, estado) VALUES ('$cliente_safe', '1')");
-                $id_cliente = $conn->insert_id;
+            require_once(__DIR__ . '/cliente_helper.php');
+
+            // DNI opcional (no aplica a ventas a empleados). Solo se acepta si tiene 8 dígitos.
+            $dni = $es_empleado ? '' : preg_replace('/\D+/', '', $_POST['dni_cliente'] ?? '');
+            if (strlen($dni) !== 8) $dni = '';
+            $dni_safe = $conn->real_escape_string($dni);
+            $id_elegido = $es_empleado ? 0 : intval($_POST['cliente_id'] ?? 0);
+
+            $id_cliente = null;
+            // a) cliente elegido explícitamente (del desplegable o vinculado por DNI)
+            if ($id_elegido > 0) {
+                $rc = $conn->query("SELECT id_cliente FROM clientes WHERE id_cliente = $id_elegido LIMIT 1");
+                if ($rc && $rc->fetch_assoc()) $id_cliente = cliente_resolver_fusion($conn, $id_elegido);
+            }
+            // b) si no, por DNI (si ya hay un cliente con ese documento, es ese)
+            if (!$id_cliente && $dni !== '') {
+                $rc = $conn->query("SELECT id_cliente FROM clientes WHERE doc_identidad = '$dni_safe' LIMIT 1");
+                $cl = $rc ? $rc->fetch_assoc() : null;
+                if ($cl) $id_cliente = cliente_resolver_fusion($conn, $cl['id_cliente']);
+            }
+            // c) si no, por nombre exacto (comportamiento de siempre)
+            if (!$id_cliente) {
+                $rc = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$cliente_safe') LIMIT 1");
+                $cl = $rc ? $rc->fetch_assoc() : null;
+                if ($cl) {
+                    $id_cliente = cliente_resolver_fusion($conn, $cl['id_cliente']);
+                } else {
+                    $doc_col = $dni !== '' ? ", doc_identidad" : "";
+                    $doc_val = $dni !== '' ? ", '$dni_safe'" : "";
+                    $conn->query("INSERT INTO clientes (cliente, estado$doc_col) VALUES ('$cliente_safe', '1'$doc_val)");
+                    $id_cliente = $conn->insert_id;
+                }
+            }
+            // Si se ingresó DNI y este cliente aún no tiene documento, se le guarda (sin pisar uno existente).
+            if ($dni !== '') {
+                $conn->query("UPDATE clientes SET doc_identidad = '$dni_safe' WHERE id_cliente = " . intval($id_cliente) . " AND (doc_identidad IS NULL OR TRIM(doc_identidad) IN ('', '-'))");
             }
 
             // Insertar venta

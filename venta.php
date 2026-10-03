@@ -203,6 +203,10 @@ foreach ($empleados_venta_l as $emp) {
 											    			<div class="form-group" id="bloque-cliente">
 											    				<label for="cliente">Cliente</label>
 											    				<input class="form-control" style="text-transform:uppercase;" type="text" id="cliente" name="cliente" oninput="this.value = this.value.toUpperCase();">
+											    				<input type="hidden" id="cliente_id" name="cliente_id" value="">
+											    				<label for="dni_cliente" style="margin-top:8px">DNI <small class="text-muted">(opcional)</small></label>
+											    				<input class="form-control" type="text" id="dni_cliente" name="dni_cliente" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="8 dígitos">
+											    				<div id="dni_estado" style="font-size:12px;margin-top:4px"></div>
 															</div>
 											    			<div class="form-group" id="bloque-empleado" style="display:none">
 											    				<label for="id_empleado">Empleado</label>
@@ -302,7 +306,7 @@ foreach ($empleados_venta_l as $emp) {
 	        var esEmpleado = $('input[name="es_empleado"]:checked').val() === '1';
 	        $('#bloque-cliente').toggle(!esEmpleado);
 	        $('#bloque-empleado').toggle(esEmpleado);
-	        if (!esEmpleado) { $('#cliente').val(''); $('#id_empleado').val(''); }
+	        if (!esEmpleado) { $('#cliente').val(''); $('#cliente_id').val(''); $('#dni_cliente').val(''); $('#dni_estado').html(''); $('#id_empleado').val(''); }
 	    });
 
 	    // El nombre del cliente en el recibo debe ser el del empleado, aunque el campo
@@ -320,7 +324,56 @@ foreach ($empleados_venta_l as $emp) {
 	              success: function(data) { response(data); }
 	          });
 	      },
-	      minLength: 2
+	      minLength: 2,
+	      select: function(event, ui) { $('#cliente_id').val(ui.item.id || ''); }
+	    });
+	    // Si el cajero edita el nombre a mano, ya no es el cliente elegido del desplegable.
+	    $('#cliente').on('input', function() { $('#cliente_id').val(''); });
+
+	    // ---- DNI opcional: busca cliente existente o consulta Migo; nunca bloquea la venta.
+	    var dniPendiente = null;
+	    function dniMsg(html, cls) { $('#dni_estado').attr('class', cls || 'text-muted').html(html); }
+	    function esc(s) { return $('<div>').text(s).html(); }
+	    $('#dni_cliente').on('input', function() {
+	        var v = this.value.replace(/\D+/g, '');
+	        if (v !== this.value) this.value = v;
+	        if (dniPendiente) { dniPendiente.abort(); dniPendiente = null; }
+	        if (v.length !== 8) { dniMsg(''); return; }
+	        dniMsg('Buscando...');
+	        dniPendiente = $.ajax({
+	            type: 'POST', dataType: 'json', url: '/inc/buscar_cliente_dni.php', data: { dni: v }, timeout: 8000,
+	            success: function(d) {
+	                dniPendiente = null;
+	                if (d.estado === 'local') {
+	                    $('#cliente').val(d.cliente.nombre); $('#cliente_id').val(d.cliente.id);
+	                    dniMsg('✓ Cliente registrado: ' + esc(d.cliente.nombre), 'text-success');
+	                } else if (d.estado === 'api') {
+	                    var html = '<b>' + esc(d.nombre) + '</b>';
+	                    if (d.candidatos && d.candidatos.length) {
+	                        html += '<br>¿Es uno de estos clientes ya registrados?<br>';
+	                        $.each(d.candidatos, function(i, c) {
+	                            html += '<button type="button" class="btn btn-default btn-xs dni-usar" style="margin:2px 4px 2px 0" data-id="' + c.id + '" data-nombre="' + esc(c.nombre) + '">' + esc(c.nombre) + ' (' + c.ventas + ' ventas)</button>';
+	                        });
+	                        html += '<br><button type="button" class="btn btn-link btn-xs dni-nuevo" style="padding:0" data-nombre="' + esc(d.nombre) + '">Ninguno, usar ' + esc(d.nombre) + '</button>';
+	                        dniMsg(html, 'text-info');
+	                    } else {
+	                        $('#cliente').val(d.nombre); $('#cliente_id').val('');
+	                        dniMsg('✓ ' + esc(d.nombre), 'text-success');
+	                    }
+	                } else {
+	                    dniMsg(esc(d.mensaje || 'No se pudo consultar el DNI. Puedes continuar sin él.'), 'text-warning');
+	                }
+	            },
+	            error: function(xhr, st) { dniPendiente = null; if (st !== 'abort') dniMsg('No se pudo consultar el DNI. Puedes continuar sin él.', 'text-warning'); }
+	        });
+	    });
+	    $('#dni_estado').on('click', '.dni-usar', function() {
+	        $('#cliente').val($(this).data('nombre')); $('#cliente_id').val($(this).data('id'));
+	        dniMsg('✓ Se asociará el DNI a ' + esc($(this).data('nombre')), 'text-success');
+	    });
+	    $('#dni_estado').on('click', '.dni-nuevo', function() {
+	        $('#cliente').val($(this).data('nombre')); $('#cliente_id').val('');
+	        dniMsg('✓ ' + esc($(this).data('nombre')), 'text-success');
 	    });
 
 		$('#add').click(function() {
