@@ -99,9 +99,14 @@ $conn->close();
                                         </select>
                                     </div>
                                     <div class="col-md-2 col-xs-6">
-                                        <label class="ctl-label">Año</label>
-                                        <select id="anio" class="form-control">
-                                            <?php foreach ($anios as $a) echo '<option value="' . $a . '">' . $a . '</option>'; ?>
+                                        <label class="ctl-label">Período</label>
+                                        <select id="periodo" class="form-control">
+                                            <option value="este_anio">Este año</option>
+                                            <option value="2m">Últimos 2 meses</option>
+                                            <option value="3m">Último trimestre</option>
+                                            <option value="6m">Últimos 6 meses</option>
+                                            <?php foreach ($anios as $a) { if ($a < (int)date('Y')) echo '<option value="anio:' . $a . '">Año ' . $a . '</option>'; } ?>
+                                            <option value="custom">Rango personalizado...</option>
                                         </select>
                                     </div>
                                     <div class="col-md-2 col-xs-6">
@@ -126,6 +131,16 @@ $conn->close();
                                             <option value="8">8 principales</option>
                                             <option value="12">12 principales</option>
                                         </select>
+                                    </div>
+                                </div>
+                                <div class="row" id="rangoCustom" style="margin-bottom:12px;display:none">
+                                    <div class="col-md-2 col-xs-6">
+                                        <label class="ctl-label">Desde</label>
+                                        <input type="date" id="desde" class="form-control">
+                                    </div>
+                                    <div class="col-md-2 col-xs-6">
+                                        <label class="ctl-label">Hasta</label>
+                                        <input type="date" id="hasta" class="form-control">
                                     </div>
                                 </div>
                                 <div class="row" style="margin-bottom:8px">
@@ -157,17 +172,31 @@ $conn->close();
     function num(v) { return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
     function esc(s) { return $('<div>').text(s).html(); }
 
+    function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    // Meses calendario completos: "Últimos 2 meses" = mes anterior + mes actual (hasta hoy), etc.
+    function rango() {
+        var p = $('#periodo').val(), hoy = new Date(), y = hoy.getFullYear(), m = hoy.getMonth();
+        if (p === 'este_anio') return [y + '-01-01', iso(hoy)];
+        if (p === '2m') return [iso(new Date(y, m - 1, 1)), iso(hoy)];
+        if (p === '3m') return [iso(new Date(y, m - 2, 1)), iso(hoy)];
+        if (p === '6m') return [iso(new Date(y, m - 5, 1)), iso(hoy)];
+        if (p.indexOf('anio:') === 0) { var a = p.split(':')[1]; return [a + '-01-01', a + '-12-31']; }
+        return [$('#desde').val(), $('#hasta').val()];
+    }
+
     function cargar() {
         var metrica = $('#metrica').val();
+        var r = rango();
+        if (!r[0] || !r[1] || r[0] > r[1]) { $('#msg').text('Elige un rango de fechas válido (desde no puede ser posterior a hasta).'); return; }
         if (reqActual) reqActual.abort();
         $('#msg').text('Cargando...');
         reqActual = $.ajax({
             url: 'inc/get_evolucion.php', dataType: 'json',
-            data: { agrupar: $('#agrupar').val(), anio: $('#anio').val(), gran: $('#gran').val(), metrica: metrica, top: $('#top').val(), items: $('#items').val() || [] },
+            data: { agrupar: $('#agrupar').val(), desde: r[0], hasta: r[1], gran: $('#gran').val(), metrica: metrica, top: $('#top').val(), items: $('#items').val() || [] },
             success: function(d) {
                 reqActual = null;
                 if (!d.ok) { $('#msg').text('No se pudo cargar el reporte.'); return; }
-                $('#msg').text(d.series.length ? '' : 'No hay ventas en ' + d.anio + ' para mostrar.');
+                $('#msg').text(d.series.length ? '' : 'No hay ventas en ese período para mostrar.');
                 pintarOpciones(d);
                 pintarGrafica(d);
                 pintarTabla(d);
@@ -179,7 +208,7 @@ $conn->close();
     // Llena el selector con todo lo que tuvo ventas en el año (ordenado por la métrica), sin perder la selección.
     var opcionesClave = '';
     function pintarOpciones(d) {
-        var clave = d.agrupar + '|' + d.anio + '|' + d.metrica;
+        var clave = d.agrupar + '|' + d.desde + '|' + d.hasta + '|' + d.metrica;
         if (clave === opcionesClave) return;
         var previo = $('#items').val() || [];
         var mismoTipo = opcionesClave.split('|')[0] === d.agrupar;
@@ -236,7 +265,15 @@ $conn->close();
     $(function() {
         $('#items').select2({ placeholder: 'Todos los principales (o elige para comparar)', closeOnSelect: false, width: '100%' });
         $('#agrupar').on('change', function() { $('#items').val(null).trigger('change.select2'); opcionesClave = ''; cargar(); });
-        $('#anio').on('change', function() { opcionesClave = ''; cargar(); });
+        $('#periodo').on('change', function() {
+            var custom = $(this).val() === 'custom';
+            $('#rangoCustom').toggle(custom);
+            if (custom && !$('#desde').val()) {
+                var h = new Date(); $('#hasta').val(iso(h)); $('#desde').val(iso(new Date(h.getFullYear(), h.getMonth() - 1, 1)));
+            }
+            opcionesClave = ''; cargar();
+        });
+        $('#desde, #hasta').on('change', function() { opcionesClave = ''; cargar(); });
         $('#metrica').on('change', function() { opcionesClave = ''; cargar(); });
         $('#gran, #top').on('change', cargar);
         $('#items').on('change', cargar);

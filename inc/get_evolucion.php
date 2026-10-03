@@ -24,21 +24,29 @@ if ($conn->connect_error) {
 $agrupar = ($_GET['agrupar'] ?? 'categoria') === 'producto' ? 'producto' : 'categoria';
 $gran    = ($_GET['gran'] ?? 'mes') === 'semana' ? 'semana' : 'mes';
 $metrica = ($_GET['metrica'] ?? 'monto') === 'unidades' ? 'unidades' : 'monto';
-$anio    = intval($_GET['anio'] ?? date('Y'));
-if ($anio < 2000 || $anio > 2100) $anio = (int)date('Y');
 $top     = max(1, min(20, intval($_GET['top'] ?? 5)));
 $items   = array_values(array_filter(array_map('strval', (array)($_GET['items'] ?? [])), 'strlen'));
 
-$ini = "$anio-01-01";
-$fin = min("$anio-12-31", date('Y-m-d'));   // no se muestran periodos futuros
-if ($fin < $ini) $fin = $ini;
+// Rango de fechas (desde / hasta). Si no llega, se usa lo que va del año actual.
+$hoy = date('Y-m-d');
+$ini = $_GET['desde'] ?? '';
+$fin = $_GET['hasta'] ?? '';
+$ok_f = function ($f) { return preg_match('/^\d{4}-\d{2}-\d{2}$/', $f) && strtotime($f) !== false; };
+if (!$ok_f($ini)) $ini = date('Y-01-01');
+if (!$ok_f($fin)) $fin = $hoy;
+if ($fin > $hoy) $fin = $hoy;             // no se muestran periodos futuros
+if ($ini > $fin) $ini = $fin;
+if (strtotime($fin) - strtotime($ini) > 5 * 366 * 86400) $ini = date('Y-m-d', strtotime($fin . ' -5 years'));
 
 // ---- Periodos (columnas) del rango
 $claves = []; $labels = [];
 if ($gran === 'mes') {
-    $ultimo = (int)date('n', strtotime($fin));
     $meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    for ($m = 1; $m <= $ultimo; $m++) { $claves[] = sprintf('%04d-%02d', $anio, $m); $labels[] = $meses[$m - 1]; }
+    $varios_anios = date('Y', strtotime($ini)) !== date('Y', strtotime($fin));
+    for ($t = strtotime(date('Y-m-01', strtotime($ini))); $t <= strtotime($fin); $t = strtotime('+1 month', $t)) {
+        $claves[] = date('Y-m', $t);
+        $labels[] = $meses[(int)date('n', $t) - 1] . ($varios_anios ? ' ' . date('y', $t) : '');
+    }
     $expr = "DATE_FORMAT(v.fecha_ope, '%Y-%m')";
 } else {
     // Semanas ISO (lunes a domingo): misma numeración que YEARWEEK(...,3) de MySQL.
@@ -130,6 +138,6 @@ foreach ($sel as $s) {
 
 echo json_encode([
     'ok' => true, 'labels' => $labels, 'series' => $out, 'opciones' => $opciones,
-    'agrupar' => $agrupar, 'gran' => $gran, 'metrica' => $metrica, 'anio' => $anio,
+    'agrupar' => $agrupar, 'gran' => $gran, 'metrica' => $metrica, 'desde' => $ini, 'hasta' => $fin,
 ], JSON_UNESCAPED_UNICODE);
 $conn->close();
