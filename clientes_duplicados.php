@@ -13,7 +13,10 @@ $grupos = detectar_clientes_duplicados($conn);
 
 // Historial de fusiones (si la migración aún no se corrió, simplemente no hay historial)
 $fusiones = [];
-$rf = @$conn->query("
+$rf = false;
+$sin_migracion = false;
+try {
+$rf = $conn->query("
 	SELECT f.id_fusion, f.fecha, f.deshecha, f.id_principal, f.id_duplicado,
 	       p.cliente AS nom_principal, d.cliente AS nom_duplicado,
 	       (LENGTH(COALESCE(f.ventas_ids,'[]')) - LENGTH(REPLACE(COALESCE(f.ventas_ids,'[]'), ',', ''))) + (f.ventas_ids IS NOT NULL AND f.ventas_ids != '[]') AS n_ventas
@@ -21,6 +24,7 @@ $rf = @$conn->query("
 	LEFT JOIN clientes p ON p.id_cliente = f.id_principal
 	LEFT JOIN clientes d ON d.id_cliente = f.id_duplicado
 	ORDER BY f.id_fusion DESC LIMIT 50");
+} catch (Throwable $e) { $sin_migracion = true; } // la tabla cliente_fusiones aún no existe
 if ($rf) { while ($x = $rf->fetch_assoc()) $fusiones[] = $x; }
 $conn->close();
 $esc = function($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
@@ -80,12 +84,15 @@ $esc = function($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); 
 					</div>
 					<input type="text" id="buscar" class="form-control" placeholder="Filtrar por nombre..." style="max-width:320px;margin-bottom:15px">
 
+					<?php if ($sin_migracion): ?>
+						<div class="alert alert-warning">Falta correr <code>sql/add_fusion_clientes.sql</code> en la base de datos antes de poder fusionar.</div>
+					<?php endif; ?>
 					<?php if (!$grupos): ?>
 						<p class="text-muted">No se encontraron posibles duplicados.</p>
 					<?php endif; ?>
 
 					<?php foreach ($grupos as $gi => $g): ?>
-					<div class="panel panel-default grupo" data-nombres="<?php echo $esc(mb_strtolower(implode(' ', array_column($g, 'cliente')), 'UTF-8')); ?>">
+					<div class="panel panel-default grupo" data-nombres="<?php echo $esc(strtolower(implode(' ', array_column($g, 'cliente')))); ?>">
 						<div class="panel-body table-responsive">
 							<table class="table table-condensed" style="margin-bottom:8px">
 								<thead><tr><th>Principal</th><th>Fusionar</th><th>Id</th><th>Cliente</th><th>Ventas</th><th>Última venta</th><th>Documento</th><th>Teléfono</th><th>Email</th></tr></thead>

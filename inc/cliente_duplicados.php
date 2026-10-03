@@ -2,9 +2,11 @@
 // Detección de posibles clientes duplicados por parecido de nombre y/o mismo documento.
 // Sugiere, no decide: la persona confirma cuáles fusionar.
 
+function cd_upper($s) { return function_exists('mb_strtoupper') ? mb_strtoupper($s, 'UTF-8') : strtoupper($s); }
+
 function cd_normalizar($s)
 {
-    $s = mb_strtoupper(trim((string)$s), 'UTF-8');
+    $s = cd_upper(trim((string)$s));
     $s = strtr($s, ['Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', 'Ü' => 'U', 'Ñ' => 'N']);
     $s = preg_replace('/[^A-Z0-9 ]+/', ' ', $s);
     $tokens = preg_split('/\s+/', $s, -1, PREG_SPLIT_NO_EMPTY);
@@ -45,7 +47,7 @@ function detectar_clientes_duplicados(mysqli $conn)
     while ($r && $x = $r->fetch_assoc()) {
         $id = (int)$x['id_cliente'];
         $nombre = trim($x['cliente']);
-        if ($nombre === '' || in_array(mb_strtoupper($nombre, 'UTF-8'), $excluir, true)) continue;
+        if ($nombre === '' || in_array(cd_upper($nombre), $excluir, true)) continue;
         $tok = cd_normalizar($nombre);
         if (!$tok) continue;
         $doc = preg_replace('/\D+/', '', (string)$x['doc_identidad']);
