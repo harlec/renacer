@@ -43,6 +43,9 @@ if ($_SESSION['type']=='operador') {
 	      		<li >
 	      			<a class="" href="ver_clientes.php">Listar Clientes</a>
 	      		</li>
+	      		<li>
+	      			<a class="" href="clientes_duplicados.php">Duplicados</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>

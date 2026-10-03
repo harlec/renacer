@@ -7,6 +7,7 @@ include('inc/sdba/sdba.php'); // include main file
 $clientes = Sdba::table('clientes');
 $el = $clientes->get();
 foreach ($el as $value) {
+	if (($value['estado'] ?? '1') === '2') continue; // cliente fusionado en otro
 	$emplel.='<option value="'.$value['id_cliente'].'">'.$value['cliente'].'</option>';
 }
 ?>

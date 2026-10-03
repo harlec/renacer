@@ -13,7 +13,7 @@ $r = $conn->query("
     SELECT c.id_cliente, c.cliente, COUNT(v.id_venta) AS total_pedidos
     FROM clientes c
     LEFT JOIN ventas v ON v.cliente = c.id_cliente AND v.estado != '2'
-    WHERE c.cliente LIKE '$term'
+    WHERE c.cliente LIKE '$term' AND COALESCE(c.estado, '1') != '2'
     GROUP BY c.id_cliente, c.cliente
     ORDER BY total_pedidos DESC, c.cliente ASC
     LIMIT 10

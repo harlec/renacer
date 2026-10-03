@@ -98,6 +98,7 @@ $clientes = Sdba::table('clientes');
 $el = $clientes->get();
 $emplel = array();
 foreach ($el as $value) {
+	if (($value['estado'] ?? '1') === '2') continue; // cliente fusionado en otro
     $emplel[]= $value['cliente'];
 }
 ?>

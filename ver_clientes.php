@@ -11,6 +11,7 @@ $ventas_list = $ventas->get();
 $datos = '';
 $i = 1;
 foreach ($ventas_list as $value) {
+	if (($value['estado'] ?? '1') === '2') continue; // fusionado en otro cliente
 
 	$vc = Sdba::table('ventas');
 	$vc->where('cliente',$value['id_cliente']);
@@ -66,6 +67,9 @@ foreach ($ventas_list as $value) {
 	      		</li>
 	      		<li class="active">
 	      			<a class="" href="ver_clientes.php">Listar Clientes</a>
+	      		</li>
+	      		<li>
+	      			<a class="" href="clientes_duplicados.php">Duplicados</a>
 	      		</li>
 	      	</ul>
 	      </div>

@@ -50,10 +50,14 @@ if (isset($_POST) && !empty($_POST)) {
             $cliente = strtoupper(trim($cliente));
             $cliente_safe = $conn->real_escape_string($cliente);
             // Buscar cliente ignorando mayúsculas/minúsculas
-            $rc = $conn->query("SELECT id_cliente FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$cliente_safe') LIMIT 1");
+            $rc = $conn->query("SELECT id_cliente, estado FROM clientes WHERE UPPER(TRIM(cliente)) = UPPER('$cliente_safe') ORDER BY (estado = '2') ASC, id_cliente ASC LIMIT 1");
             $cl = $rc ? $rc->fetch_assoc() : null;
             if ($cl) {
                 $id_cliente = $cl['id_cliente'];
+                if ($cl['estado'] === '2') {
+                    require_once(__DIR__ . '/cliente_helper.php');
+                    $id_cliente = cliente_resolver_fusion($conn, $id_cliente);
+                }
             } else {
                 $conn->query("INSERT INTO clientes (cliente, estado) VALUES ('$cliente_safe', '1')");
                 $id_cliente = $conn->insert_id;
