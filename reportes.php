@@ -58,6 +58,7 @@ $fecha = date("Y-m-d");
 	      		<li>
 	      			<a href="reporte_mv.php">Ventas por categoría</a>
 	      		</li>
+	      		<li><a href="reporte_evolucion.php">Evolución de ventas</a></li>
 			<li>
 				<a href="reporte_prediccion_stock.php">Predicción de Stock</a>
 			</li>

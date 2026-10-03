@@ -41,6 +41,7 @@ if ($_SESSION['type']=='operador') {
                 <li><a href="reporte_compras.php">Reporte compras</a></li>
                 <li><a href="reporte_kardex.php">Reporte Kardex</a></li>
                 <li><a href="reporte_mv.php">Ventas por categoría</a></li>
+                <li><a href="reporte_evolucion.php">Evolución de ventas</a></li>
                 <li><a href="reporte_prediccion_stock.php">Predicción de Stock</a></li>
                 <li class="active"><a href="reporte_huevos.php">Reporte Huevos</a></li>
             </ul>
