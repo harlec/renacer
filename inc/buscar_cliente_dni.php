@@ -70,7 +70,8 @@ if ($nombre === '') {
 }
 $nombre = cd_upper($nombre);
 
-// Clientes ya registrados SIN DNI cuyo nombre esté contenido en el nombre completo.
+// Clientes ya registrados cuyo nombre esté contenido en el nombre completo. Se incluyen también
+// los que tienen otro DNI (puede estar mal digitado); la persona decide si lo corrige.
 $tokens = cd_normalizar($nombre);
 $cands = [];
 if ($tokens) {
@@ -78,11 +79,10 @@ if ($tokens) {
     foreach ($tokens as $t) { if (strlen($t) >= 3) $like[] = "UPPER(c.cliente) LIKE '%" . $conn->real_escape_string($t) . "%'"; }
     if ($like) {
         $q = $conn->query("
-            SELECT c.id_cliente, c.cliente, COUNT(v.id_venta) AS ventas
+            SELECT c.id_cliente, c.cliente, c.doc_identidad, COUNT(v.id_venta) AS ventas
             FROM clientes c LEFT JOIN ventas v ON v.cliente = c.id_cliente AND v.estado != '2'
-            WHERE (c.doc_identidad IS NULL OR TRIM(c.doc_identidad) = '' OR c.doc_identidad = '-')
-              AND (" . implode(' OR ', $like) . ")
-            GROUP BY c.id_cliente, c.cliente LIMIT 300");
+            WHERE (" . implode(' OR ', $like) . ")
+            GROUP BY c.id_cliente, c.cliente, c.doc_identidad LIMIT 300");
         $set = array_flip($tokens);
         $todos = [];
         while ($q && $x = $q->fetch_assoc()) {
@@ -91,16 +91,18 @@ if ($tokens) {
             if (!$t) continue;
             $dentro = true;
             foreach ($t as $w) { if (!isset($set[$w])) { $dentro = false; break; } }
-            if ($dentro) $todos[] = ['id' => (int)$x['id_cliente'], 'nombre' => $x['cliente'], 'ventas' => (int)$x['ventas'], 'n' => count($t), 'tok' => $t];
+            if ($dentro) $doc = trim((string)$x['doc_identidad']);
+            $todos[] = ['id' => (int)$x['id_cliente'], 'nombre' => $x['cliente'], 'ventas' => (int)$x['ventas'], 'n' => count($t), 'tok' => $t,
+                        'doc' => ($doc === '-' ? '' : $doc)];
         }
         // Un nombre de una sola palabra solo cuenta si esa palabra es poco común entre los clientes.
         $frec = [];
         foreach ($todos as $c) foreach ($c['tok'] as $w) $frec[$w] = ($frec[$w] ?? 0) + 1;
         foreach ($todos as $c) {
             if ($c['n'] === 1 && ($frec[$c['tok'][0]] ?? 0) > 6) continue;
-            $cands[] = ['id' => $c['id'], 'nombre' => $c['nombre'], 'ventas' => $c['ventas']];
+            $cands[] = ['id' => $c['id'], 'nombre' => $c['nombre'], 'ventas' => $c['ventas'], 'doc' => $c['doc']];
         }
-        usort($cands, function ($a, $b) { return $b['ventas'] - $a['ventas']; });
+        usort($cands, function ($a, $b) { return (($a['doc'] !== '') - ($b['doc'] !== '')) ?: ($b['ventas'] - $a['ventas']); });
         $cands = array_slice($cands, 0, 6);
     }
 }

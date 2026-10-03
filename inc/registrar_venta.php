@@ -85,6 +85,14 @@ if (isset($_POST) && !empty($_POST)) {
             // Si se ingresó DNI y este cliente aún no tiene documento, se le guarda (sin pisar uno existente).
             if ($dni !== '') {
                 $conn->query("UPDATE clientes SET doc_identidad = '$dni_safe' WHERE id_cliente = " . intval($id_cliente) . " AND (doc_identidad IS NULL OR TRIM(doc_identidad) IN ('', '-'))");
+                // Corrección explícita: la persona eligió un cliente cuyo DNI estaba mal digitado.
+                // Solo si ningún otro cliente ya tiene ese DNI.
+                if (intval($_POST['corregir_dni'] ?? 0) === 1 && $id_elegido > 0 && cliente_resolver_fusion($conn, $id_elegido) == $id_cliente) {
+                    $rd = $conn->query("SELECT 1 FROM clientes WHERE doc_identidad = '$dni_safe' AND id_cliente != " . intval($id_cliente) . " LIMIT 1");
+                    if ($rd && !$rd->fetch_assoc()) {
+                        $conn->query("UPDATE clientes SET doc_identidad = '$dni_safe' WHERE id_cliente = " . intval($id_cliente));
+                    }
+                }
             }
 
             // Insertar venta

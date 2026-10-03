@@ -201,12 +201,14 @@ foreach ($empleados_venta_l as $emp) {
 											    		</div>
 														<div class="col-md-4">
 											    			<div class="form-group" id="bloque-cliente">
-											    				<label for="cliente">Cliente</label>
-											    				<input class="form-control" style="text-transform:uppercase;" type="text" id="cliente" name="cliente" oninput="this.value = this.value.toUpperCase();">
+											    				<label for="cliente">Cliente <small class="text-muted">/ DNI (opcional)</small></label>
+											    				<div style="display:flex;gap:6px">
+											    					<input class="form-control" style="text-transform:uppercase;flex:1;min-width:0" type="text" id="cliente" name="cliente" oninput="this.value = this.value.toUpperCase();">
+											    					<input class="form-control" style="width:105px;flex:none" type="text" id="dni_cliente" name="dni_cliente" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="DNI">
+											    				</div>
 											    				<input type="hidden" id="cliente_id" name="cliente_id" value="">
-											    				<label for="dni_cliente" style="margin-top:8px">DNI <small class="text-muted">(opcional)</small></label>
-											    				<input class="form-control" type="text" id="dni_cliente" name="dni_cliente" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="8 dígitos">
-											    				<div id="dni_estado" style="font-size:12px;margin-top:4px"></div>
+											    				<input type="hidden" id="corregir_dni" name="corregir_dni" value="0">
+											    				<div id="dni_estado" style="font-size:11px;line-height:1.3;margin-top:2px"></div>
 															</div>
 											    			<div class="form-group" id="bloque-empleado" style="display:none">
 											    				<label for="id_empleado">Empleado</label>
@@ -328,7 +330,7 @@ foreach ($empleados_venta_l as $emp) {
 	      select: function(event, ui) { $('#cliente_id').val(ui.item.id || ''); }
 	    });
 	    // Si el cajero edita el nombre a mano, ya no es el cliente elegido del desplegable.
-	    $('#cliente').on('input', function() { $('#cliente_id').val(''); });
+	    $('#cliente').on('input', function() { $('#cliente_id').val(''); $('#corregir_dni').val('0'); });
 
 	    // ---- DNI opcional: busca cliente existente o consulta Migo; nunca bloquea la venta.
 	    var dniPendiente = null;
@@ -337,6 +339,7 @@ foreach ($empleados_venta_l as $emp) {
 	    $('#dni_cliente').on('input', function() {
 	        var v = this.value.replace(/\D+/g, '');
 	        if (v !== this.value) this.value = v;
+	        $('#corregir_dni').val('0');
 	        if (dniPendiente) { dniPendiente.abort(); dniPendiente = null; }
 	        if (v.length !== 8) { dniMsg(''); return; }
 	        dniMsg('Buscando...');
@@ -348,13 +351,14 @@ foreach ($empleados_venta_l as $emp) {
 	                    $('#cliente').val(d.cliente.nombre); $('#cliente_id').val(d.cliente.id);
 	                    dniMsg('✓ Cliente registrado: ' + esc(d.cliente.nombre), 'text-success');
 	                } else if (d.estado === 'api') {
-	                    var html = '<b>' + esc(d.nombre) + '</b>';
+	                    var html = 'Migo: <b>' + esc(d.nombre) + '</b>';
 	                    if (d.candidatos && d.candidatos.length) {
-	                        html += '<br>¿Es uno de estos clientes ya registrados?<br>';
+	                        html += ' &middot; ¿es alguno?';
 	                        $.each(d.candidatos, function(i, c) {
-	                            html += '<button type="button" class="btn btn-default btn-xs dni-usar" style="margin:2px 4px 2px 0" data-id="' + c.id + '" data-nombre="' + esc(c.nombre) + '">' + esc(c.nombre) + ' (' + c.ventas + ' ventas)</button>';
+	                            var dist = c.doc ? ' &middot; DNI ' + esc(c.doc) + ' (se corregirá)' : '';
+	                            html += '<br><a href="#" class="dni-usar" data-id="' + c.id + '" data-nombre="' + esc(c.nombre) + '" data-doc="' + esc(c.doc || '') + '">' + esc(c.nombre) + '</a> <span class="text-muted">' + c.ventas + ' ventas' + dist + '</span>';
 	                        });
-	                        html += '<br><button type="button" class="btn btn-link btn-xs dni-nuevo" style="padding:0" data-nombre="' + esc(d.nombre) + '">Ninguno, usar ' + esc(d.nombre) + '</button>';
+	                        html += '<br><a href="#" class="dni-nuevo" data-nombre="' + esc(d.nombre) + '">Ninguno, usar este nombre</a>';
 	                        dniMsg(html, 'text-info');
 	                    } else {
 	                        $('#cliente').val(d.nombre); $('#cliente_id').val('');
@@ -367,12 +371,15 @@ foreach ($empleados_venta_l as $emp) {
 	            error: function(xhr, st) { dniPendiente = null; if (st !== 'abort') dniMsg('No se pudo consultar el DNI. Puedes continuar sin él.', 'text-warning'); }
 	        });
 	    });
-	    $('#dni_estado').on('click', '.dni-usar', function() {
+	    $('#dni_estado').on('click', '.dni-usar', function(e) {
+	        e.preventDefault();
 	        $('#cliente').val($(this).data('nombre')); $('#cliente_id').val($(this).data('id'));
-	        dniMsg('✓ Se asociará el DNI a ' + esc($(this).data('nombre')), 'text-success');
+	        $('#corregir_dni').val($(this).data('doc') ? '1' : '0');
+	        dniMsg('✓ ' + esc($(this).data('nombre')) + ($(this).data('doc') ? ' &middot; DNI se corregirá' : ' &middot; se agregará el DNI'), 'text-success');
 	    });
-	    $('#dni_estado').on('click', '.dni-nuevo', function() {
-	        $('#cliente').val($(this).data('nombre')); $('#cliente_id').val('');
+	    $('#dni_estado').on('click', '.dni-nuevo', function(e) {
+	        e.preventDefault();
+	        $('#cliente').val($(this).data('nombre')); $('#cliente_id').val(''); $('#corregir_dni').val('0');
 	        dniMsg('✓ ' + esc($(this).data('nombre')), 'text-success');
 	    });
 
