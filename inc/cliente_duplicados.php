@@ -55,51 +55,51 @@ function detectar_clientes_duplicados(mysqli $conn)
                          'ventas' => $ventas[$id]['n'] ?? 0, 'ultima' => $ventas[$id]['ultima'] ?? null];
     }
 
-    // Bloques para no comparar todos contra todos: comparten token exacto, o 3 primeras / 3 últimas letras.
+    // Bloques para no comparar todos contra todos. Dos clientes se comparan solo si comparten
+    // alguna clave: mismo documento, mismo conjunto de palabras, una palabra igual, o una palabra
+    // que difiere en una sola letra (HAYDE ~ AYDE: se indexan las variantes con una letra menos).
     $bloques = [];
     foreach ($cl as $id => $c) {
+        $orden = $c['tok']; sort($orden);
+        $bloques['N:' . implode(' ', $orden)][] = $id;
+        if ($c['doc'] !== '') $bloques['D:' . $c['doc']][] = $id;
         foreach ($c['tok'] as $t) {
             if (strlen($t) < 3) continue;
-            foreach (['E:' . $t, 'P:' . substr($t, 0, 3), 'S:' . substr($t, -3)] as $k) $bloques[$k][] = $id;
-        }
-        if ($c['doc'] !== '') $bloques['D:' . $c['doc']][] = $id;
-    }
-
-    $pares = [];
-    foreach ($bloques as $ids) {
-        $n = count($ids);
-        if ($n < 2 || $n > 400) continue; // bloque demasiado genérico
-        for ($i = 0; $i < $n; $i++) for ($j = $i + 1; $j < $n; $j++) {
-            $a = $ids[$i]; $b = $ids[$j];
-            $pares[min($a, $b) . '-' . max($a, $b)] = [min($a, $b), max($a, $b)];
+            $bloques['E:' . $t][] = $id;
+            $len = strlen($t);
+            if ($len >= 4 && $len <= 14) {
+                for ($i = 0; $i < $len; $i++) $bloques['V:' . substr($t, 0, $i) . substr($t, $i + 1)][] = $id;
+            }
         }
     }
 
     $p = array_combine(array_keys($cl), array_keys($cl));
     $union = function ($a, $b) use (&$p) { $ra = cd_find($p, $a); $rb = cd_find($p, $b); if ($ra !== $rb) $p[$rb] = $ra; };
-    $pendientes = []; // (nombre de una palabra) vs (nombre de varias): se asignan después
-    foreach ($pares as [$a, $b]) {
-        $A = $cl[$a]; $B = $cl[$b];
-        $mismoDoc = $A['doc'] !== '' && $A['doc'] === $B['doc'];
-        if ($mismoDoc) { $union($a, $b); continue; }
-        if (!cd_contenido($A['tok'], $B['tok'])) continue;
-        $na = count($A['tok']); $nb = count($B['tok']);
-        if ($na >= 2 && $nb >= 2) { $union($a, $b); }
-        elseif ($na === 1 && $nb === 1) { $union($a, $b); }
-        else { $pendientes[] = $na === 1 ? [$a, $b] : [$b, $a]; } // [una palabra, varias]
+    $mejor = []; // para cada nombre de una palabra: el cliente de varias palabras con más ventas que lo contiene
+
+    foreach ($bloques as $k => $ids) {
+        $n = count($ids);
+        if ($n < 2 || ($n > 150 && $k[0] !== 'D' && $k[0] !== 'N')) continue; // palabra demasiado común
+        if ($n > 800) continue;
+        for ($i = 0; $i < $n; $i++) for ($j = $i + 1; $j < $n; $j++) {
+            $a = $ids[$i]; $b = $ids[$j];
+            if ($a === $b || cd_find($p, $a) === cd_find($p, $b)) continue;
+            $A = $cl[$a]; $B = $cl[$b];
+            if ($A['doc'] !== '' && $A['doc'] === $B['doc']) { $union($a, $b); continue; }
+            if (!cd_contenido($A['tok'], $B['tok'])) continue;
+            $na = count($A['tok']); $nb = count($B['tok']);
+            if (($na >= 2 && $nb >= 2) || ($na === 1 && $nb === 1)) { $union($a, $b); continue; }
+            [$uno, $multi] = $na === 1 ? [$a, $b] : [$b, $a];
+            if (!isset($mejor[$uno]) || $cl[$multi]['ventas'] > $cl[$mejor[$uno]]['ventas']) $mejor[$uno] = $multi;
+        }
     }
 
+    // Una palabra suelta (p. ej. "AYDE") se une a la mejor coincidencia de varias palabras,
+    // solo si no quedó ya agrupada con otros.
     $tam = [];
-    foreach ($cl as $id => $c) { $tam[cd_find($p, $id)][] = $id; }
-    // Una palabra suelta (p. ej. "AYDE") se une al grupo de varias palabras con más ventas que coincida.
-    $mejor = [];
-    foreach ($pendientes as [$uno, $multi]) {
-        $raizMulti = cd_find($p, $multi);
-        $score = array_sum(array_map(function ($i) use ($cl) { return $cl[$i]['ventas']; }, $tam[$raizMulti]));
-        if (!isset($mejor[$uno]) || $score > $mejor[$uno][1]) $mejor[$uno] = [$multi, $score];
-    }
-    foreach ($mejor as $uno => [$multi]) {
-        if (count($cl[$uno]['tok']) === 1 && count($tam[cd_find($p, $uno)]) === 1) $union($uno, $multi); // solo si estaba suelta
+    foreach ($cl as $id => $c) { $r = cd_find($p, $id); $tam[$r] = ($tam[$r] ?? 0) + 1; }
+    foreach ($mejor as $uno => $multi) {
+        if ($tam[cd_find($p, $uno)] === 1) $union($uno, $multi);
     }
 
     $grupos = [];
