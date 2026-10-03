@@ -192,10 +192,10 @@ function s($n) { return 'S/ ' . number_format($n, 2); }
 						<div class="col-md-8">
 							<div class="panel panel-default pa"><div class="panel-body table-responsive">
 								<h4>Libro de movimientos</h4>
+								<p class="text-muted" style="margin:0 0 8px">Caja inicial al <?php echo date('d/m/Y', strtotime($per['fecha_inicio'])); ?>: <strong><?php echo s($b['inicial']); ?></strong> &mdash; el saldo de cada fila es acumulado desde ahí.</p>
 								<table id="datos" class="table table-hover table-condensed">
 									<thead><tr><th>Fecha</th><th>Concepto</th><th>Medio</th><th>Detalle</th><th class="text-right">Debe</th><th class="text-right">Haber</th><th class="text-right">Saldo</th></tr></thead>
 									<tbody>
-										<tr class="active"><td><?php echo date('d/m/Y', strtotime($per['fecha_inicio'])); ?></td><td colspan="5"><strong>Caja inicial</strong></td><td class="text-right"><strong><?php echo s($b['inicial']); ?></strong></td></tr>
 										<?php $saldo = $b['inicial']; foreach ($b['mov'] as $m) { $saldo += $m['debe'] - $m['haber']; ?>
 										<tr>
 											<td><?php echo date('d/m/Y', strtotime($m['fecha'])); ?></td>
@@ -224,6 +224,10 @@ function s($n) { return 'S/ ' . number_format($n, 2); }
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/10.5.0/sweetalert2.min.js" integrity="sha512-V9JHp52ZkrbVVjJqNz/XXYMUOyUfzaGKEGrcD2Ual7n39+UR1yJK0numAHZqkhhGTAH/Klj0KUe4btAZXccw9w==" crossorigin="anonymous"></script>
 	<script>
 	$(document).ready(function() {
+		if ($('#datos').length) {
+			$('#datos').DataTable({ order: [], pageLength: 25, lengthMenu: [25, 50, 100, 200] });
+		}
+
 		$('#nuevo_periodo').on('click', function() {
 			Swal.fire({
 				title: 'Nuevo periodo',
