@@ -9,11 +9,12 @@ $MEDIOS_PAGO = [
     'bbva'       => 'BBVA',
     'yape_susan' => 'Yape Susan',
     'tarjeta'    => 'Tarjeta',
+    'transferencia' => 'Transferencia',
 ];
 
 // Valores antiguos de compra_pagos (antes de tener esta lista). Siguen siendo
 // válidos al leer datos viejos, pero ya no se ofrecen al registrar.
-$MEDIOS_LEGACY = ['transferencia' => 'Transferencia', 'deposito' => 'Depósito', 'cheque' => 'Cheque', 'otro' => 'Otro'];
+$MEDIOS_LEGACY = ['deposito' => 'Depósito', 'cheque' => 'Cheque', 'otro' => 'Otro'];
 
 function medio_label($k) {
     global $MEDIOS_PAGO, $MEDIOS_LEGACY;

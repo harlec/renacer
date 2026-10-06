@@ -830,7 +830,7 @@ body{
             <input type="number" inputmode="decimal" class="pay-input" id="pm-monto-efectivo" placeholder="0.00" step="0.01" min="0" oninput="actualizarPagoUI()">
           </div>
           <div class="pay-input-box">
-            <button type="button" class="pay-quick-btn" onclick="pagoSoloUnMetodo('tarjeta')" title="Todo con tarjeta">💳</button>
+            <button type="button" class="pay-quick-btn" onclick="pagoSoloUnMetodo('bbva')" title="Todo con BBVA">🏦</button>
             <input type="number" inputmode="decimal" class="pay-input" id="pm-monto-tarjeta" placeholder="0.00" step="0.01" min="0" oninput="actualizarPagoUI()">
           </div>
         </div>
@@ -975,7 +975,8 @@ function switchTab(key){
 }
 
 // ── Método de pago (solo pestaña Huevos) — permite pago mixto ─
-// (parte efectivo + parte tarjeta, o solo uno de los dos)
+// (parte efectivo + parte BBVA, o solo uno de los dos). El input interno sigue llamándose "tarjeta"
+// por historia, pero ahora representa BBVA.
 function montoEfectivo(){ return parseFloat(document.getElementById('pm-monto-efectivo').value)||0; }
 function montoTarjeta(){ return parseFloat(document.getElementById('pm-monto-tarjeta').value)||0; }
 function totalCarrito(){ return cart.reduce((s,i)=>s+i.total,0); }
@@ -1001,7 +1002,7 @@ function limpiarPago(){
 function pagoSoloUnMetodo(m){
   const total = totalCarrito();
   document.getElementById('pm-monto-efectivo').value = m==='efectivo' ? total.toFixed(2) : '';
-  document.getElementById('pm-monto-tarjeta').value  = m==='tarjeta'  ? total.toFixed(2) : '';
+  document.getElementById('pm-monto-tarjeta').value  = m==='bbva'     ? total.toFixed(2) : '';
   actualizarPagoUI();
 }
 
@@ -1433,7 +1434,7 @@ function saveAndPrint(){
   if(id_cliente) body.append('id_cliente', id_cliente);
   if(isHuevosTab(currentTab)){
     if(montoEfectivo()>0){ body.append('metodo_pago[]', 'efectivo'); body.append('monto_pago[]', montoEfectivo().toFixed(2)); }
-    if(montoTarjeta()>0){ body.append('metodo_pago[]', 'tarjeta');  body.append('monto_pago[]', montoTarjeta().toFixed(2)); }
+    if(montoTarjeta()>0){ body.append('metodo_pago[]', 'bbva');  body.append('monto_pago[]', montoTarjeta().toFixed(2)); }
   }
 
   cart.forEach(ci=>{

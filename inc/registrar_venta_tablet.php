@@ -27,8 +27,8 @@ if (!empty($_POST)) {
     $total_pre  = $_POST['total_pre']  ?? [];
     $total      = floatval($_POST['total1'] ?? 0);
 
-    // Pago mixto: puede venir efectivo, tarjeta, o ambos a la vez (parte y parte).
-    $metodos_validos = ['efectivo', 'tarjeta'];
+    // Pago mixto: puede venir efectivo, BBVA, o ambos a la vez (parte y parte).
+    $metodos_validos = ['efectivo', 'bbva', 'tarjeta']; // 'tarjeta' se mantiene por si hay una tablet con la versión anterior en caché
     $metodo_pago_arr = $_POST['metodo_pago'] ?? [];
     $monto_pago_arr  = $_POST['monto_pago']  ?? [];
     $pagos = [];
