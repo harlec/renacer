@@ -63,6 +63,32 @@ function dash_cuentas_por_pagar() {
     return ['pendiente' => $pendiente, 'vencido' => $vencido, 'n_vencidas' => $n_venc, 'items' => array_slice($items, 0, 5), 'total_items' => count($items)];
 }
 
+// Ventas a crédito con saldo pendiente (mismo criterio que inc/get_ventas_credito.php).
+function dash_cuentas_por_cobrar() {
+    $rows = dash_q("SELECT v.id_venta, v.fecha_compromiso_pago AS vence, c.cliente AS nombre,
+            COALESCE(SUM(dv.total), 0) AS total_real, COALESCE(MAX(vp.pagado), 0) AS pagado
+        FROM ventas v
+        LEFT JOIN detalle_ventas dv ON dv.venta = v.id_venta
+        LEFT JOIN clientes c ON c.id_cliente = v.cliente
+        LEFT JOIN (SELECT venta, SUM(monto) AS pagado FROM venta_pagos GROUP BY venta) vp ON vp.venta = v.id_venta
+        WHERE v.estado != '2' AND v.id_empleado IS NULL AND v.fecha_compromiso_pago IS NOT NULL
+        GROUP BY v.id_venta
+        HAVING total_real - pagado > 0.01
+        ORDER BY v.fecha_compromiso_pago ASC");
+    $hoy = strtotime(date('Y-m-d'));
+    $pendiente = $vencido = 0;
+    $n_venc = 0;
+    $items = [];
+    foreach ($rows as $r) {
+        $saldo = round((float)$r['total_real'] - (float)$r['pagado'], 2);
+        $pendiente += $saldo;
+        $dias = (int)round((strtotime($r['vence']) - $hoy) / 86400);
+        if ($dias < 0) { $vencido += $saldo; $n_venc++; }
+        $items[] = ['proveedor' => $r['nombre'] ?: 'Sin cliente', 'saldo' => $saldo, 'vence' => $r['vence'], 'dias' => $dias];
+    }
+    return ['pendiente' => $pendiente, 'vencido' => $vencido, 'n_vencidas' => $n_venc, 'items' => array_slice($items, 0, 5), 'total_items' => count($items)];
+}
+
 // Clientes genéricos que no son personas reales.
 const DASH_CLIENTES_GENERICOS = "('VARIOS','FACTURA MANUAL','HUEVOS - VARIOS','HUEVOS-VARIOS')";
 

@@ -87,6 +87,7 @@ $sin_stock = dash_sin_stock();
 $balance = $es_admin ? dash_balance($mes_filtro) : null;
 $medios = dash_medios_pago($mes_filtro);
 $cxp = $es_admin ? dash_cuentas_por_pagar() : null;
+$cxc = $es_admin ? dash_cuentas_por_cobrar() : null;
 $recurrentes = dash_clientes_recurrentes();
 $perdidos = dash_clientes_perdidos();
 
@@ -286,27 +287,32 @@ $js = [
         <section class="esc-card" style="flex:1 1 320px">
             <div class="esc-head">
                 <span class="esc-chip" style="background:oklch(0.94 0.05 75);color:oklch(0.55 0.13 75)"><i class="ph-duotone ph-hand-coins"></i></span>
-                <h2>Cuentas por pagar</h2>
-                <a class="esc-meta" href="cuentas_x_pagar.php">Ver todas →</a>
+                <h2>Cuentas</h2>
+                <div class="esc-seg" id="segCuentas"><button class="on" data-k="pagar">Por pagar</button><button data-k="cobrar">Por cobrar</button></div>
             </div>
-            <div class="esc-mini2">
-                <div class="esc-mini"><div class="l">Pendiente</div><div class="v"><?= sol0($cxp['pendiente']) ?></div></div>
-                <div class="esc-mini red"><div class="l">Vencido · <?= $cxp['n_vencidas'] ?></div><div class="v"><?= sol0($cxp['vencido']) ?></div></div>
+            <?php foreach ([['pagar', $cxp, 'cuentas_x_pagar.php', 'Sin deudas pendientes'], ['cobrar', $cxc, 'caja_pagos.php', 'Sin cobros pendientes']] as [$k, $cx, $href, $vacio]): ?>
+            <div id="cuentas-<?= $k ?>" class="esc-list <?= $k === 'pagar' ? '' : 'esc-hide' ?>">
+                <a class="esc-more" href="<?= $href ?>" style="align-self:flex-end">Ver todas →</a>
+                <div class="esc-mini2">
+                    <div class="esc-mini"><div class="l">Pendiente</div><div class="v"><?= sol0($cx['pendiente']) ?></div></div>
+                    <div class="esc-mini red"><div class="l">Vencido · <?= $cx['n_vencidas'] ?></div><div class="v"><?= sol0($cx['vencido']) ?></div></div>
+                </div>
+                <div>
+                    <?php foreach ($cx['items'] as $c):
+                        if ($c['dias'] === null) { $cls = ''; $txt = 'Sin fecha'; }
+                        elseif ($c['dias'] < 0) { $cls = 'red'; $txt = 'Vencida hace ' . (-$c['dias']) . ' d'; }
+                        elseif ($c['dias'] <= 3) { $cls = 'amber'; $txt = $c['dias'] == 0 ? 'Vence hoy' : 'En ' . $c['dias'] . ' días'; }
+                        else { $cls = ''; $txt = 'Vence ' . date('d/m', strtotime($c['vence'])); } ?>
+                        <div class="esc-row-item">
+                            <span class="nm"><?= h($c['proveedor']) ?></span>
+                            <span class="esc-status <?= $cls ?>"><?= $txt ?></span>
+                            <span class="mt"><?= sol0($c['saldo']) ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php if (!$cx['items']): ?><div class="esc-empty"><?= $vacio ?></div><?php endif; ?>
+                </div>
             </div>
-            <div>
-                <?php foreach ($cxp['items'] as $c):
-                    if ($c['dias'] === null) { $cls = ''; $txt = 'Sin fecha'; }
-                    elseif ($c['dias'] < 0) { $cls = 'red'; $txt = 'Vencida hace ' . (-$c['dias']) . ' d'; }
-                    elseif ($c['dias'] <= 3) { $cls = 'amber'; $txt = $c['dias'] == 0 ? 'Vence hoy' : 'En ' . $c['dias'] . ' días'; }
-                    else { $cls = ''; $txt = 'Vence ' . date('d/m', strtotime($c['vence'])); } ?>
-                    <div class="esc-row-item">
-                        <span class="nm"><?= h($c['proveedor']) ?></span>
-                        <span class="esc-status <?= $cls ?>"><?= $txt ?></span>
-                        <span class="mt"><?= sol0($c['saldo']) ?></span>
-                    </div>
-                <?php endforeach; ?>
-                <?php if (!$cxp['items']): ?><div class="esc-empty">Sin deudas pendientes</div><?php endif; ?>
-            </div>
+            <?php endforeach; ?>
         </section>
         <?php endif; ?>
     </div>
@@ -547,6 +553,7 @@ $js = [
         });
     }
     seg('segProd', k => { orden = k; pintarProd(); });
+    seg('segCuentas', k => { $('cuentas-pagar').classList.toggle('esc-hide', k !== 'pagar'); $('cuentas-cobrar').classList.toggle('esc-hide', k !== 'cobrar'); });
     seg('segCli', k => { $('cliTop').classList.toggle('esc-hide', k !== 'top'); $('cliFreq').classList.toggle('esc-hide', k !== 'freq'); });
     pintarProd();
 })();
