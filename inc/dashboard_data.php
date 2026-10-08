@@ -12,34 +12,18 @@ function dash_hue_vendedor($id) {
     return $hues[((int)$id) % count($hues)];
 }
 
-function dash_balance($mes, $monto_mes) {
-    $ini = $mes . '-01';
-    $fin = date('Y-m-t', strtotime($ini));
+// Balance del mes, igual que balance.php pero solo con ventas y compras (aún sin gastos, planillas ni costos):
+// entra = cobros de ventas (venta_pagos), sale = pagos a proveedores (compra_pagos).
+function dash_balance($mes) {
+    $r = dash_q("SELECT SUM(vp.monto) AS m FROM venta_pagos vp INNER JOIN ventas v ON v.id_venta = vp.venta
+        WHERE v.estado != '2' AND vp.metodo != 'planilla' AND DATE_FORMAT(vp.fecha, '%Y-%m') = '$mes'");
+    $ventas = (float)($r[0]['m'] ?? 0);
 
-    // Costo de ventas: variantes usan su costo (precioc_vp); el resto, precio_compra del producto.
-    $r = dash_q("SELECT SUM(dv.cantidad * IF(dv.id_vp > 0, vp.precioc_vp, p.precio_compra)) AS costo
-        FROM detalle_ventas dv
-        INNER JOIN ventas v ON v.id_venta = dv.venta
-        LEFT JOIN productos p ON p.id_producto = dv.producto
-        LEFT JOIN variante_p vp ON vp.id_vp = dv.id_vp
-        WHERE v.estado != '2' AND DATE_FORMAT(v.fecha, '%Y-%m') = '$mes'");
-    $costo = (float)($r[0]['costo'] ?? 0);
+    $r = dash_q("SELECT SUM(cp.monto) AS m FROM compra_pagos cp INNER JOIN compras c ON c.id_compra = cp.compra
+        WHERE c.estado != '2' AND DATE_FORMAT(cp.fecha, '%Y-%m') = '$mes'");
+    $compras = (float)($r[0]['m'] ?? 0);
 
-    $por_tipo = dash_q("SELECT categoria, SUM(monto) AS monto FROM gastos
-        WHERE estado = '1' AND fecha BETWEEN '$ini' AND '$fin'
-        GROUP BY categoria ORDER BY monto DESC");
-    $gastos = 0;
-    foreach ($por_tipo as $g) $gastos += (float)$g['monto'];
-
-    $utilidad = $monto_mes - $costo - $gastos;
-    return [
-        'ventas'   => (float)$monto_mes,
-        'costo'    => $costo,
-        'gastos'   => $gastos,
-        'utilidad' => $utilidad,
-        'margen'   => $monto_mes > 0 ? round($utilidad / $monto_mes * 100) : 0,
-        'por_tipo' => array_slice($por_tipo, 0, 6),
-    ];
+    return ['ventas' => $ventas, 'compras' => $compras, 'saldo' => $ventas - $compras];
 }
 
 function dash_medios_pago($mes) {

@@ -84,7 +84,7 @@ $prediccion_stock = array_slice($prediccion_data['prediccion'], 0, 10);
 $v7 = dash_ventas_7d();
 $total_7dias = array_sum($v7['totales']);
 $sin_stock = dash_sin_stock();
-$balance = $es_admin ? dash_balance($mes_filtro, $monto_mes) : null;
+$balance = $es_admin ? dash_balance($mes_filtro) : null;
 $medios = dash_medios_pago($mes_filtro);
 $cxp = $es_admin ? dash_cuentas_por_pagar() : null;
 $recurrentes = dash_clientes_recurrentes();
@@ -232,7 +232,7 @@ $js = [
 
     <!-- Balance · Medios de pago · Cuentas por pagar -->
     <div class="esc-row">
-        <?php if ($balance): $bv = max($balance['ventas'], 1); ?>
+        <?php if ($balance): $bv = max($balance['ventas'], $balance['compras'], 1); ?>
         <section class="esc-card" style="flex:1 1 320px">
             <div class="esc-head">
                 <span class="esc-chip" style="background:oklch(0.94 0.05 145);color:oklch(0.55 0.13 145)"><i class="ph-duotone ph-scales"></i></span>
@@ -240,31 +240,16 @@ $js = [
                 <a class="esc-meta" href="balance.php">Ver balance →</a>
             </div>
             <div>
-                <div class="esc-note">Utilidad neta</div>
-                <span class="esc-util <?= $balance['utilidad'] < 0 ? 'neg' : '' ?>"><?= sol0($balance['utilidad']) ?></span>
-                <span class="esc-badge">margen <?= $balance['margen'] ?>%</span>
+                <div class="esc-note">Ventas − compras</div>
+                <span class="esc-util <?= $balance['saldo'] < 0 ? 'neg' : '' ?>"><?= sol0($balance['saldo']) ?></span>
             </div>
-            <?php
-            $barras = [
-                ['Ventas', $balance['ventas'], 'oklch(0.65 0.14 145)'],
-                ['Costo de ventas', $balance['costo'], 'oklch(0.8 0.06 75)'],
-                ['Gastos', $balance['gastos'], 'oklch(0.7 0.14 25)'],
-                ['Utilidad neta', max(0, $balance['utilidad']), 'oklch(0.55 0.14 145)'],
-            ];
-            foreach ($barras as $b): ?>
+            <?php foreach ([['Ventas cobradas', $balance['ventas'], 'oklch(0.65 0.14 145)'], ['Compras pagadas', $balance['compras'], 'oklch(0.7 0.14 25)']] as $b): ?>
                 <div class="esc-hbar">
                     <div class="t"><span><?= $b[0] ?></span><b><?= sol0($b[1]) ?></b></div>
                     <div class="b"><i style="width:<?= min(100, round($b[1] / $bv * 100)) ?>%;background:<?= $b[2] ?>"></i></div>
                 </div>
             <?php endforeach; ?>
-            <?php if ($balance['por_tipo']): ?>
-                <div class="esc-note">Gastos por tipo</div>
-                <div class="esc-tags">
-                    <?php foreach ($balance['por_tipo'] as $g): ?>
-                        <span class="esc-tag"><?= h($g['categoria']) ?><b><?= sol0($g['monto']) ?></b></span>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+            <div class="esc-note">Aún no incluye gastos, planillas ni costos.</div>
         </section>
         <?php endif; ?>
 
