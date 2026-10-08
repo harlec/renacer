@@ -89,4 +89,46 @@ function menu($i){
 	}
 	
 }
+// Navbar rediseñado (Escritorio v2). Mismo conjunto de opciones que menu(), con íconos Phosphor.
+// Requiere assets/css/escritorio.css y Phosphor Icons cargados en la página.
+function menu_v2($i){
+	$items = [
+		['1',  'Escritorio', 'dashboard.php',    'ph-house',           37],
+		['2',  'Usuarios',   'ver_usuarios.php', 'ph-user-plus',       145],
+		['7',  'Clientes',   'ver_clientes.php', 'ph-users-three',     60],
+		['3',  'Productos',  'ver_productos.php','ph-package',         75],
+		['4',  'Ventas',     'venta.php',        'ph-receipt',         230],
+		['9',  'Caja',       'caja_pagos.php',   'ph-cash-register',   150],
+		['6',  'Compras',    'compra.php',       'ph-shopping-cart',   170],
+		['10', 'Preventas',  'preventas.php',    'ph-clipboard-text',  30],
+		['11', 'Gastos',     'gastos.php',       'ph-wallet',          120],
+		['5',  'Reportes',   'reportes.php',     'ph-chart-line-up',   250],
+	];
+	$es_admin = ($_SESSION['type'] ?? '') == 'admin';
+	if (!$es_admin) {
+		$items = array_values(array_filter($items, function($it){ return in_array($it[0], ['1', '4', '9']); }));
+	}
+	echo '<header class="esc-header">
+	<a class="esc-brand" href="dashboard.php"><span>GRUPO</span><b>AVASA</b></a>
+	<nav class="esc-nav">';
+	foreach ($items as $it) {
+		$activo = ($it[0] == (string)$i);
+		$ic = 'oklch(0.62 0.17 '.$it[4].')';
+		echo '<a class="esc-nav-item'.($activo ? ' active' : '').'" href="'.$it[2].'" title="'.$it[1].'">
+			<i class="'.($activo ? 'ph-fill' : 'ph-duotone').' '.$it[3].'"'.($activo ? '' : ' style="color:'.$ic.'"').'></i><span>'.$it[1].'</span></a>';
+	}
+	echo '</nav>';
+	if ($es_admin) {
+		echo '<div class="dropdown esc-config">
+		<a href="#" class="esc-nav-item dropdown-toggle" data-toggle="dropdown" title="Configuración"><i class="ph-duotone ph-gear" style="color:oklch(0.62 0.17 210)"></i><span>Config.</span></a>
+		<ul class="dropdown-menu dropdown-menu-right">
+			<li><a href="/tablet_config_admin.php"><i class="ph ph-device-tablet"></i> Configuración Tablet</a></li>
+			<li><a href="/configuracion_facturacion.php"><i class="ph ph-file-text"></i> Facturación Electrónica</a></li>
+			<li><a href="/alias_productos.php"><i class="ph ph-book-open"></i> Diccionario</a></li>
+		</ul></div>';
+	}
+	echo '<div class="esc-user">Hola <strong>'.htmlspecialchars(strtoupper($_SESSION['usuario']), ENT_QUOTES, 'UTF-8').'</strong>
+		<a class="esc-logout" href="salir.php" title="Salir"><i class="ph-bold ph-sign-out"></i></a></div>
+</header>';
+}
 ?>
