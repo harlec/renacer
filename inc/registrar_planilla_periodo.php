@@ -56,10 +56,11 @@ $id_periodo = $conn->insert_id;
 
 $dias_mes_referencia = (float) get_config('planilla_dias_mes_referencia', 30);
 if ($dias_mes_referencia <= 0) $dias_mes_referencia = 30;
+$rmv = (float) get_config('planilla_rmv', 1130);
 $factor_tardanza = (float) get_config('planilla_factor_tardanza', 2);
 if ($factor_tardanza <= 0) $factor_tardanza = 2;
 
-$empleados = $conn->query("SELECT id_empleado, sueldo_mensual, afp, afp_monto_mensual FROM empleados WHERE estado = '1'");
+$empleados = $conn->query("SELECT id_empleado, sueldo_mensual, afp, afp_monto_mensual, asignacion_familiar FROM empleados WHERE estado = '1'");
 if ($empleados) {
     while ($emp = $empleados->fetch_assoc()) {
         $id_empleado    = (int) $emp['id_empleado'];
@@ -118,6 +119,33 @@ if ($empleados) {
                 $importe_afp = round($afp_monto_mensual / 2, 2);
                 $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
                                VALUES ($id_detalle, 'afp', '$fin_esc', $importe_afp, 'AFP (quincena)', $usuario_id)");
+            }
+        }
+
+        // Ingresos extra (se suman al sueldo del periodo).
+        // Feriado trabajado: cada día marcado como feriado en Asistencia (y no faltado) paga un
+        // día adicional (calculo_diario), de modo que ese día se cobra doble.
+        if ($calculo_diario > 0) {
+            $rfe = $conn->query("SELECT fecha FROM asistencias
+                                  WHERE id_empleado = $id_empleado AND fecha BETWEEN '$ini_esc' AND '$fin_esc'
+                                    AND feriado = 1 AND (observacion IS NULL OR observacion != 'FALTO')");
+            if ($rfe) {
+                while ($fe = $rfe->fetch_assoc()) {
+                    $fecha_fe_esc = $conn->real_escape_string($fe['fecha']);
+                    $conn->query("INSERT INTO planilla_ingresos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                                   VALUES ($id_detalle, 'feriado', '$fecha_fe_esc', $calculo_diario, '" . $conn->real_escape_string("Feriado trabajado {$fe['fecha']} (pago doble)") . "', $usuario_id)");
+                }
+            }
+        }
+
+        // Asignación familiar: 10% de la RMV al mes, prorrateado por los días del periodo
+        // (misma lógica que el sueldo: monto mensual / días de referencia * días del periodo).
+        if ($emp['asignacion_familiar'] == '1' && $rmv > 0) {
+            $asig_diaria = round(($rmv * 0.10) / $dias_mes_referencia, 2);
+            $importe_asig = round($asig_diaria * $dias, 2);
+            if ($importe_asig > 0) {
+                $conn->query("INSERT INTO planilla_ingresos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                               VALUES ($id_detalle, 'asignacion_familiar', '$fin_esc', $importe_asig, 'Asignación familiar (10% RMV)', $usuario_id)");
             }
         }
 

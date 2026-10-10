@@ -11,7 +11,8 @@ $r = $conn->query("
 	SELECT pp.id_periodo, pp.fecha_inicio, pp.fecha_fin, pp.dias, pp.estado,
 	       COUNT(pd.id_detalle) AS n_empleados,
 	       COALESCE(SUM(pd.sueldo_periodo), 0) AS sueldo_total,
-	       COALESCE(desc_t.total_desc, 0) AS descuentos_total
+	       COALESCE(desc_t.total_desc, 0) AS descuentos_total,
+	       COALESCE(ing_t.total_ing, 0) AS ingresos_total
 	FROM planilla_periodos pp
 	LEFT JOIN planilla_detalle pd ON pd.id_periodo = pp.id_periodo
 	LEFT JOIN (
@@ -20,6 +21,12 @@ $r = $conn->query("
 		INNER JOIN planilla_descuentos pdesc ON pdesc.id_detalle = d.id_detalle
 		GROUP BY d.id_periodo
 	) desc_t ON desc_t.id_periodo = pp.id_periodo
+	LEFT JOIN (
+		SELECT d.id_periodo, SUM(pi.importe) AS total_ing
+		FROM planilla_detalle d
+		INNER JOIN planilla_ingresos pi ON pi.id_detalle = d.id_detalle
+		GROUP BY d.id_periodo
+	) ing_t ON ing_t.id_periodo = pp.id_periodo
 	GROUP BY pp.id_periodo
 	ORDER BY pp.fecha_inicio DESC
 ");
@@ -35,7 +42,7 @@ $estado_badge = [
 $datos = '';
 if ($r) {
 	while ($value = $r->fetch_assoc()) {
-		$sueldo_total = round((float)$value['sueldo_total'], 2);
+		$sueldo_total = round((float)$value['sueldo_total'] + (float)$value['ingresos_total'], 2); // incluye feriados y asignación familiar
 		$descuentos   = round((float)$value['descuentos_total'], 2);
 		$total_pagar  = round($sueldo_total - $descuentos, 2);
 

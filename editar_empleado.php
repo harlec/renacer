@@ -161,6 +161,12 @@ if ($cargo_actual !== '' && !$cargo_actual_en_catalogo) {
 															    <input type="number" step="0.01" min="0" class="form-control" name="sueldo_mensual" id="sueldo_mensual" placeholder="0.00" value="<?php echo $l['sueldo_mensual']; ?>">
 															</div>
 															<div class="form-group">
+															    <label>Asignación familiar</label><br>
+															    <label class="radio-inline"><input type="radio" name="asignacion_familiar" value="1" <?php echo $l['asignacion_familiar'] == '1' ? 'checked' : ''; ?>> Sí</label>
+															    <label class="radio-inline"><input type="radio" name="asignacion_familiar" value="0" <?php echo $l['asignacion_familiar'] == '1' ? '' : 'checked'; ?>> No</label>
+															    <p class="help-block" style="margin-bottom:0">Si tiene, cobra de más el 10% de la remuneración mínima vital (se configura en Config. planillas), prorrateado por los días de cada planilla.</p>
+															</div>
+															<div class="form-group">
 															    <label>AFP</label><br>
 															    <label class="radio-inline"><input type="radio" name="afp" value="1" <?php echo $l['afp'] == '1' ? 'checked' : ''; ?>> Sí</label>
 															    <label class="radio-inline"><input type="radio" name="afp" value="0" <?php echo $l['afp'] == '1' ? '' : 'checked'; ?>> No</label>

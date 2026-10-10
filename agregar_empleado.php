@@ -145,6 +145,12 @@ $general_dom = rango_horario_general(get_config('planilla_horario_dom_ingreso'),
 															    <input type="number" step="0.01" min="0" class="form-control" name="sueldo_mensual" id="sueldo_mensual" placeholder="0.00">
 															</div>
 															<div class="form-group">
+															    <label>Asignación familiar</label><br>
+															    <label class="radio-inline"><input type="radio" name="asignacion_familiar" value="1"> Sí</label>
+															    <label class="radio-inline"><input type="radio" name="asignacion_familiar" value="0" checked> No</label>
+															    <p class="help-block" style="margin-bottom:0">Si tiene, cobra de más el 10% de la remuneración mínima vital (se configura en Config. planillas), prorrateado por los días de cada planilla.</p>
+															</div>
+															<div class="form-group">
 															    <label>AFP</label><br>
 															    <label class="radio-inline"><input type="radio" name="afp" value="1"> Sí</label>
 															    <label class="radio-inline"><input type="radio" name="afp" value="0" checked> No</label>

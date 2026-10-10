@@ -36,6 +36,7 @@ $ids        = $_POST['id_empleado'] ?? [];
 $entradas   = $_POST['entrada'] ?? [];
 $salidas    = $_POST['salida'] ?? [];
 $faltos     = $_POST['falto'] ?? [];
+$feriados   = $_POST['feriado'] ?? [];
 $usuario_id = intval($_SESSION['id_usr']);
 $guardados  = 0;
 
@@ -51,10 +52,15 @@ foreach ($ids as $i => $id_empleado) {
     if (in_array($id_empleado, $descanso_ids, true)) continue; // día de descanso programado, no se marca falta ni asistencia
 
     $falto        = isset($faltos[$i]) && $faltos[$i] == '1';
+    $feriado      = !$falto && isset($feriados[$i]) && $feriados[$i] == '1'; // trabajó feriado: se paga doble ese día (se aplica al generar la planilla)
     $entrada_real = trim($entradas[$i] ?? '');
     $salida_real  = trim($salidas[$i] ?? '');
 
-    if (!$falto && !$entrada_real && !$salida_real) continue; // fila sin cambios
+    if (!$falto && !$feriado && !$entrada_real && !$salida_real) {
+        // fila sin cambios, salvo que tuviera el feriado marcado y ahora se desmarcó
+        $rf = $conn->query("SELECT 1 FROM asistencias WHERE id_empleado = $id_empleado AND fecha = '$fecha' AND feriado = 1");
+        if (!($rf && $rf->num_rows)) continue;
+    }
 
     list($prog_ingreso, $prog_salida) = obtener_horario_programado($conn, $id_empleado, $fecha);
 
@@ -95,12 +101,13 @@ foreach ($ids as $i => $id_empleado) {
     $prog_ing_sql = $prog_ingreso  ? "'" . $conn->real_escape_string($prog_ingreso)  . "'" : 'NULL';
     $prog_sal_sql = $prog_salida   ? "'" . $conn->real_escape_string($prog_salida)   . "'" : 'NULL';
     $horas_sql    = $horas_trabajadas !== null ? $horas_trabajadas : 'NULL';
+    $feriado_sql  = $feriado ? 1 : 0;
     $obs_sql      = $observacion   ? "'" . $conn->real_escape_string($observacion)   . "'" : 'NULL';
 
     $q = "INSERT INTO asistencias
-            (id_empleado, fecha, hora_entrada_prog, hora_entrada_real, hora_salida_prog, hora_salida_real, minutos_tardanza, horas_trabajadas, observacion, usuario)
+            (id_empleado, fecha, hora_entrada_prog, hora_entrada_real, hora_salida_prog, hora_salida_real, minutos_tardanza, horas_trabajadas, observacion, feriado, usuario)
           VALUES
-            ($id_empleado, '$fecha', $prog_ing_sql, $entrada_sql, $prog_sal_sql, $salida_sql, $minutos_tardanza, $horas_sql, $obs_sql, $usuario_id)
+            ($id_empleado, '$fecha', $prog_ing_sql, $entrada_sql, $prog_sal_sql, $salida_sql, $minutos_tardanza, $horas_sql, $obs_sql, $feriado_sql, $usuario_id)
           ON DUPLICATE KEY UPDATE
             hora_entrada_prog = VALUES(hora_entrada_prog),
             hora_entrada_real = VALUES(hora_entrada_real),
@@ -109,6 +116,7 @@ foreach ($ids as $i => $id_empleado) {
             minutos_tardanza  = VALUES(minutos_tardanza),
             horas_trabajadas  = VALUES(horas_trabajadas),
             observacion       = VALUES(observacion),
+            feriado           = VALUES(feriado),
             usuario           = VALUES(usuario)";
 
     if ($conn->query($q)) {

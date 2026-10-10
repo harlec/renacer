@@ -53,7 +53,7 @@ function calcular_balance($conn, $p) {
 	// HABER: planillas (neto a pagar = sueldo del periodo - descuentos), en la fecha fin de la quincena.
 	$r = $conn->query("
 		SELECT pp.fecha_inicio, pp.fecha_fin,
-		       COALESCE(SUM(pd.sueldo_periodo), 0) AS sueldos,
+		       COALESCE(SUM(pd.sueldo_periodo), 0) + COALESCE((SELECT SUM(i.importe) FROM planilla_ingresos i INNER JOIN planilla_detalle pd3 ON pd3.id_detalle = i.id_detalle WHERE pd3.id_periodo = pp.id_periodo), 0) AS sueldos,
 		       COALESCE((SELECT SUM(d.importe) FROM planilla_descuentos d INNER JOIN planilla_detalle pd2 ON pd2.id_detalle = d.id_detalle WHERE pd2.id_periodo = pp.id_periodo), 0) AS descuentos
 		FROM planilla_periodos pp LEFT JOIN planilla_detalle pd ON pd.id_periodo = pp.id_periodo
 		WHERE pp.fecha_fin BETWEEN '$ini' AND '$fin'

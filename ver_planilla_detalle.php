@@ -50,9 +50,25 @@ if ($rd) {
 		</tr>';
 	}
 }
+$ingreso_label = ['feriado' => 'Feriado trabajado (pago doble)', 'asignacion_familiar' => 'Asignación familiar'];
+$filas_ingresos = '';
+$total_ingresos = 0;
+$ri = $conn->query("SELECT tipo, fecha, importe, descripcion FROM planilla_ingresos WHERE id_detalle = $id_detalle ORDER BY fecha, id_ingreso");
+if ($ri) {
+	while ($i = $ri->fetch_assoc()) {
+		$total_ingresos += (float) $i['importe'];
+		$filas_ingresos .= '<tr>
+			<td>' . date('d/m/Y', strtotime($i['fecha'])) . '</td>
+			<td>' . ($ingreso_label[$i['tipo']] ?? $i['tipo']) . '</td>
+			<td>S/ ' . number_format((float)$i['importe'],2) . '</td>
+			<td>' . htmlspecialchars($i['descripcion']) . '</td>
+		</tr>';
+	}
+}
+$total_ingresos = round($total_ingresos, 2);
 $sueldo_periodo = round((float)$det['sueldo_periodo'], 2);
 $total_descuentos = round($total_descuentos, 2);
-$total_pagar = round($sueldo_periodo - $total_descuentos, 2);
+$total_pagar = round($sueldo_periodo + $total_ingresos - $total_descuentos, 2);
 $conn->close();
 ?>
 
@@ -129,7 +145,7 @@ $conn->close();
 						<div class="col-md-12">
 							<div class="kdashboard">
 								<div class="row">
-									<div class="col-md-4">
+									<div class="col-md-3">
 										<div class="panel panel-default pa">
 											<div class="panel-body">
 												<p>Sueldo del periodo (<?php echo $det['dias']; ?> días)</p>
@@ -137,7 +153,15 @@ $conn->close();
 											</div>
 										</div>
 									</div>
-									<div class="col-md-4">
+									<div class="col-md-3">
+										<div class="panel panel-default pa">
+											<div class="panel-body">
+												<p>Ingresos extra (feriados, asig. familiar)</p>
+												<h4>S/ <?php echo number_format($total_ingresos,2); ?></h4>
+											</div>
+										</div>
+									</div>
+									<div class="col-md-3">
 										<div class="panel panel-default pa">
 											<div class="panel-body">
 												<p>Total descuentos</p>
@@ -145,7 +169,7 @@ $conn->close();
 											</div>
 										</div>
 									</div>
-									<div class="col-md-4">
+									<div class="col-md-3">
 										<div class="panel panel-default pa">
 											<div class="panel-body">
 												<p>Total a pagar</p>
@@ -175,6 +199,13 @@ $conn->close();
 											    		<?php echo $filas; ?>
 											    	</tbody>
 											    </table>
+											    <?php if ($filas_ingresos): ?>
+											    <h4>Ingresos extra</h4>
+											    <table class="table table-hover">
+											    	<thead><tr><th>Fecha</th><th>Tipo</th><th>Importe</th><th>Descripción</th></tr></thead>
+											    	<tbody><?php echo $filas_ingresos; ?></tbody>
+											    </table>
+											    <?php endif; ?>
 											</div>
 										</div>
 									</div>
