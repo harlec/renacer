@@ -155,7 +155,7 @@ if ($empleados) {
         // próximas planillas que se generen, sin importar el rango exacto de fechas de
         // cada una (solo la primera cuota necesita que la fecha del movimiento caiga
         // dentro/antes del periodo).
-        $rm = $conn->query("SELECT id_movimiento, tipo, descripcion, id_venta, partes
+        $rm = $conn->query("SELECT id_movimiento, tipo, fecha, descripcion, id_venta, partes
                              FROM movimientos_empleado
                              WHERE id_empleado = $id_empleado AND fecha <= '$fin_esc'
                              ORDER BY fecha ASC, id_movimiento ASC");
@@ -176,10 +176,13 @@ if ($empleados) {
                     ? $desc_base . " (cuota {$cuota['numero_cuota']}/{$m['partes']})"
                     : $desc_base;
                 $desc_esc = $conn->real_escape_string($desc);
+                // La fecha del descuento es la del movimiento (cuándo se dio el adelanto / la venta de
+                // abarrotes), no la del periodo: así la boleta no cambia si la planilla se anula y se regenera.
+                $fecha_mov_esc = $conn->real_escape_string($m['fecha']);
 
                 if ($monto_cuota > 0) {
                     $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
-                                   VALUES ($id_detalle, '$tipo_esc', '$fin_esc', $monto_cuota, '$desc_esc', $usuario_id)");
+                                   VALUES ($id_detalle, '$tipo_esc', '$fecha_mov_esc', $monto_cuota, '$desc_esc', $usuario_id)");
 
                     // Si el movimiento viene de una venta real (abarrotes), esta cuota
                     // se registra como un pago parcial de esa venta, para que deje de
