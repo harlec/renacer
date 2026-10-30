@@ -122,6 +122,28 @@ if ($empleados) {
             }
         }
 
+        // Saldo negativo de la planilla anterior: si el total a pagar de la quincena anterior
+        // salió negativo (descuentos > lo ganado), no hay plata que pagar pero la deuda sigue
+        // en pie, así que se arrastra como descuento a esta planilla. Si esa planilla anterior
+        // ya traía su propio saldo arrastrado, este queda incluido en su total (se acumula).
+        $rprev = $conn->query("SELECT pd.id_detalle, pp.fecha_inicio, pp.fecha_fin,
+                                      pd.sueldo_periodo
+                                        + (SELECT COALESCE(SUM(pi.importe),0) FROM planilla_ingresos pi WHERE pi.id_detalle = pd.id_detalle)
+                                        - (SELECT COALESCE(SUM(pdx.importe),0) FROM planilla_descuentos pdx WHERE pdx.id_detalle = pd.id_detalle) AS neto
+                                 FROM planilla_detalle pd
+                                 INNER JOIN planilla_periodos pp ON pp.id_periodo = pd.id_periodo
+                                 WHERE pd.id_empleado = $id_empleado AND pp.id_periodo <> $id_periodo
+                                   AND pp.fecha_fin < '$ini_esc'
+                                 ORDER BY pp.fecha_fin DESC LIMIT 1");
+        $prev = $rprev && $rprev->num_rows ? $rprev->fetch_assoc() : null;
+        if ($prev && (float) $prev['neto'] < -0.005) {
+            $saldo = round(abs((float) $prev['neto']), 2);
+            $desc_saldo = 'Saldo negativo planilla ' . date('d/m', strtotime($prev['fecha_inicio'])) . ' - ' . date('d/m', strtotime($prev['fecha_fin']));
+            $fecha_prev_esc = $conn->real_escape_string($prev['fecha_fin']);
+            $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                           VALUES ($id_detalle, 'saldo_anterior', '$fecha_prev_esc', $saldo, '" . $conn->real_escape_string($desc_saldo) . "', $usuario_id)");
+        }
+
         // Ingresos extra (se suman al sueldo del periodo).
         // Feriado trabajado: cada día marcado como feriado en Asistencia (y no faltado) paga un
         // día adicional (calculo_diario), de modo que ese día se cobra doble.

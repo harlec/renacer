@@ -32,6 +32,7 @@ $tipo_label = [
 	'falta'     => 'Día faltado',
 	'prestamo'  => 'Préstamo',
 	'afp'       => 'AFP',
+	'saldo_anterior' => 'Saldo planilla anterior',
 ];
 
 $rd = $conn->query("SELECT id_descuento, tipo, fecha, importe, descripcion FROM planilla_descuentos WHERE id_detalle = $id_detalle ORDER BY fecha, id_descuento");

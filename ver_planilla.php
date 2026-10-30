@@ -24,7 +24,7 @@ $r = $conn->query("
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='abarrotes' THEN pdesc.importe ELSE 0 END),0) AS abarrotes,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='adelanto'  THEN pdesc.importe ELSE 0 END),0) AS adelanto,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='falta'     THEN pdesc.importe ELSE 0 END),0) AS falta,
-	       COALESCE(SUM(CASE WHEN pdesc.tipo='prestamo'  THEN pdesc.importe ELSE 0 END),0) AS prestamo,
+	       COALESCE(SUM(CASE WHEN pdesc.tipo IN ('prestamo','saldo_anterior') THEN pdesc.importe ELSE 0 END),0) AS prestamo,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='afp'       THEN pdesc.importe ELSE 0 END),0) AS afp
 	FROM planilla_detalle pd
 	INNER JOIN empleados e ON e.id_empleado = pd.id_empleado
@@ -155,7 +155,7 @@ $conn->close();
 											    			<th>Abarrotes</th>
 											    			<th>Adelantos</th>
 											    			<th>Faltas</th>
-											    			<th>Préstamos</th>
+											    			<th>Préstamos / saldo ant.</th>
 											    			<th>AFP</th>
 											    			<th>Total a pagar</th>
 											    			<th>Opciones</th>

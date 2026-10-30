@@ -36,7 +36,8 @@ if (!$det) {
 $rd = $conn->query("SELECT tipo, fecha, importe, descripcion FROM planilla_descuentos WHERE id_detalle = $id_detalle ORDER BY fecha, id_descuento");
 $porTipo = ['tardanza' => [], 'abarrotes' => [], 'adelanto' => [], 'falta' => [], 'prestamo' => [], 'afp' => []];
 while ($d = $rd->fetch_assoc()) {
-    $porTipo[$d['tipo']][] = $d;
+    // El saldo negativo arrastrado de la quincena anterior se muestra junto a los préstamos.
+    $porTipo[$d['tipo'] === 'saldo_anterior' ? 'prestamo' : $d['tipo']][] = $d;
 }
 $rIng = $conn->query("SELECT tipo, importe FROM planilla_ingresos WHERE id_detalle = $id_detalle");
 $totalFeriados = 0.0;
@@ -208,7 +209,7 @@ ob_start();
     </td>
     <td class="detalle-cell">
         <table class="tabla-desc">
-            <tr><th colspan="2">PRESTAMOS</th></tr>
+            <tr><th colspan="2">PRESTAMOS / SALDO ANT.</th></tr>
             <tr><th>FECHA</th><th>IMPORTE</th></tr>
             <?= ia_boleta_filas($porTipo['prestamo'], ['fecha', 'importe']) ?>
             <tr><td><b>TOTALES</b></td><td style="text-align:right"><b><?= $totalPrestamos > 0 ? number_format($totalPrestamos, 2) : '-' ?></b></td></tr>
