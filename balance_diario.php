@@ -32,6 +32,7 @@ function s($n) { return 'S/ ' . number_format($n, 2); }
     <link rel="stylesheet" type="text/css" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/custom.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.22/css/jquery.dataTables.min.css">
     <style>.kpi{background:#fff;border-radius:10px;padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:15px}.kpi small{color:#888;text-transform:uppercase;font-weight:700}.kpi h3{margin:4px 0 0}.pos{color:#27ae60}.neg{color:#c0392b}</style>
 </head>
 
@@ -96,10 +97,9 @@ function s($n) { return 'S/ ' . number_format($n, 2); }
 						<div class="col-md-7">
 							<div class="panel panel-default pa"><div class="panel-body table-responsive">
 								<h4>Movimientos del <?php echo date('d/m/Y', strtotime($dia)); ?></h4>
-								<table class="table table-hover table-condensed">
+								<table id="datos" class="table table-hover table-condensed">
 									<thead><tr><th>Hora</th><th>Concepto</th><th>Medio</th><th>Detalle</th><th class="text-right">Ingreso</th><th class="text-right">Egreso</th></tr></thead>
 									<tbody>
-										<?php if (!$b['mov']) echo '<tr><td colspan="6" class="text-muted text-center">Sin movimientos este día</td></tr>'; ?>
 										<?php foreach ($b['mov'] as $m) { ?>
 										<tr>
 											<td><?php echo in_array($m['grupo'], ['Ventas', 'Proveedores']) ? date('H:i', strtotime($m['fecha'])) : ''; ?></td>
@@ -121,5 +121,11 @@ function s($n) { return 'S/ ' . number_format($n, 2); }
 		</div>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="//cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
+	<script>
+	$(document).ready(function() {
+		$('#datos').DataTable({ order: [], pageLength: 25, lengthMenu: [25, 50, 100, 200] });
+	});
+	</script>
 </body>
 </html>
