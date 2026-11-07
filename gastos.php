@@ -81,6 +81,7 @@ $conn->close();
 	      	<ul class="subtop-tabs">
 	      		<li class="active"><a href="gastos.php">Gastos</a></li>
 	      		<li><a href="balance.php">Balance</a></li>
+	      		<li><a href="balance_diario.php">Balance diario</a></li>
 	      	</ul>
 	      </div>
 	    </nav>
