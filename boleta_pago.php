@@ -36,7 +36,15 @@ if (!$det) {
 $rd = $conn->query("SELECT tipo, fecha, importe, descripcion FROM planilla_descuentos WHERE id_detalle = $id_detalle ORDER BY fecha, id_descuento");
 $porTipo = ['tardanza' => [], 'salida_anticipada' => [], 'abarrotes' => [], 'adelanto' => [], 'falta' => [], 'prestamo' => [], 'afp' => []];
 while ($d = $rd->fetch_assoc()) {
-    $porTipo[$d['tipo']][] = $d;
+    // El saldo negativo arrastrado de la quincena anterior se muestra junto a los préstamos.
+    $porTipo[$d['tipo'] === 'saldo_anterior' ? 'prestamo' : $d['tipo']][] = $d;
+}
+$rIng = $conn->query("SELECT tipo, importe FROM planilla_ingresos WHERE id_detalle = $id_detalle");
+$totalFeriados = 0.0;
+$totalAsigFam  = 0.0;
+while ($rIng && $i = $rIng->fetch_assoc()) {
+    if ($i['tipo'] === 'feriado') $totalFeriados += (float) $i['importe'];
+    else $totalAsigFam += (float) $i['importe'];
 }
 $conn->close();
 
@@ -59,7 +67,7 @@ $totalAfp        = ia_boleta_suma($porTipo['afp']);
 $totalDescuentos = $totalTardanzas + $totalSalidaAnt + $totalAbarrotes + $totalAdelantos + $totalFaltas + $totalPrestamos + $totalAfp;
 
 $sueldoPeriodo = round((float) $det['sueldo_periodo'], 2);
-$totalPagar    = round($sueldoPeriodo - $totalDescuentos, 2);
+$totalPagar    = round($sueldoPeriodo + $totalFeriados + $totalAsigFam - $totalDescuentos, 2);
 $calculoDiario = round((float) $det['calculo_diario'], 2);
 
 // Tarifa por hora/minuto de referencia (informativa): usa el horario lunes-viernes propio
@@ -137,12 +145,12 @@ ob_start();
 <table class="tabla-resumen">
     <tr>
         <th rowspan="2">NOMBRE Y APELLIDOS</th>
-        <th colspan="5" class="grupo-remu">REMUNERACION</th>
+        <th colspan="7" class="grupo-remu">REMUNERACION</th>
         <th colspan="7" class="grupo-desc">DESCUENTOS</th>
         <th rowspan="2">TOTAL A<br>PAGAR</th>
     </tr>
     <tr>
-        <th>SUELDO</th><th>CALCULO DE DIAS</th><th>DIAS</th><th>CALCULO X HORAS</th><th>CALCULO X MINUTOS</th>
+        <th>SUELDO</th><th>CALCULO DE DIAS</th><th>DIAS</th><th>CALCULO X HORAS</th><th>CALCULO X MINUTOS</th><th>FERIADOS (PAGO DOBLE)</th><th>ASIG. FAMILIAR</th>
         <th class="grupo-desc">TARDANZAS</th><th class="grupo-desc">SALIDA ANTICIPADA</th><th class="grupo-desc">ABARROTES</th><th class="grupo-desc">ADELANTOS</th><th class="grupo-desc">DIAS FALTADOS</th><th class="grupo-desc">PRESTAMOS</th><th class="grupo-desc">AFP</th>
     </tr>
     <tr>
@@ -152,6 +160,8 @@ ob_start();
         <td style="text-align:right"><?= (int) $det['dias'] ?></td>
         <td style="text-align:right"><?= number_format($calculoHora, 2) ?></td>
         <td style="text-align:right"><?= number_format($calculoMinuto, 2) ?></td>
+        <td style="text-align:right"><?= $totalFeriados > 0 ? number_format($totalFeriados, 2) : '-' ?></td>
+        <td style="text-align:right"><?= $totalAsigFam > 0 ? number_format($totalAsigFam, 2) : '-' ?></td>
         <td style="text-align:right"><?= $totalTardanzas > 0 ? number_format($totalTardanzas, 2) : '-' ?></td>
         <td style="text-align:right"><?= $totalSalidaAnt > 0 ? number_format($totalSalidaAnt, 2) : '-' ?></td>
         <td style="text-align:right"><?= $totalAbarrotes > 0 ? number_format($totalAbarrotes, 2) : '-' ?></td>
@@ -209,7 +219,7 @@ ob_start();
     </td>
     <td class="detalle-cell">
         <table class="tabla-desc">
-            <tr><th colspan="2">PRESTAMOS</th></tr>
+            <tr><th colspan="2">PRESTAMOS / SALDO ANT.</th></tr>
             <tr><th>FECHA</th><th>IMPORTE</th></tr>
             <?= ia_boleta_filas($porTipo['prestamo'], ['fecha', 'importe']) ?>
             <tr><td><b>TOTALES</b></td><td style="text-align:right"><b><?= $totalPrestamos > 0 ? number_format($totalPrestamos, 2) : '-' ?></b></td></tr>

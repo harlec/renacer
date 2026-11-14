@@ -86,6 +86,9 @@ foreach ($ventas_list as $value) {
 	      		<li>
 	      			<a href="cuentas_x_pagar.php">Cuentas x pagar</a>
 	      		</li>
+	      		<li>
+	      			<a href="pagos_proveedores.php">Historial de pagos</a>
+	      		</li>
 	      	</ul>
 	      </div>
 	    </nav>

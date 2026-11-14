@@ -67,6 +67,9 @@ if ($rm) {
 $conn->query("DELETE pdesc FROM planilla_descuentos pdesc
               INNER JOIN planilla_detalle pd ON pd.id_detalle = pdesc.id_detalle
               WHERE pd.id_periodo = $id_periodo");
+$conn->query("DELETE pi FROM planilla_ingresos pi
+              INNER JOIN planilla_detalle pd ON pd.id_detalle = pi.id_detalle
+              WHERE pd.id_periodo = $id_periodo");
 $conn->query("DELETE FROM planilla_detalle WHERE id_periodo = $id_periodo");
 $conn->query("DELETE FROM planilla_periodos WHERE id_periodo = $id_periodo");
 

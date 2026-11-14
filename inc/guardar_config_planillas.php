@@ -26,4 +26,7 @@ set_config('planilla_factor_tardanza', $factor > 0 ? $factor : 2);
 $dias = (int) ($_POST['dias_mes_referencia'] ?? 30);
 set_config('planilla_dias_mes_referencia', $dias > 0 ? $dias : 30);
 
+$rmv = (float) ($_POST['rmv'] ?? 1130);
+set_config('planilla_rmv', $rmv > 0 ? $rmv : 1130);
+
 echo json_encode(array('ok' => true));

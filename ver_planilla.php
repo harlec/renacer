@@ -19,12 +19,13 @@ if (!$periodo) {
 
 $r = $conn->query("
 	SELECT pd.id_detalle, e.nombres, e.apellidos, e.cargo, pd.sueldo_periodo,
+	       (SELECT COALESCE(SUM(pi.importe),0) FROM planilla_ingresos pi WHERE pi.id_detalle = pd.id_detalle) AS ingresos,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='tardanza'  THEN pdesc.importe ELSE 0 END),0) AS tardanza,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='salida_anticipada' THEN pdesc.importe ELSE 0 END),0) AS salida_anticipada,
 		       COALESCE(SUM(CASE WHEN pdesc.tipo='abarrotes' THEN pdesc.importe ELSE 0 END),0) AS abarrotes,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='adelanto'  THEN pdesc.importe ELSE 0 END),0) AS adelanto,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='falta'     THEN pdesc.importe ELSE 0 END),0) AS falta,
-	       COALESCE(SUM(CASE WHEN pdesc.tipo='prestamo'  THEN pdesc.importe ELSE 0 END),0) AS prestamo,
+	       COALESCE(SUM(CASE WHEN pdesc.tipo IN ('prestamo','saldo_anterior') THEN pdesc.importe ELSE 0 END),0) AS prestamo,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='afp'       THEN pdesc.importe ELSE 0 END),0) AS afp
 	FROM planilla_detalle pd
 	INNER JOIN empleados e ON e.id_empleado = pd.id_empleado
@@ -40,13 +41,15 @@ if ($r) {
 	while ($value = $r->fetch_assoc()) {
 		$sueldo = round((float)$value['sueldo_periodo'], 2);
 		$descuentos = round((float)$value['tardanza'] + (float)$value['salida_anticipada'] + (float)$value['abarrotes'] + (float)$value['adelanto'] + (float)$value['falta'] + (float)$value['prestamo'] + (float)$value['afp'], 2);
-		$total = round($sueldo - $descuentos, 2);
+		$ingresos = round((float)$value['ingresos'], 2);
+		$total = round($sueldo + $ingresos - $descuentos, 2);
 		$gran_total += $total;
 
 		$datos .= '<tr>
 			<td>' . htmlspecialchars($value['nombres'] . ' ' . $value['apellidos']) . '</td>
 			<td>' . htmlspecialchars($value['cargo']) . '</td>
 			<td>S/ ' . number_format($sueldo,2) . '</td>
+			<td>' . ($ingresos > 0 ? 'S/ ' . number_format($ingresos,2) : '-') . '</td>
 			<td>S/ ' . number_format((float)$value['tardanza'],2) . '</td>
 			<td>S/ ' . number_format((float)$value['salida_anticipada'],2) . '</td>
 				<td>S/ ' . number_format((float)$value['abarrotes'],2) . '</td>
@@ -149,12 +152,13 @@ $conn->close();
 											    			<th>Colaborador</th>
 											    			<th>Cargo</th>
 											    			<th>Sueldo periodo</th>
+											    			<th>Ingresos extra</th>
 											    			<th>Tardanzas</th>
 											    			<th>Salida anticipada</th>
 											    			<th>Abarrotes</th>
 											    			<th>Adelantos</th>
 											    			<th>Faltas</th>
-											    			<th>Préstamos</th>
+											    			<th>Préstamos / saldo ant.</th>
 											    			<th>AFP</th>
 											    			<th>Total a pagar</th>
 											    			<th>Opciones</th>
@@ -165,7 +169,7 @@ $conn->close();
 											    	</tbody>
 											    	<tfoot>
 											    		<tr>
-											    			<th colspan="10" class="text-right">TOTAL A PAGAR</th>
+											    			<th colspan="11" class="text-right">TOTAL A PAGAR</th>
 											    			<th colspan="2">S/ <?php echo number_format($gran_total,2); ?></th>
 											    		</tr>
 											    	</tfoot>

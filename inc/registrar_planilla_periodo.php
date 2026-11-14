@@ -5,7 +5,8 @@
 // rango, un descuento automático usando la tarifa hora de ESE día (según su horario
 // programado, que ya refleja si era lunes-viernes/sábado/domingo) y el factor de
 // penalización configurable. También descuenta el día completo (calculo_diario) por
-// cada día marcado como FALTO en Asistencia dentro del rango.
+// cada día marcado como FALTO en Asistencia dentro del rango, y las salidas anteriores al horario
+// programado (salida anticipada) con la misma tarifa/factor que las tardanzas.
 ob_start();
 ini_set('display_errors', '0');
 error_reporting(0);
@@ -56,10 +57,11 @@ $id_periodo = $conn->insert_id;
 
 $dias_mes_referencia = (float) get_config('planilla_dias_mes_referencia', 30);
 if ($dias_mes_referencia <= 0) $dias_mes_referencia = 30;
+$rmv = (float) get_config('planilla_rmv', 1130);
 $factor_tardanza = (float) get_config('planilla_factor_tardanza', 2);
 if ($factor_tardanza <= 0) $factor_tardanza = 2;
 
-$empleados = $conn->query("SELECT id_empleado, sueldo_mensual, afp, afp_monto_mensual FROM empleados WHERE estado = '1'");
+$empleados = $conn->query("SELECT id_empleado, sueldo_mensual, afp, afp_monto_mensual, asignacion_familiar FROM empleados WHERE estado = '1'");
 if ($empleados) {
     while ($emp = $empleados->fetch_assoc()) {
         $id_empleado    = (int) $emp['id_empleado'];
@@ -112,6 +114,38 @@ if ($empleados) {
             }
         }
 
+        // Salida anticipada: si se retiró antes de la hora de salida programada, se descuenta
+        // el tiempo que faltó con la misma tarifa hora y el mismo factor que las tardanzas.
+        // Se registra como tipo 'tardanza' para que aparezca en la misma columna de la boleta.
+        $rs = $conn->query("SELECT fecha, hora_entrada_prog, hora_salida_prog, hora_salida_real
+                             FROM asistencias
+                             WHERE id_empleado = $id_empleado AND fecha BETWEEN '$ini_esc' AND '$fin_esc'
+                               AND hora_salida_real IS NOT NULL AND hora_salida_prog IS NOT NULL
+                               AND hora_salida_real < hora_salida_prog
+                               AND (observacion IS NULL OR observacion != 'FALTO')");
+        if ($rs) {
+            while ($a = $rs->fetch_assoc()) {
+                if (!$a['hora_entrada_prog']) continue;
+
+                $horas_prog = (strtotime($a['hora_salida_prog']) - strtotime($a['hora_entrada_prog'])) / 3600;
+                if ($horas_prog <= 0) continue;
+
+                $minutos_antes = (int) round((strtotime($a['hora_salida_prog']) - strtotime($a['hora_salida_real'])) / 60);
+                $minutos_antes = min($minutos_antes, (int) round($horas_prog * 60));
+                if ($minutos_antes <= 0) continue;
+
+                $tarifa_hora = $calculo_diario / $horas_prog;
+                $minutos_efectivos = $minutos_antes * $factor_tardanza;
+                $importe = round(($minutos_efectivos / 60) * $tarifa_hora, 2);
+                if ($importe <= 0) continue;
+
+                $desc = "Salida anticipada {$a['fecha']}: {$minutos_antes} min x{$factor_tardanza} = " . round($minutos_efectivos) . " min efectivos";
+                $fecha_desc_esc = $conn->real_escape_string($a['fecha']);
+                $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                               VALUES ($id_detalle, 'tardanza', '$fecha_desc_esc', $importe, '" . $conn->real_escape_string($desc) . "', $usuario_id)");
+            }
+        }
+
         // Faltas: por cada día marcado como FALTO en Asistencia dentro del rango,
         // se descuenta el día completo (calculo_diario).
         if ($calculo_diario > 0) {
@@ -138,13 +172,62 @@ if ($empleados) {
             }
         }
 
+        // Saldo negativo de la planilla anterior: si el total a pagar de la quincena anterior
+        // salió negativo (descuentos > lo ganado), no hay plata que pagar pero la deuda sigue
+        // en pie, así que se arrastra como descuento a esta planilla. Si esa planilla anterior
+        // ya traía su propio saldo arrastrado, este queda incluido en su total (se acumula).
+        $rprev = $conn->query("SELECT pd.id_detalle, pp.fecha_inicio, pp.fecha_fin,
+                                      pd.sueldo_periodo
+                                        + (SELECT COALESCE(SUM(pi.importe),0) FROM planilla_ingresos pi WHERE pi.id_detalle = pd.id_detalle)
+                                        - (SELECT COALESCE(SUM(pdx.importe),0) FROM planilla_descuentos pdx WHERE pdx.id_detalle = pd.id_detalle) AS neto
+                                 FROM planilla_detalle pd
+                                 INNER JOIN planilla_periodos pp ON pp.id_periodo = pd.id_periodo
+                                 WHERE pd.id_empleado = $id_empleado AND pp.id_periodo <> $id_periodo
+                                   AND pp.fecha_fin < '$ini_esc'
+                                 ORDER BY pp.fecha_fin DESC LIMIT 1");
+        $prev = $rprev && $rprev->num_rows ? $rprev->fetch_assoc() : null;
+        if ($prev && (float) $prev['neto'] < -0.005) {
+            $saldo = round(abs((float) $prev['neto']), 2);
+            $desc_saldo = 'Saldo negativo planilla ' . date('d/m', strtotime($prev['fecha_inicio'])) . ' - ' . date('d/m', strtotime($prev['fecha_fin']));
+            $fecha_prev_esc = $conn->real_escape_string($prev['fecha_fin']);
+            $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                           VALUES ($id_detalle, 'saldo_anterior', '$fecha_prev_esc', $saldo, '" . $conn->real_escape_string($desc_saldo) . "', $usuario_id)");
+        }
+
+        // Ingresos extra (se suman al sueldo del periodo).
+        // Feriado trabajado: cada día marcado como feriado en Asistencia (y no faltado) paga un
+        // día adicional (calculo_diario), de modo que ese día se cobra doble.
+        if ($calculo_diario > 0) {
+            $rfe = $conn->query("SELECT fecha FROM asistencias
+                                  WHERE id_empleado = $id_empleado AND fecha BETWEEN '$ini_esc' AND '$fin_esc'
+                                    AND feriado = 1 AND (observacion IS NULL OR observacion != 'FALTO')");
+            if ($rfe) {
+                while ($fe = $rfe->fetch_assoc()) {
+                    $fecha_fe_esc = $conn->real_escape_string($fe['fecha']);
+                    $conn->query("INSERT INTO planilla_ingresos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                                   VALUES ($id_detalle, 'feriado', '$fecha_fe_esc', $calculo_diario, '" . $conn->real_escape_string("Feriado trabajado {$fe['fecha']} (pago doble)") . "', $usuario_id)");
+                }
+            }
+        }
+
+        // Asignación familiar: 10% de la RMV al mes, prorrateado por los días del periodo
+        // (misma lógica que el sueldo: monto mensual / días de referencia * días del periodo).
+        if ($emp['asignacion_familiar'] == '1' && $rmv > 0) {
+            $asig_diaria = round(($rmv * 0.10) / $dias_mes_referencia, 2);
+            $importe_asig = round($asig_diaria * $dias, 2);
+            if ($importe_asig > 0) {
+                $conn->query("INSERT INTO planilla_ingresos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                               VALUES ($id_detalle, 'asignacion_familiar', '$fin_esc', $importe_asig, 'Asignación familiar (10% RMV)', $usuario_id)");
+            }
+        }
+
         // Adelantos y crédito de abarrotes: cada movimiento pendiente (con fecha hasta
         // el fin de este periodo) aporta como máximo UNA cuota por planilla generada,
         // en orden — así es como un movimiento en "3 partes" se reparte en las 3
         // próximas planillas que se generen, sin importar el rango exacto de fechas de
         // cada una (solo la primera cuota necesita que la fecha del movimiento caiga
         // dentro/antes del periodo).
-        $rm = $conn->query("SELECT id_movimiento, tipo, descripcion, id_venta, partes
+        $rm = $conn->query("SELECT id_movimiento, tipo, fecha, descripcion, id_venta, partes
                              FROM movimientos_empleado
                              WHERE id_empleado = $id_empleado AND fecha <= '$fin_esc'
                              ORDER BY fecha ASC, id_movimiento ASC");
@@ -165,10 +248,13 @@ if ($empleados) {
                     ? $desc_base . " (cuota {$cuota['numero_cuota']}/{$m['partes']})"
                     : $desc_base;
                 $desc_esc = $conn->real_escape_string($desc);
+                // La fecha del descuento es la del movimiento (cuándo se dio el adelanto / la venta de
+                // abarrotes), no la del periodo: así la boleta no cambia si la planilla se anula y se regenera.
+                $fecha_mov_esc = $conn->real_escape_string($m['fecha']);
 
                 if ($monto_cuota > 0) {
                     $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
-                                   VALUES ($id_detalle, '$tipo_esc', '$fin_esc', $monto_cuota, '$desc_esc', $usuario_id)");
+                                   VALUES ($id_detalle, '$tipo_esc', '$fecha_mov_esc', $monto_cuota, '$desc_esc', $usuario_id)");
 
                     // Si el movimiento viene de una venta real (abarrotes), esta cuota
                     // se registra como un pago parcial de esa venta, para que deje de

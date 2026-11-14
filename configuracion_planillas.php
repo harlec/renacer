@@ -16,6 +16,7 @@ $horario_dom_ingreso = solo_hora_minuto(get_config('planilla_horario_dom_ingreso
 $horario_dom_salida  = solo_hora_minuto(get_config('planilla_horario_dom_salida'));
 $factor_tardanza      = get_config('planilla_factor_tardanza', '2');
 $dias_mes_referencia  = get_config('planilla_dias_mes_referencia', '30');
+$rmv                  = get_config('planilla_rmv', '1130');
 
 $conn_cargos = new mysqli('localhost', 'admin_renacer', 'ikm169uhn', 'admin_renacer');
 $conn_cargos->set_charset('utf8');
@@ -161,6 +162,11 @@ $conn_cargos->close();
                             <input type="number" step="1" min="1" class="form-control" id="dias_mes_referencia" value="<?php echo htmlspecialchars($dias_mes_referencia); ?>">
                             <p class="help-block">Sueldo diario = sueldo mensual / este número (por defecto 30, uso estándar). El pago de cada periodo de planilla es ese valor día por los días reales del periodo.</p>
                         </div>
+                        <div class="form-group">
+                            <label for="rmv">Remuneración mínima vital (S/)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="rmv" value="<?php echo htmlspecialchars($rmv); ?>">
+                            <p class="help-block">Base de la asignación familiar: se paga el 10% de este monto al mes a quienes la tengan marcada (se prorratea por los días de cada planilla).</p>
+                        </div>
                     </div>
                 </div>
                 <button class="btn btn-success" id="btn-guardar"><i class="fas fa-save"></i> Guardar</button>
@@ -205,7 +211,8 @@ $('#btn-guardar').on('click', function(){
         horario_dom_ingreso: $('#horario_dom_ingreso').val(),
         horario_dom_salida: $('#horario_dom_salida').val(),
         factor_tardanza: $('#factor_tardanza').val(),
-        dias_mes_referencia: $('#dias_mes_referencia').val()
+        dias_mes_referencia: $('#dias_mes_referencia').val(),
+        rmv: $('#rmv').val()
     }, function(d){
         showAlert(d.ok ? 'Configuración guardada.' : 'Error al guardar.', d.ok ? 'success' : 'danger');
     }, 'json').fail(function(xhr){

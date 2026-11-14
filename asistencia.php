@@ -16,7 +16,7 @@ $conn->set_charset('utf8');
 $fecha_esc = $conn->real_escape_string($fecha);
 $r = $conn->query("
 	SELECT e.id_empleado, e.nombres, e.apellidos, e.cargo,
-	       a.hora_entrada_real, a.hora_salida_real, a.minutos_tardanza, a.horas_trabajadas, a.observacion,
+	       a.hora_entrada_real, a.hora_salida_real, a.minutos_tardanza, a.horas_trabajadas, a.observacion, a.feriado,
 	       d.id_descanso
 	FROM empleados e
 	LEFT JOIN asistencias a ON a.id_empleado = e.id_empleado AND a.fecha = '$fecha_esc'
@@ -43,6 +43,7 @@ if ($r) {
 		$entrada_val = $value['hora_entrada_real'] ? substr($value['hora_entrada_real'],0,5) : '';
 		$salida_val  = $value['hora_salida_real'] ? substr($value['hora_salida_real'],0,5) : '';
 		$falto_chk   = $value['observacion'] == 'FALTO' ? 'checked' : '';
+		$feriado_chk = !empty($value['feriado']) ? 'checked' : '';
 		$tardanza    = $value['minutos_tardanza'] ? $value['minutos_tardanza'] . ' min' : '-';
 		$horas       = $value['horas_trabajadas'] !== null ? formatear_horas_trabajadas($value['horas_trabajadas']) : '-';
 		$badge       = $value['observacion'] && isset($obs_badge[$value['observacion']]) ? $obs_badge[$value['observacion']] : '-';
@@ -62,6 +63,7 @@ if ($r) {
 			<td><input type="time" class="form-control input-sm salida" data-id="' . $value['id_empleado'] . '" value="' . $salida_val . '" ' . $dis . '></td>
 			<td class="text-center"><input type="checkbox" class="descanso" data-id="' . $value['id_empleado'] . '" ' . $descanso_chk . ' disabled></td>
 			<td class="text-center"><input type="checkbox" class="falto" data-id="' . $value['id_empleado'] . '" ' . $falto_chk . ' ' . $dis . '></td>
+			<td class="text-center"><input type="checkbox" class="feriado" data-id="' . $value['id_empleado'] . '" ' . $feriado_chk . ' ' . $dis . ' title="Trabajó en feriado: se paga doble ese día"></td>
 			<td>' . $tardanza . '</td>
 			<td>' . $horas . '</td>
 			<td>' . $badge . '</td>
@@ -161,6 +163,7 @@ $conn->close();
 											    			<th>Salida</th>
 											    			<th>Descanso</th>
 											    			<th>Faltó</th>
+											    			<th>Feriado trabajado</th>
 											    			<th>Tardanza</th>
 											    			<th>Horas trab.</th>
 											    			<th>Estado</th>
@@ -197,7 +200,7 @@ $conn->close();
 		});
 
 		$('#guardar_asistencia').on('click', function() {
-			var id_empleado = [], entrada = [], salida = [], falto = [];
+			var id_empleado = [], entrada = [], salida = [], falto = [], feriado = [];
 
 			$('#datos tbody tr').each(function() {
 				var $row = $(this);
@@ -208,13 +211,14 @@ $conn->close();
 				entrada.push($row.find('.entrada').val());
 				salida.push($row.find('.salida').val());
 				falto.push($row.find('.falto').is(':checked') ? '1' : '0');
+				feriado.push($row.find('.feriado').is(':checked') ? '1' : '0');
 			});
 
 			$.ajax({
 				type: 'POST',
 				dataType: 'json',
 				url: 'inc/registrar_asistencia.php',
-				data: { fecha: '<?php echo $fecha; ?>', id_empleado: id_empleado, entrada: entrada, salida: salida, falto: falto },
+				data: { fecha: '<?php echo $fecha; ?>', id_empleado: id_empleado, entrada: entrada, salida: salida, falto: falto, feriado: feriado },
 				success: function(data) {
 					if (data.ok) {
 						Swal.fire('Listo', 'Asistencia guardada', 'success').then(function() {
