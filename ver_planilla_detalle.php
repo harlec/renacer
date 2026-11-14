@@ -27,6 +27,7 @@ if (!$det) {
 
 $tipo_label = [
 	'tardanza'  => 'Tardanza',
+	'salida_anticipada' => 'Salida anticipada',
 	'abarrotes' => 'Abarrotes',
 	'adelanto'  => 'Adelanto',
 	'falta'     => 'Día faltado',
@@ -207,6 +208,7 @@ $conn->close();
 					'<option value="adelanto">Adelanto</option>' +
 					'<option value="falta">Día faltado</option>' +
 					'<option value="tardanza">Tardanza</option>' +
+					'<option value="salida_anticipada">Salida anticipada</option>' +
 					'<option value="prestamo">Préstamo</option>' +
 					'<option value="afp">AFP</option>' +
 					'</select>' +

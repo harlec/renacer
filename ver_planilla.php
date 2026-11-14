@@ -20,7 +20,8 @@ if (!$periodo) {
 $r = $conn->query("
 	SELECT pd.id_detalle, e.nombres, e.apellidos, e.cargo, pd.sueldo_periodo,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='tardanza'  THEN pdesc.importe ELSE 0 END),0) AS tardanza,
-	       COALESCE(SUM(CASE WHEN pdesc.tipo='abarrotes' THEN pdesc.importe ELSE 0 END),0) AS abarrotes,
+	       COALESCE(SUM(CASE WHEN pdesc.tipo='salida_anticipada' THEN pdesc.importe ELSE 0 END),0) AS salida_anticipada,
+		       COALESCE(SUM(CASE WHEN pdesc.tipo='abarrotes' THEN pdesc.importe ELSE 0 END),0) AS abarrotes,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='adelanto'  THEN pdesc.importe ELSE 0 END),0) AS adelanto,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='falta'     THEN pdesc.importe ELSE 0 END),0) AS falta,
 	       COALESCE(SUM(CASE WHEN pdesc.tipo='prestamo'  THEN pdesc.importe ELSE 0 END),0) AS prestamo,
@@ -38,7 +39,7 @@ $gran_total = 0;
 if ($r) {
 	while ($value = $r->fetch_assoc()) {
 		$sueldo = round((float)$value['sueldo_periodo'], 2);
-		$descuentos = round((float)$value['tardanza'] + (float)$value['abarrotes'] + (float)$value['adelanto'] + (float)$value['falta'] + (float)$value['prestamo'] + (float)$value['afp'], 2);
+		$descuentos = round((float)$value['tardanza'] + (float)$value['salida_anticipada'] + (float)$value['abarrotes'] + (float)$value['adelanto'] + (float)$value['falta'] + (float)$value['prestamo'] + (float)$value['afp'], 2);
 		$total = round($sueldo - $descuentos, 2);
 		$gran_total += $total;
 
@@ -47,7 +48,8 @@ if ($r) {
 			<td>' . htmlspecialchars($value['cargo']) . '</td>
 			<td>S/ ' . number_format($sueldo,2) . '</td>
 			<td>S/ ' . number_format((float)$value['tardanza'],2) . '</td>
-			<td>S/ ' . number_format((float)$value['abarrotes'],2) . '</td>
+			<td>S/ ' . number_format((float)$value['salida_anticipada'],2) . '</td>
+				<td>S/ ' . number_format((float)$value['abarrotes'],2) . '</td>
 			<td>S/ ' . number_format((float)$value['adelanto'],2) . '</td>
 			<td>S/ ' . number_format((float)$value['falta'],2) . '</td>
 			<td>S/ ' . number_format((float)$value['prestamo'],2) . '</td>
@@ -148,6 +150,7 @@ $conn->close();
 											    			<th>Cargo</th>
 											    			<th>Sueldo periodo</th>
 											    			<th>Tardanzas</th>
+											    			<th>Salida anticipada</th>
 											    			<th>Abarrotes</th>
 											    			<th>Adelantos</th>
 											    			<th>Faltas</th>
@@ -162,7 +165,7 @@ $conn->close();
 											    	</tbody>
 											    	<tfoot>
 											    		<tr>
-											    			<th colspan="9" class="text-right">TOTAL A PAGAR</th>
+											    			<th colspan="10" class="text-right">TOTAL A PAGAR</th>
 											    			<th colspan="2">S/ <?php echo number_format($gran_total,2); ?></th>
 											    		</tr>
 											    	</tfoot>

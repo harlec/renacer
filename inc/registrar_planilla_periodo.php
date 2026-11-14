@@ -72,9 +72,10 @@ if ($empleados) {
         if ($conn->error) continue;
         $id_detalle = $conn->insert_id;
 
-        $rt = $conn->query("SELECT fecha, minutos_tardanza, hora_entrada_prog, hora_salida_prog
+        $rt = $conn->query("SELECT fecha, minutos_tardanza, hora_entrada_prog, hora_salida_prog, hora_salida_real
                              FROM asistencias
-                             WHERE id_empleado = $id_empleado AND fecha BETWEEN '$ini_esc' AND '$fin_esc' AND minutos_tardanza > 0");
+                             WHERE id_empleado = $id_empleado AND fecha BETWEEN '$ini_esc' AND '$fin_esc'
+                               AND (minutos_tardanza > 0 OR (hora_salida_real IS NOT NULL AND hora_salida_prog IS NOT NULL AND hora_salida_real < hora_salida_prog))");
         if ($rt) {
             while ($a = $rt->fetch_assoc()) {
                 if (!$a['hora_entrada_prog'] || !$a['hora_salida_prog']) continue; // sin horario programado ese día, no se puede tarifar
@@ -83,15 +84,31 @@ if ($empleados) {
                 if ($horas_prog <= 0) continue;
 
                 $tarifa_hora = $calculo_diario / $horas_prog;
-                $minutos_tardanza = (int) $a['minutos_tardanza'];
-                $minutos_efectivos = $minutos_tardanza * $factor_tardanza;
-                $importe = round(($minutos_efectivos / 60) * $tarifa_hora, 2);
-                if ($importe <= 0) continue;
-
-                $desc = "Tardanza {$a['fecha']}: {$minutos_tardanza} min x{$factor_tardanza} = " . round($minutos_efectivos) . " min efectivos";
                 $fecha_desc_esc = $conn->real_escape_string($a['fecha']);
-                $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
-                               VALUES ($id_detalle, 'tardanza', '$fecha_desc_esc', $importe, '" . $conn->real_escape_string($desc) . "', $usuario_id)");
+
+                // Tardanza al ingresar: se penaliza con el factor configurado (x2 por defecto)
+                $minutos_tardanza = (int) $a['minutos_tardanza'];
+                if ($minutos_tardanza > 0) {
+                    $minutos_efectivos = $minutos_tardanza * $factor_tardanza;
+                    $importe = round(($minutos_efectivos / 60) * $tarifa_hora, 2);
+                    if ($importe > 0) {
+                        $desc = "Tardanza {$a['fecha']}: {$minutos_tardanza} min x{$factor_tardanza} = " . round($minutos_efectivos) . " min efectivos";
+                        $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                                       VALUES ($id_detalle, 'tardanza', '$fecha_desc_esc', $importe, '" . $conn->real_escape_string($desc) . "', $usuario_id)");
+                    }
+                }
+
+                // Salida anticipada (puede ser por permiso): se descuenta solo el tiempo real (x1)
+                if ($a['hora_salida_real']) {
+                    $min_salida = (strtotime($a['hora_salida_prog']) - strtotime($a['hora_salida_real'])) / 60;
+                    $min_salida = $min_salida > 0 ? (int) round($min_salida) : 0;
+                    $importe = round(($min_salida / 60) * $tarifa_hora, 2);
+                    if ($importe > 0) {
+                        $desc = "Salida anticipada {$a['fecha']}: {$min_salida} min x1";
+                        $conn->query("INSERT INTO planilla_descuentos (id_detalle, tipo, fecha, importe, descripcion, usuario)
+                                       VALUES ($id_detalle, 'salida_anticipada', '$fecha_desc_esc', $importe, '" . $conn->real_escape_string($desc) . "', $usuario_id)");
+                    }
+                }
             }
         }
 

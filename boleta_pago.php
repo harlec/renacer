@@ -34,7 +34,7 @@ if (!$det) {
 }
 
 $rd = $conn->query("SELECT tipo, fecha, importe, descripcion FROM planilla_descuentos WHERE id_detalle = $id_detalle ORDER BY fecha, id_descuento");
-$porTipo = ['tardanza' => [], 'abarrotes' => [], 'adelanto' => [], 'falta' => [], 'prestamo' => [], 'afp' => []];
+$porTipo = ['tardanza' => [], 'salida_anticipada' => [], 'abarrotes' => [], 'adelanto' => [], 'falta' => [], 'prestamo' => [], 'afp' => []];
 while ($d = $rd->fetch_assoc()) {
     $porTipo[$d['tipo']][] = $d;
 }
@@ -50,12 +50,13 @@ function ia_boleta_suma(array $filas): float
 }
 
 $totalTardanzas  = ia_boleta_suma($porTipo['tardanza']);
+$totalSalidaAnt   = ia_boleta_suma($porTipo['salida_anticipada']);
 $totalAbarrotes  = ia_boleta_suma($porTipo['abarrotes']);
 $totalAdelantos  = ia_boleta_suma($porTipo['adelanto']);
 $totalFaltas     = ia_boleta_suma($porTipo['falta']);
 $totalPrestamos  = ia_boleta_suma($porTipo['prestamo']);
 $totalAfp        = ia_boleta_suma($porTipo['afp']);
-$totalDescuentos = $totalTardanzas + $totalAbarrotes + $totalAdelantos + $totalFaltas + $totalPrestamos + $totalAfp;
+$totalDescuentos = $totalTardanzas + $totalSalidaAnt + $totalAbarrotes + $totalAdelantos + $totalFaltas + $totalPrestamos + $totalAfp;
 
 $sueldoPeriodo = round((float) $det['sueldo_periodo'], 2);
 $totalPagar    = round($sueldoPeriodo - $totalDescuentos, 2);
@@ -137,12 +138,12 @@ ob_start();
     <tr>
         <th rowspan="2">NOMBRE Y APELLIDOS</th>
         <th colspan="5" class="grupo-remu">REMUNERACION</th>
-        <th colspan="6" class="grupo-desc">DESCUENTOS</th>
+        <th colspan="7" class="grupo-desc">DESCUENTOS</th>
         <th rowspan="2">TOTAL A<br>PAGAR</th>
     </tr>
     <tr>
         <th>SUELDO</th><th>CALCULO DE DIAS</th><th>DIAS</th><th>CALCULO X HORAS</th><th>CALCULO X MINUTOS</th>
-        <th class="grupo-desc">TARDANZAS</th><th class="grupo-desc">ABARROTES</th><th class="grupo-desc">ADELANTOS</th><th class="grupo-desc">DIAS FALTADOS</th><th class="grupo-desc">PRESTAMOS</th><th class="grupo-desc">AFP</th>
+        <th class="grupo-desc">TARDANZAS</th><th class="grupo-desc">SALIDA ANTICIPADA</th><th class="grupo-desc">ABARROTES</th><th class="grupo-desc">ADELANTOS</th><th class="grupo-desc">DIAS FALTADOS</th><th class="grupo-desc">PRESTAMOS</th><th class="grupo-desc">AFP</th>
     </tr>
     <tr>
         <td><?= htmlspecialchars($nombreCompleto) ?></td>
@@ -152,6 +153,7 @@ ob_start();
         <td style="text-align:right"><?= number_format($calculoHora, 2) ?></td>
         <td style="text-align:right"><?= number_format($calculoMinuto, 2) ?></td>
         <td style="text-align:right"><?= $totalTardanzas > 0 ? number_format($totalTardanzas, 2) : '-' ?></td>
+        <td style="text-align:right"><?= $totalSalidaAnt > 0 ? number_format($totalSalidaAnt, 2) : '-' ?></td>
         <td style="text-align:right"><?= $totalAbarrotes > 0 ? number_format($totalAbarrotes, 2) : '-' ?></td>
         <td style="text-align:right"><?= $totalAdelantos > 0 ? number_format($totalAdelantos, 2) : '-' ?></td>
         <td style="text-align:right"><?= $totalFaltas > 0 ? number_format($totalFaltas, 2) : '-' ?></td>
@@ -195,6 +197,14 @@ ob_start();
             <tr><th>FECHA</th><th>IMPORTE</th></tr>
             <?= ia_boleta_filas($porTipo['tardanza'], ['fecha', 'importe']) ?>
             <tr><td><b>TOTALES</b></td><td style="text-align:right"><b><?= $totalTardanzas > 0 ? number_format($totalTardanzas, 2) : '-' ?></b></td></tr>
+        </table>
+    </td>
+    <td class="detalle-cell">
+        <table class="tabla-desc">
+            <tr><th colspan="2">SALIDA ANTICIPADA</th></tr>
+            <tr><th>FECHA</th><th>IMPORTE</th></tr>
+            <?= ia_boleta_filas($porTipo['salida_anticipada'], ['fecha', 'importe']) ?>
+            <tr><td><b>TOTALES</b></td><td style="text-align:right"><b><?= $totalSalidaAnt > 0 ? number_format($totalSalidaAnt, 2) : '-' ?></b></td></tr>
         </table>
     </td>
     <td class="detalle-cell">

@@ -13,7 +13,7 @@ if (!isset($_SESSION['id_usr'])) {
     exit;
 }
 
-$tipos_validos = ['tardanza', 'abarrotes', 'adelanto', 'falta', 'prestamo'];
+$tipos_validos = ['tardanza', 'abarrotes', 'adelanto', 'falta', 'prestamo', 'salida_anticipada'];
 
 $id_detalle  = intval($_POST['id_detalle'] ?? 0);
 $tipo        = in_array($_POST['tipo'] ?? '', $tipos_validos, true) ? $_POST['tipo'] : '';
