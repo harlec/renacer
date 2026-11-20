@@ -26,6 +26,20 @@ if (isset($_POST) && !empty($_POST)) {
 	include_once(__DIR__ . '/medios_pago.php');
     $metodos_pago_validos = array_keys($MEDIOS_PAGO);
 	$metodo_pago = in_array($_POST['metodo_pago'] ?? '', $metodos_pago_validos, true) ? $_POST['metodo_pago'] : 'efectivo';
+	// flete: por compra completa ('total') o por bulto ('bulto'); siempre en soles
+	$flete_modo = in_array($_POST['flete_modo'] ?? '', ['total', 'bulto'], true) ? $_POST['flete_modo'] : 'ninguno';
+	$flete_tarifa = max(0, round(floatval($_POST['flete_tarifa'] ?? 0), 2));
+	$flete_bultos = max(0, intval($_POST['flete_bultos'] ?? 0));
+	if ($flete_modo === 'total') {
+		$flete_total = $flete_tarifa;
+		$flete_bultos = 0;
+	} elseif ($flete_modo === 'bulto') {
+		$flete_total = round($flete_tarifa * $flete_bultos, 2);
+	} else {
+		$flete_total = 0;
+	}
+	if ($flete_total <= 0) { $flete_modo = 'ninguno'; $flete_tarifa = 0; $flete_bultos = 0; $flete_total = 0; }
+	$metodo_flete = in_array($_POST['metodo_flete'] ?? '', $metodos_pago_validos, true) ? $_POST['metodo_flete'] : 'efectivo';
 	//item
 	$id_p = $_POST['id_pro'];
 	$unidad= $_POST['unidad'];
@@ -43,7 +57,7 @@ if (isset($_POST) && !empty($_POST)) {
 	
 			
 			$ventas = Sdba::table('compras');
-			$data = array('id_compra'=>'','fecha'=> $fecha,'fecha_ingreso'=>$fecha_ingreso,'fecha_despacho'=>$fecha_despacho,'guia'=>$guia,'serie_f'=>$serie,'numero_f'=>$numero,'total'=>$total,'moneda'=>$moneda,'proveedor'=>$proveedor,'usuario'=>$id_usuario,'observacion'=>$observaciones,'exonerada'=>$exonerada,'estado'=>'0','forma_pago'=>$forma_pago,'fecha_compromiso_pago'=>$fecha_compromiso_pago);
+			$data = array('id_compra'=>'','fecha'=> $fecha,'fecha_ingreso'=>$fecha_ingreso,'fecha_despacho'=>$fecha_despacho,'guia'=>$guia,'serie_f'=>$serie,'numero_f'=>$numero,'total'=>$total,'moneda'=>$moneda,'proveedor'=>$proveedor,'usuario'=>$id_usuario,'observacion'=>$observaciones,'exonerada'=>$exonerada,'estado'=>'0','forma_pago'=>$forma_pago,'fecha_compromiso_pago'=>$fecha_compromiso_pago,'flete_modo'=>$flete_modo,'flete_tarifa'=>$flete_tarifa,'flete_bultos'=>$flete_bultos,'flete_total'=>$flete_total);
 			$ventas->insert($data);
 			$venta_id = $ventas->insert_id();
 			if ($venta_id) {
@@ -57,6 +71,30 @@ if (isset($_POST) && !empty($_POST)) {
 					$pago->insert(array('id_pago'=>'','compra'=>$venta_id,'monto'=>$total,'metodo'=>$metodo_pago,'usuario'=>$id_usuario,'fecha'=>date('Y-m-d H:i:s')));
 				}
 			}
+			// El flete es un gasto de la compra: se registra en Gastos (categoría Flete) y
+			// no suma al total de la compra, porque no se le debe al proveedor.
+			if ($venta_id && $flete_total > 0) {
+				$gastos = Sdba::table('gastos');
+				$desc_flete = 'Flete compra #' . $venta_id . ($flete_modo === 'bulto' ? ' (' . $flete_bultos . ' bultos x S/ ' . number_format($flete_tarifa, 2) . ')' : '');
+				$gastos->insert(array('id_gasto'=>'','fecha'=>$fecha,'tipo'=>'puntual','categoria'=>'Flete','descripcion'=>$desc_flete,'monto'=>$flete_total,'metodo'=>$metodo_flete,'usuario'=>$id_usuario,'estado'=>'1','fecha_registro'=>date('Y-m-d H:i:s'),'compra'=>$venta_id));
+			}
+
+			// Prorrateo del flete entre los items según su monto (el último absorbe el redondeo)
+			$suma_items = 0;
+			for ($i=0; $i < count($id_p); $i++) { $suma_items += floatval($total_pre[$i]); }
+			$flete_items = array();
+			$flete_asignado = 0;
+			for ($i=0; $i < count($id_p); $i++) {
+				if ($flete_total <= 0) { $flete_items[$i] = 0; continue; }
+				if ($i == count($id_p) - 1) {
+					$flete_items[$i] = round($flete_total - $flete_asignado, 2);
+				} else {
+					$parte = $suma_items > 0 ? floatval($total_pre[$i]) / $suma_items : 1 / count($id_p);
+					$flete_items[$i] = round($flete_total * $parte, 2);
+					$flete_asignado += $flete_items[$i];
+				}
+			}
+
 			//guardamos en tabla detalle de compra
 			for ($i=0; $i < count($id_p) ; $i++) { 
 				if ($unidad[$i]=='TNE') {
@@ -71,7 +109,7 @@ if (isset($_POST) && !empty($_POST)) {
 					$cantidad1 = $cantidad[$i];
 				}
 				$dventas = Sdba::table('detalle_compras');
-				$ddata = array('id_de_compra'=>'','compra'=>$venta_id,'producto'=>$id_p[$i],'cantidad'=>$cantidad1,'precio'=>$precio[$i],'total'=>$total_pre[$i],'estado'=>'0');
+				$ddata = array('id_de_compra'=>'','compra'=>$venta_id,'producto'=>$id_p[$i],'cantidad'=>$cantidad1,'precio'=>$precio[$i],'total'=>$total_pre[$i],'flete'=>$flete_items[$i],'estado'=>'0');
 				$dventas->insert($ddata);
 
 				$stock = Sdba::table('stock');
@@ -89,9 +127,14 @@ if (isset($_POST) && !empty($_POST)) {
 				$productos->where('id_producto',$id_p[$i]);
 				$productos->update(array('stockp'=>$stocktot));
 				if (!empty($precio[$i])) {
+					// precio_compra = precio real: precio de lista + flete por unidad comprada
+					$precio_real = floatval($precio[$i]);
+					if ($flete_items[$i] > 0 && floatval($cantidad[$i]) > 0) {
+						$precio_real = round($precio_real + $flete_items[$i] / floatval($cantidad[$i]), 4);
+					}
 					$prod2 = Sdba::table('productos');
 					$prod2->where('id_producto', $id_p[$i]);
-					$prod2->update(array('precio_compra' => floatval($precio[$i])));
+					$prod2->update(array('precio_compra' => $precio_real));
 				}
 			}
 

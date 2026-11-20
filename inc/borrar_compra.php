@@ -46,6 +46,11 @@ $mensajeError = 'hasta aca bien';
 			$compras->where('id_compra',$id);
 			$data = array('estado'=>'2');
 			$compras->update($data);
+
+			// el flete de esta compra deja de contar como gasto
+			$gflete = Sdba::table('gastos');
+			$gflete->where('compra',$id);
+			$gflete->update(array('estado'=>'2'));
 			
 				$respuestaOk = true;
 				$mensajeError = 'entro';

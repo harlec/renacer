@@ -191,6 +191,44 @@ foreach ($proveedoresl as $key) {
 													 </div>
 											    		</div>
 											    	</div>
+											    	<div class="row">
+											    		<div class="col-md-3">
+											    			<div class="form-group">
+														    <label>Flete</label>
+														    <select class="form-control" name="flete_modo" id="flete_modo">
+														    	<option value="ninguno">Sin flete</option>
+														    	<option value="total">Por compra completa</option>
+														    	<option value="bulto">Por bulto</option>
+														    </select>
+														 </div>
+											    		</div>
+											    		<div class="col-md-2 col_flete" style="display:none">
+											    			<div class="form-group">
+														    <label id="lbl_flete_tarifa">Monto flete (S/)</label>
+														    <input type="number" step="0.01" min="0" class="form-control" name="flete_tarifa" id="flete_tarifa" value="0">
+														 </div>
+											    		</div>
+											    		<div class="col-md-2" id="col_flete_bultos" style="display:none">
+											    			<div class="form-group">
+														    <label>N° de bultos</label>
+														    <input type="number" step="1" min="0" class="form-control" name="flete_bultos" id="flete_bultos" value="0">
+														 </div>
+											    		</div>
+											    		<div class="col-md-3 col_flete" style="display:none">
+											    			<div class="form-group">
+														    <label>Método de pago del flete</label>
+														    <select class="form-control" name="metodo_flete" id="metodo_flete">
+														    	<?php echo medios_options(); ?>
+														    </select>
+														 </div>
+											    		</div>
+											    		<div class="col-md-2 col_flete" style="display:none">
+											    			<div class="form-group">
+														    <label>Flete total (S/)</label>
+														    <input type="text" class="form-control" id="flete_total_vista" value="0.00" readonly>
+														 </div>
+											    		</div>
+											    	</div>
 											    		<div class="col-md-12">
 											    			<h3 class="text-center">Items</h3>
 											    		</div>
@@ -216,6 +254,9 @@ foreach ($proveedoresl as $key) {
 															</table>
 															<div class="text-right">
 																<strong>Total:  </strong><input id="total" name="total" type="text" id="total">
+															</div>
+															<div class="text-right" id="fila_costo_real" style="display:none">
+																<strong>Costo real (con flete):  </strong><input id="costo_real" type="text" readonly>
 															</div>
 														</div>
 														<div class="col-sm-2"></div>
@@ -270,6 +311,26 @@ foreach ($proveedoresl as $key) {
 	// A $( document ).ready() block.
 	$(document ).ready(function() {
 		$('#proveedor').select2();
+
+		// Flete: el total depende del modo; el costo real = total de la compra + flete
+		function calcularFlete() {
+			var modo = $('#flete_modo').val();
+			var tarifa = parseFloat($('#flete_tarifa').val()) || 0;
+			var bultos = parseInt($('#flete_bultos').val()) || 0;
+			var flete = modo === 'total' ? tarifa : (modo === 'bulto' ? tarifa * bultos : 0);
+			$('#flete_total_vista').val(flete.toFixed(2));
+			$('#fila_costo_real').toggle(flete > 0);
+			$('#costo_real').val(((parseFloat($('#total').val()) || 0) + flete).toFixed(2));
+		}
+		$('#flete_modo').on('change', function () {
+			var modo = $(this).val();
+			$('.col_flete').toggle(modo !== 'ninguno');
+			$('#col_flete_bultos').toggle(modo === 'bulto');
+			$('#lbl_flete_tarifa').text(modo === 'bulto' ? 'Precio por bulto (S/)' : 'Monto flete (S/)');
+			calcularFlete();
+		});
+		$('#flete_tarifa, #flete_bultos').on('change paste keyup', calcularFlete);
+		$('body').on('change paste keyup click', '#items input, #items button, #items select, #datos #agregar', function () { setTimeout(calcularFlete, 600); });
 
 		$('#forma_pago').on('change', function () {
 			var esCredito = $(this).val() === 'credito';

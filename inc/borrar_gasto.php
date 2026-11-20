@@ -25,6 +25,13 @@ if ($conn->connect_error) {
     exit;
 }
 
+$rg = $conn->query("SELECT compra FROM gastos WHERE id_gasto = $id");
+$gv = $rg ? $rg->fetch_assoc() : null;
+if ($gv && !empty($gv['compra'])) {
+    echo json_encode(['ok' => false, 'mensaje' => 'Es el flete de la compra #' . $gv['compra'] . '. Se anula al anular la compra.']);
+    exit;
+}
+
 $conn->query("UPDATE gastos SET estado = '2' WHERE id_gasto = $id");
 echo json_encode(['ok' => $conn->affected_rows > 0, 'mensaje' => 'No se pudo anular el gasto']);
 $conn->close();
