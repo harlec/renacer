@@ -28,9 +28,12 @@ else{
 $datos = '';
 $i = 1;
 $tot = 0;
+$flete_tot = 0;
 foreach ($ventas_list as $value) {
 
 	$tot = $tot + $value['total'];
+	$flete_item = round((float)($value['flete'] ?? 0), 2);
+	$flete_tot += $flete_item;
 
 	$datos .='<tr> 
     			<th scope="row">'.$i.'</th> 
@@ -38,6 +41,8 @@ foreach ($ventas_list as $value) {
     			<td>'.$value['cantidad'].'</td>
     			<td>'.$value['precio'].'</td> 
     			<td>'.round($value['total'],2).'</td>
+    			<td>'.($flete_item > 0 ? number_format($flete_item,2) : '-').'</td>
+    			<td>'.number_format($value['total'] + $flete_item,2).'</td>
     		  </tr>';
     $i++;
 }
@@ -113,7 +118,7 @@ foreach ($ventas_list as $value) {
 											    			<th>Nombre</th> 
 											    			<th>Cantidad</th> 
 											    			<th>Precio</th>
-											    			<th>Total</th>  
+											    			<th>Total</th><th>Flete</th><th>Costo real</th>
 											    		</tr> 
 											    	</thead> 
 											    	<tbody> 
@@ -122,6 +127,10 @@ foreach ($ventas_list as $value) {
 											    	</tbody> 
 											    </table>
 											    <p class="text-right"><strong>Total: <?php echo $mone; ?> <?php echo $tot; ?></strong></p>
+												    <?php if ($flete_tot > 0) { ?>
+												    <p class="text-right">Flete (<?php echo $ventas_list1['flete_modo'] == 'bulto' ? $ventas_list1['flete_bultos'].' bultos x S/ '.number_format($ventas_list1['flete_tarifa'],2) : 'por compra completa'; ?>): S/ <?php echo number_format($flete_tot,2); ?></p>
+												    <p class="text-right"><strong>Costo real de la compra: <?php echo $mone; ?> <?php echo number_format($tot + $flete_tot,2); ?></strong></p>
+												    <?php } ?>
 											    
 											</div>
 										</div>
